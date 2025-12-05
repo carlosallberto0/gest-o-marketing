@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ChecklistQuestion, AnswerValue } from '@/types/checklist';
+import { ChecklistQuestion, AnswerValue } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { HelpCircle, Camera, MessageSquare, Check, X, Minus } from 'lucide-react';
+import { HelpCircle, Camera, MessageSquare, Check, X, Minus, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -38,6 +38,16 @@ export function QuestionItem({ question, value, observation, onAnswer, onObserva
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <div className="flex items-start gap-2">
+            {question.isCritical && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Item crítico</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <p className="text-sm font-medium text-foreground leading-relaxed">
               {question.text}
             </p>
@@ -54,6 +64,11 @@ export function QuestionItem({ question, value, observation, onAnswer, onObserva
               </Tooltip>
             )}
           </div>
+          {question.requiresMaterial && (
+            <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
+              Requer material: {question.materialType}
+            </span>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { ChecklistCategory } from '@/types/checklist';
+import { ChecklistCategory } from '@/types';
 import { cn } from '@/lib/utils';
 import { Store, Building2, LayoutGrid, Users, CreditCard, LucideIcon } from 'lucide-react';
 

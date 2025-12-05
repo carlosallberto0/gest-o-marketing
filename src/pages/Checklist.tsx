@@ -3,8 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { QuestionItem } from '@/components/checklist/QuestionItem';
 import { CategoryTab } from '@/components/checklist/CategoryTab';
-import { mockCategories, mockStores, getScoreBgColor, getScoreLabel } from '@/data/mockData';
-import { AnswerValue, QuestionAnswer } from '@/types/checklist';
+import { mockCategories, mockPDVs, getScoreBgColor, getScoreLabel } from '@/data/mockData';
+import { AnswerValue, QuestionAnswer } from '@/types';
 import { Button } from '@/components/ui/button';
 import { 
   Select,
@@ -13,18 +13,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Store, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Fuel, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function Checklist() {
   const { user } = useAuth();
-  const [selectedStore, setSelectedStore] = useState<string>('');
+  const [selectedPDV, setSelectedPDV] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>(mockCategories[0].id);
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   
   const currentCategory = mockCategories.find(c => c.id === selectedCategory)!;
   const currentCategoryIndex = mockCategories.findIndex(c => c.id === selectedCategory);
+
+  // Filter PDVs with merchandising module
+  const availablePDVs = mockPDVs.filter(p => p.activeModules.includes('merchandising'));
 
   // Calculate scores
   const categoryScores = useMemo(() => {
@@ -75,8 +78,8 @@ export default function Checklist() {
   };
 
   const handleSubmit = () => {
-    if (!selectedStore) {
-      toast.error('Selecione uma loja antes de enviar');
+    if (!selectedPDV) {
+      toast.error('Selecione um PDV antes de enviar');
       return;
     }
     if (totalAnswered < totalQuestions) {
@@ -99,9 +102,9 @@ export default function Checklist() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Nova Avaliação</h1>
+            <h1 className="text-2xl font-bold text-foreground">Nova Avaliação de Merchandising</h1>
             <p className="text-muted-foreground mt-1">
-              Preencha o checklist para avaliar a loja
+              Preencha o checklist para avaliar o PDV
             </p>
           </div>
           
@@ -124,22 +127,22 @@ export default function Checklist() {
           )}
         </div>
 
-        {/* Store Selection */}
+        {/* PDV Selection */}
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                <Store className="h-4 w-4" />
-                Loja
+                <Fuel className="h-4 w-4" />
+                PDV
               </label>
-              <Select value={selectedStore} onValueChange={setSelectedStore}>
+              <Select value={selectedPDV} onValueChange={setSelectedPDV}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma loja" />
+                  <SelectValue placeholder="Selecione um PDV" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockStores.map(store => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
+                  {availablePDVs.map(pdv => (
+                    <SelectItem key={pdv.id} value={pdv.id}>
+                      {pdv.name} ({pdv.city}/{pdv.state})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -235,8 +238,9 @@ export default function Checklist() {
           ) : (
             <Button 
               onClick={handleSubmit}
-              variant="success"
+              variant="default"
               disabled={totalAnswered < totalQuestions}
+              className="bg-success hover:bg-success/90"
             >
               <Send className="h-4 w-4 mr-2" />
               Enviar Avaliação
