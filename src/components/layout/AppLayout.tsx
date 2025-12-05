@@ -65,6 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: History, label: 'Histórico', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Package, label: 'Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
     { icon: Target, label: 'Campanhas', path: '/campaigns', roles: ['super_admin', 'admin', 'director'] },
+    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];
 
   // Menu items for Media module
@@ -73,6 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
+    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];
 
   // Common items (admin only)
