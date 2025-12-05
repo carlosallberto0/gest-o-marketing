@@ -16,7 +16,6 @@ import {
   Megaphone,
   ClipboardCheck
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -38,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NewUserDialog } from '@/components/dialogs/NewUserDialog';
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -73,6 +73,7 @@ export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isNewUserOpen, setIsNewUserOpen] = useState(false);
 
   const filteredUsers = mockUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,7 +108,7 @@ export default function Users() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Usuários</h1>
             <p className="text-muted-foreground mt-1">Gestão de usuários do sistema</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewUserOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Usuário
           </Button>
@@ -270,6 +271,8 @@ export default function Users() {
           </div>
         )}
       </div>
+
+      <NewUserDialog open={isNewUserOpen} onOpenChange={setIsNewUserOpen} />
     </AppLayout>
   );
 }

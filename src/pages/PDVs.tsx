@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NewPDVDialog } from '@/components/dialogs/NewPDVDialog';
 
 const getTypeLabel = (type: string) => {
   switch (type) {
@@ -56,6 +57,7 @@ export default function PDVs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [moduleFilter, setModuleFilter] = useState<string>('all');
+  const [isNewPDVOpen, setIsNewPDVOpen] = useState(false);
 
   const filteredPDVs = pdvs?.filter(pdv => {
     const matchesSearch = pdv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,7 +84,7 @@ export default function PDVs() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">PDVs</h1>
             <p className="text-muted-foreground mt-1">Gestão de pontos de venda</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewPDVOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo PDV
           </Button>
@@ -258,6 +260,8 @@ export default function PDVs() {
           </div>
         )}
       </div>
+
+      <NewPDVDialog open={isNewPDVOpen} onOpenChange={setIsNewPDVOpen} />
     </AppLayout>
   );
 }

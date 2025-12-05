@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useModule } from '@/contexts/ModuleContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -18,9 +19,11 @@ import {
   Target,
   Loader2,
   BarChart3,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -41,40 +44,81 @@ const getRoleLabel = (role: string): string => {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { profile, signOut, hasModule, canAccessRoute, loading } = useAuth();
+  const { activeModule, clearActiveModule } = useModule();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems: Array<{
+  type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
+  
+  interface MenuItem {
     icon: typeof LayoutDashboard;
     label: string;
     path: string;
-    roles: Array<'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier'>;
-    modules?: readonly ('media' | 'merchandising')[];
-  }> = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    roles: UserRole[];
+  }
+
+  // Menu items for Merchandising module
+  const merchandisingItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/merchandising/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: History, label: 'Histórico', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Package, label: 'Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
+    { icon: Target, label: 'Campanhas', path: '/campaigns', roles: ['super_admin', 'admin', 'director'] },
+  ];
+
+  // Menu items for Media module
+  const mediaItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
+  ];
+
+  // Common items (admin only)
+  const adminItems: MenuItem[] = [
     { icon: BarChart3, label: 'Admin Dashboard', path: '/admin', roles: ['super_admin', 'admin'] },
-    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'], roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'], roles: ['super_admin', 'admin'] },
-    { icon: Target, label: 'Campanhas', path: '/campaigns', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director'] },
-    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', modules: ['media'], roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: FileText, label: 'Contratos', path: '/contracts', modules: ['media'], roles: ['super_admin', 'admin'] },
     { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 
+  // Get menu items based on active module
+  const getMenuItems = (): MenuItem[] => {
+    const items: MenuItem[] = [];
+    
+    if (activeModule === 'merchandising') {
+      items.push(...merchandisingItems);
+    } else if (activeModule === 'media') {
+      items.push(...mediaItems);
+    }
+    
+    // Add admin items for admins
+    if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+      items.push(...adminItems);
+    }
+    
+    return items;
+  };
+
+  const menuItems = getMenuItems();
+
   const filteredMenuItems = menuItems.filter(item => {
     if (!profile) return false;
     if (!canAccessRoute(item.roles)) return false;
-    if (item.modules && !item.modules.some(m => hasModule(m))) return false;
     return true;
   });
 
   const handleLogout = async () => {
+    clearActiveModule();
     await signOut();
     navigate('/');
+  };
+
+  const handleSwitchModule = () => {
+    clearActiveModule();
+    navigate('/modules');
+    setIsMobileMenuOpen(false);
   };
 
   if (loading) {
@@ -84,6 +128,18 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
     );
   }
+
+  const getModuleLabel = () => {
+    if (activeModule === 'merchandising') return 'Merchandising';
+    if (activeModule === 'media') return 'Mídia Externa';
+    return '';
+  };
+
+  const getModuleColor = () => {
+    if (activeModule === 'merchandising') return 'bg-emerald-500';
+    if (activeModule === 'media') return 'bg-blue-500';
+    return 'bg-primary';
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,6 +189,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-xs text-sidebar-foreground/70">{getRoleLabel(profile?.role || '')}</p>
               </div>
             </div>
+            {/* Active Module Badge */}
+            {activeModule && (
+              <div className="mt-3">
+                <Badge className={cn("w-full justify-center py-1.5 text-white", getModuleColor())}>
+                  {getModuleLabel()}
+                </Badge>
+              </div>
+            )}
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -159,7 +223,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Button 
               variant="ghost" 
               className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" 
-              onClick={() => { navigate('/modules'); setIsMobileMenuOpen(false); }}
+              onClick={handleSwitchModule}
             >
               <ArrowLeftRight className="h-5 w-5 mr-3" />
               Trocar Módulo

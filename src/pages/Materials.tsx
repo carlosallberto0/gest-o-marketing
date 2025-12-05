@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NewMaterialDialog } from '@/components/dialogs/NewMaterialDialog';
 
 const getMaterialTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -50,6 +51,7 @@ export default function Materials() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
+  const [isNewMaterialOpen, setIsNewMaterialOpen] = useState(false);
 
   const filteredMaterials = mockMaterials.filter(material => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,7 +81,7 @@ export default function Materials() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Materiais</h1>
             <p className="text-muted-foreground mt-1">Gestão de materiais de trade marketing</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewMaterialOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Material
           </Button>
@@ -231,6 +233,8 @@ export default function Materials() {
           </div>
         )}
       </div>
+
+      <NewMaterialDialog open={isNewMaterialOpen} onOpenChange={setIsNewMaterialOpen} />
     </AppLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockCampaigns, mockPDVs } from '@/data/mockData';
+import { mockCampaigns } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NewCampaignDialog } from '@/components/dialogs/NewCampaignDialog';
 
 const getCampaignTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -61,6 +62,7 @@ export default function Campaigns() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
 
   const filteredCampaigns = mockCampaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,7 +103,7 @@ export default function Campaigns() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Campanhas</h1>
             <p className="text-muted-foreground mt-1">Gestão de campanhas de merchandising</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewCampaignOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Campanha
           </Button>
@@ -282,6 +284,8 @@ export default function Campaigns() {
           </div>
         )}
       </div>
+
+      <NewCampaignDialog open={isNewCampaignOpen} onOpenChange={setIsNewCampaignOpen} />
     </AppLayout>
   );
 }
