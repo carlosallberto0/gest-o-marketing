@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useCreatePDV } from '@/hooks/useCreatePDV';
 
 interface NewPDVDialogProps {
   open: boolean;
@@ -14,18 +15,19 @@ interface NewPDVDialogProps {
 }
 
 export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const createPDV = useCreatePDV();
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    type: '',
+    type: '' as 'posto' | 'conveniencia' | 'both' | '',
     address: '',
     city: '',
     state: '',
-    modules: [] as string[],
+    modules: [] as ('media' | 'merchandising')[],
+    photoUrl: '',
   });
 
-  const handleModuleChange = (module: string, checked: boolean) => {
+  const handleModuleChange = (module: 'media' | 'merchandising', checked: boolean) => {
     if (checked) {
       setFormData({ ...formData, modules: [...formData.modules, module] });
     } else {
@@ -35,12 +37,20 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!formData.type) return;
+
+    await createPDV.mutateAsync({
+      code: formData.code,
+      name: formData.name,
+      type: formData.type,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state.toUpperCase(),
+      modules: formData.modules,
+      photoUrl: formData.photoUrl || undefined,
+    });
     
-    toast.success('PDV criado com sucesso!');
-    setIsLoading(false);
     onOpenChange(false);
     setFormData({
       code: '',
@@ -50,16 +60,28 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
       city: '',
       state: '',
       modules: [],
+      photoUrl: '',
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo PDV</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Photo Upload */}
+          <div className="space-y-2">
+            <Label>Foto do PDV</Label>
+            <PhotoUpload
+              value={formData.photoUrl || null}
+              onChange={(url) => setFormData({ ...formData, photoUrl: url || '' })}
+              folder="pdvs"
+              placeholder="Adicionar foto do posto"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
@@ -73,7 +95,7 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Tipo</Label>
-              <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+              <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as 'posto' | 'conveniencia' | 'both' })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -158,8 +180,8 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createPDV.isPending}>
+              {createPDV.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar PDV
             </Button>
           </DialogFooter>
