@@ -31,16 +31,22 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems = [
+  const menuItems: Array<{
+    icon: typeof LayoutDashboard;
+    label: string;
+    path: string;
+    roles: Array<'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier'>;
+    modules?: readonly ('media' | 'merchandising')[];
+  }> = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
     // Merchandising
-    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'] as const, roles: ['super_admin', 'admin'] },
-    { icon: Target, label: 'Campanhas', path: '/campaigns', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'director'] },
+    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'], roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'], roles: ['super_admin', 'admin'] },
+    { icon: Target, label: 'Campanhas', path: '/campaigns', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director'] },
     // Media
-    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', modules: ['media'] as const, roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: FileText, label: 'Contratos', path: '/contracts', modules: ['media'] as const, roles: ['super_admin', 'admin'] },
+    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', modules: ['media'], roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: FileText, label: 'Contratos', path: '/contracts', modules: ['media'], roles: ['super_admin', 'admin'] },
     // Admin
     { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
