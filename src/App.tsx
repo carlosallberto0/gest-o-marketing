@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Checklist from "./pages/Checklist";
 import History from "./pages/History";
 import Outdoors from "./pages/Outdoors";
+import OutdoorEvaluation from "./pages/OutdoorEvaluation";
 import Contracts from "./pages/Contracts";
 import PDVs from "./pages/PDVs";
 import Materials from "./pages/Materials";
@@ -62,6 +63,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Outdoors />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/outdoor-evaluation" 
+      element={
+        <ProtectedRoute>
+          <OutdoorEvaluation />
         </ProtectedRoute>
       } 
     />

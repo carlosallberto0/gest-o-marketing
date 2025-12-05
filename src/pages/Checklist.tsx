@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Fuel, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +55,22 @@ export default function Checklist() {
     return Math.round((yesCount / allAnswers.length) * 100);
   }, [answers]);
 
+  // Count photos
+  const totalPhotos = Object.values(answers).filter(a => a.photoUrl).length;
+
+  // Check for missing required photos
+  const missingRequiredPhotos = useMemo(() => {
+    const missing: string[] = [];
+    mockCategories.forEach(category => {
+      category.questions.forEach(question => {
+        if (question.requiresPhoto && answers[question.id]?.value && !answers[question.id]?.photoUrl) {
+          missing.push(question.id);
+        }
+      });
+    });
+    return missing;
+  }, [answers]);
+
   const handleAnswer = (questionId: string, value: AnswerValue) => {
     setAnswers(prev => ({
       ...prev,
@@ -77,6 +93,20 @@ export default function Checklist() {
     }));
   };
 
+  const handlePhoto = (questionId: string, photoUrl: string | null) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        questionId,
+        photoUrl,
+      }
+    }));
+    if (photoUrl) {
+      toast.success('Foto adicionada com sucesso!');
+    }
+  };
+
   const handleSubmit = () => {
     if (!selectedPDV) {
       toast.error('Selecione um PDV antes de enviar');
@@ -84,6 +114,10 @@ export default function Checklist() {
     }
     if (totalAnswered < totalQuestions) {
       toast.warning(`Ainda faltam ${totalQuestions - totalAnswered} perguntas para responder`);
+      return;
+    }
+    if (missingRequiredPhotos.length > 0) {
+      toast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
       return;
     }
     toast.success('Checklist enviado com sucesso!');
@@ -162,6 +196,22 @@ export default function Checklist() {
               </div>
             </div>
           </div>
+
+          {/* Stats row */}
+          {totalAnswered > 0 && (
+            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Camera className="h-4 w-4" />
+                <span>{totalPhotos} foto(s) anexada(s)</span>
+              </div>
+              {missingRequiredPhotos.length > 0 && (
+                <div className="flex items-center gap-2 text-warning">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{missingRequiredPhotos.length} foto(s) obrigatória(s) pendente(s)</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Category Tabs - Horizontal Scrollable */}
@@ -200,8 +250,10 @@ export default function Checklist() {
                 question={question}
                 value={answers[question.id]?.value || null}
                 observation={answers[question.id]?.observation}
+                photoUrl={answers[question.id]?.photoUrl}
                 onAnswer={handleAnswer}
                 onObservation={handleObservation}
+                onPhoto={handlePhoto}
               />
             </div>
           ))}
@@ -239,7 +291,7 @@ export default function Checklist() {
             <Button 
               onClick={handleSubmit}
               variant="default"
-              disabled={totalAnswered < totalQuestions}
+              disabled={totalAnswered < totalQuestions || missingRequiredPhotos.length > 0}
               className="bg-success hover:bg-success/90"
             >
               <Send className="h-4 w-4 mr-2" />

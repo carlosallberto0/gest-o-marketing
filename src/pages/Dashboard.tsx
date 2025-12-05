@@ -75,7 +75,7 @@ export default function Dashboard() {
               </Button>
             )}
             {hasModule('media') && (
-              <Button onClick={() => navigate('/media/evaluation')} variant="outline" size="lg">
+              <Button onClick={() => navigate('/outdoor-evaluation')} variant="outline" size="lg">
                 <Megaphone className="h-5 w-5 mr-2" />
                 Avaliar Outdoor
               </Button>
