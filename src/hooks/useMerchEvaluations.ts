@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 interface EvaluationWithPDV {
   id: string;
@@ -19,11 +21,11 @@ interface EvaluationWithPDV {
   } | null;
 }
 
-export function useMerchEvaluations() {
+export function useMerchEvaluations(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['merch-evaluations'],
+    queryKey: ['merch-evaluations', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('merch_evaluations')
         .select(`
           id,
@@ -37,17 +39,25 @@ export function useMerchEvaluations() {
         .eq('status', 'completed')
         .order('evaluation_date', { ascending: false });
 
+      if (dateRange?.from) {
+        query = query.gte('evaluation_date', format(dateRange.from, 'yyyy-MM-dd'));
+      }
+      if (dateRange?.to) {
+        query = query.lte('evaluation_date', format(dateRange.to, 'yyyy-MM-dd'));
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as EvaluationWithPDV[];
     },
   });
 }
 
-export function usePDVScoreSummary() {
+export function usePDVScoreSummary(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['pdv-score-summary'],
+    queryKey: ['pdv-score-summary', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('merch_evaluations')
         .select(`
           pdv_id,
@@ -58,6 +68,14 @@ export function usePDVScoreSummary() {
         .eq('status', 'completed')
         .order('evaluation_date', { ascending: false });
 
+      if (dateRange?.from) {
+        query = query.gte('evaluation_date', format(dateRange.from, 'yyyy-MM-dd'));
+      }
+      if (dateRange?.to) {
+        query = query.lte('evaluation_date', format(dateRange.to, 'yyyy-MM-dd'));
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       // Group by PDV and calculate averages
@@ -107,11 +125,11 @@ export function usePDVScoreSummary() {
   });
 }
 
-export function useScoreOverTime() {
+export function useScoreOverTime(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['score-over-time'],
+    queryKey: ['score-over-time', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('merch_evaluations')
         .select(`
           evaluation_date,
@@ -121,6 +139,14 @@ export function useScoreOverTime() {
         .eq('status', 'completed')
         .order('evaluation_date', { ascending: true });
 
+      if (dateRange?.from) {
+        query = query.gte('evaluation_date', format(dateRange.from, 'yyyy-MM-dd'));
+      }
+      if (dateRange?.to) {
+        query = query.lte('evaluation_date', format(dateRange.to, 'yyyy-MM-dd'));
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       // Group by month
