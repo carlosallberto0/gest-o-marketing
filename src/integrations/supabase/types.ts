@@ -413,9 +413,11 @@ export type Database = {
           last_evaluation: string | null
           location: string
           non_operational_reason: string | null
+          ownership_type: string | null
           pdv_id: string
           photo_url: string | null
           status: Database["public"]["Enums"]["outdoor_status"]
+          supplier_id: string | null
           updated_at: string
           width: number
         }
@@ -429,9 +431,11 @@ export type Database = {
           last_evaluation?: string | null
           location: string
           non_operational_reason?: string | null
+          ownership_type?: string | null
           pdv_id: string
           photo_url?: string | null
           status?: Database["public"]["Enums"]["outdoor_status"]
+          supplier_id?: string | null
           updated_at?: string
           width: number
         }
@@ -445,9 +449,11 @@ export type Database = {
           last_evaluation?: string | null
           location?: string
           non_operational_reason?: string | null
+          ownership_type?: string | null
           pdv_id?: string
           photo_url?: string | null
           status?: Database["public"]["Enums"]["outdoor_status"]
+          supplier_id?: string | null
           updated_at?: string
           width?: number
         }
@@ -466,6 +472,13 @@ export type Database = {
             referencedRelation: "pdvs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "outdoors_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pdvs: {
@@ -480,6 +493,7 @@ export type Database = {
           lng: number | null
           manager_id: string | null
           name: string
+          photo_url: string | null
           state: string
           status: string
           type: Database["public"]["Enums"]["pdv_type"]
@@ -496,6 +510,7 @@ export type Database = {
           lng?: number | null
           manager_id?: string | null
           name: string
+          photo_url?: string | null
           state: string
           status?: string
           type: Database["public"]["Enums"]["pdv_type"]
@@ -512,6 +527,7 @@ export type Database = {
           lng?: number | null
           manager_id?: string | null
           name?: string
+          photo_url?: string | null
           state?: string
           status?: string
           type?: Database["public"]["Enums"]["pdv_type"]
