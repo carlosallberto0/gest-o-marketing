@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMerchEvaluations, usePDVScoreSummary, useScoreOverTime } from '@/hooks/useMerchEvaluations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, Legend, Area, AreaChart
@@ -12,7 +16,9 @@ import {
   Activity,
   Building2,
   ClipboardCheck,
-  AlertTriangle
+  AlertTriangle,
+  CalendarIcon,
+  X
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +31,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { format, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 
 function getScoreColor(score: number): string {
   if (score >= 90) return 'hsl(var(--success))';
@@ -41,9 +50,14 @@ function getScoreBadgeClass(score: number): string {
 }
 
 export default function AdminDashboard() {
-  const { data: evaluations, isLoading: loadingEvals } = useMerchEvaluations();
-  const { data: pdvSummary, isLoading: loadingPDV } = usePDVScoreSummary();
-  const { data: scoreOverTime, isLoading: loadingOverTime } = useScoreOverTime();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subMonths(new Date(), 3),
+    to: new Date(),
+  });
+
+  const { data: evaluations, isLoading: loadingEvals } = useMerchEvaluations(dateRange);
+  const { data: pdvSummary, isLoading: loadingPDV } = usePDVScoreSummary(dateRange);
+  const { data: scoreOverTime, isLoading: loadingOverTime } = useScoreOverTime(dateRange);
 
   // Calculate stats
   const totalEvaluations = evaluations?.length || 0;
@@ -60,17 +74,67 @@ export default function AdminDashboard() {
     average: pdv.averageScore,
   })) || [];
 
+  const clearDateRange = () => setDateRange(undefined);
+
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Dashboard Administrativo
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Visão geral das avaliações de merchandising por PDV
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Dashboard Administrativo
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Visão geral das avaliações de merchandising por PDV
+            </p>
+          </div>
+          
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal min-w-[260px]",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd MMM yyyy", { locale: ptBR })} -{" "}
+                        {format(dateRange.to, "dd MMM yyyy", { locale: ptBR })}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd MMM yyyy", { locale: ptBR })
+                    )
+                  ) : (
+                    <span>Selecione o período</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            {dateRange && (
+              <Button variant="ghost" size="icon" onClick={clearDateRange}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
