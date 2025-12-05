@@ -4,53 +4,59 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ClipboardCheck, 
-  Store, 
+  Fuel, 
   Users, 
   Settings, 
   LogOut, 
   Menu, 
   X,
   ChevronRight,
-  History
+  History,
+  Megaphone,
+  FileText,
+  Package,
+  Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getRoleLabel } from '@/data/mockData';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['admin', 'manager'] },
-  { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', roles: ['admin', 'manager', 'collaborator'] },
-  { icon: History, label: 'Histórico', path: '/history', roles: ['admin', 'manager', 'collaborator'] },
-  { icon: Store, label: 'Lojas', path: '/stores', roles: ['admin'] },
-  { icon: Users, label: 'Usuários', path: '/users', roles: ['admin'] },
-  { icon: Settings, label: 'Configurações', path: '/settings', roles: ['admin'] },
-];
-
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasModule, canAccessRoute } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const filteredMenuItems = menuItems.filter(item => 
-    user && item.roles.includes(user.role)
-  );
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    // Merchandising
+    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'] as const, roles: ['super_admin', 'admin'] },
+    { icon: Target, label: 'Campanhas', path: '/campaigns', modules: ['merchandising'] as const, roles: ['super_admin', 'admin', 'director'] },
+    // Media
+    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', modules: ['media'] as const, roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: FileText, label: 'Contratos', path: '/contracts', modules: ['media'] as const, roles: ['super_admin', 'admin'] },
+    // Admin
+    { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
+    { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
+    { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
+  ];
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!user) return false;
+    if (!canAccessRoute(item.roles)) return false;
+    if (item.modules && !item.modules.some(m => hasModule(m))) return false;
+    return true;
+  });
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrador';
-      case 'manager': return 'Gerente';
-      case 'collaborator': return 'Colaborador';
-      default: return role;
-    }
   };
 
   return (
@@ -58,26 +64,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <span className="font-semibold text-foreground">PDV Check</span>
+          <span className="font-semibold text-foreground">SR Off Trade</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{user?.name}</span>
-        </div>
+        <span className="text-sm text-muted-foreground">{user?.name.split(' ')[0]}</span>
       </header>
 
-      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-foreground/20 z-40 backdrop-blur-sm"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 bg-foreground/20 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -87,23 +83,22 @@ export function AppLayout({ children }: AppLayoutProps) {
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
+                <Fuel className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">PDV Check</span>
+              <div>
+                <span className="font-bold text-sm block">SR Off Trade</span>
+                <span className="text-[10px] text-sidebar-foreground/60">Marketing v2.0</span>
+              </div>
             </div>
           </div>
 
-          {/* User Info */}
           <div className="px-4 py-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent">
               <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center">
-                <span className="text-sidebar-primary-foreground font-semibold">
-                  {user?.name.charAt(0)}
-                </span>
+                <span className="text-sidebar-primary-foreground font-semibold">{user?.name.charAt(0)}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.name}</p>
@@ -112,22 +107,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {filteredMenuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <button
                   key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive 
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -138,13 +127,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             })}
           </nav>
 
-          {/* Logout */}
           <div className="p-4 border-t border-sidebar-border">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              onClick={handleLogout}
-            >
+            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" onClick={handleLogout}>
               <LogOut className="h-5 w-5 mr-3" />
               Sair
             </Button>
@@ -152,14 +136,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={cn(
-        "min-h-screen transition-all duration-300",
-        "pt-16 lg:pt-0 lg:pl-64"
-      )}>
-        <div className="p-4 lg:p-8">
-          {children}
-        </div>
+      <main className={cn("min-h-screen transition-all duration-300", "pt-16 lg:pt-0 lg:pl-64")}>
+        <div className="p-4 lg:p-8">{children}</div>
       </main>
     </div>
   );

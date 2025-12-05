@@ -1,5 +1,5 @@
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockEvaluations, mockStores, getScoreBgColor, getScoreLabel } from '@/data/mockData';
+import { mockMerchEvaluations, mockPDVs, getScoreBgColor, getScoreLabel } from '@/data/mockData';
 import { Calendar, Store, User, ChevronRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -11,19 +11,19 @@ export default function History() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Histórico de Avaliações</h1>
           <p className="text-muted-foreground mt-1">
-            Consulte todas as avaliações realizadas
+            Consulte todas as avaliações de merchandising realizadas
           </p>
         </div>
 
         {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por loja..." className="pl-10" />
+          <Input placeholder="Buscar por PDV..." className="pl-10" />
         </div>
 
         {/* Evaluations List */}
         <div className="space-y-3">
-          {mockEvaluations.map((evaluation, index) => (
+          {mockMerchEvaluations.map((evaluation, index) => (
             <div
               key={evaluation.id}
               className="bg-card rounded-xl p-4 border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group animate-slide-up"
@@ -32,12 +32,12 @@ export default function History() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{evaluation.storeName}</h3>
+                    <h3 className="font-semibold text-foreground">{evaluation.pdvName}</h3>
                     <span className={cn(
                       "px-2 py-0.5 rounded-full text-xs font-bold text-white",
-                      getScoreBgColor(evaluation.totalScore)
+                      getScoreBgColor(evaluation.percentageScore)
                     )}>
-                      {evaluation.totalScore}%
+                      {evaluation.percentageScore}%
                     </span>
                   </div>
                   
@@ -71,7 +71,7 @@ export default function History() {
           ))}
         </div>
 
-        {mockEvaluations.length === 0 && (
+        {mockMerchEvaluations.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Nenhuma avaliação encontrada</p>
           </div>
