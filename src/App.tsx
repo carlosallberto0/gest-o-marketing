@@ -18,6 +18,7 @@ import Materials from "./pages/Materials";
 import Campaigns from "./pages/Campaigns";
 import Users from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
+import PDVDetail from "./pages/PDVDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -130,6 +131,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <AdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/pdv/:id" 
+      element={
+        <ProtectedRoute>
+          <PDVDetail />
         </ProtectedRoute>
       } 
     />
