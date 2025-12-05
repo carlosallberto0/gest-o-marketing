@@ -15,18 +15,30 @@ import {
   Megaphone,
   FileText,
   Package,
-  Target
+  Target,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getRoleLabel } from '@/data/mockData';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
+const getRoleLabel = (role: string): string => {
+  const labels: Record<string, string> = {
+    super_admin: 'Super Admin',
+    admin: 'Administrador',
+    director: 'Diretoria',
+    manager: 'Gerente',
+    collaborator: 'Colaborador',
+    supplier: 'Fornecedor',
+  };
+  return labels[role] || role;
+};
+
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, logout, hasModule, canAccessRoute } = useAuth();
+  const { profile, signOut, hasModule, canAccessRoute, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -39,31 +51,36 @@ export function AppLayout({ children }: AppLayoutProps) {
     modules?: readonly ('media' | 'merchandising')[];
   }> = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
-    // Merchandising
     { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'], roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'], roles: ['super_admin', 'admin'] },
     { icon: Target, label: 'Campanhas', path: '/campaigns', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director'] },
-    // Media
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', modules: ['media'], roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', modules: ['media'], roles: ['super_admin', 'admin'] },
-    // Admin
     { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
-    if (!user) return false;
+    if (!profile) return false;
     if (!canAccessRoute(item.roles)) return false;
     if (item.modules && !item.modules.some(m => hasModule(m))) return false;
     return true;
   });
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,7 +92,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </Button>
           <span className="font-semibold text-foreground">SR Off Trade</span>
         </div>
-        <span className="text-sm text-muted-foreground">{user?.name.split(' ')[0]}</span>
+        <span className="text-sm text-muted-foreground">{profile?.name?.split(' ')[0]}</span>
       </header>
 
       {isMobileMenuOpen && (
@@ -104,11 +121,13 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="px-4 py-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent">
               <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center">
-                <span className="text-sidebar-primary-foreground font-semibold">{user?.name.charAt(0)}</span>
+                <span className="text-sidebar-primary-foreground font-semibold">
+                  {profile?.name?.charAt(0) || '?'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs text-sidebar-foreground/70">{getRoleLabel(user?.role || '')}</p>
+                <p className="text-sm font-medium truncate">{profile?.name}</p>
+                <p className="text-xs text-sidebar-foreground/70">{getRoleLabel(profile?.role || '')}</p>
               </div>
             </div>
           </div>
