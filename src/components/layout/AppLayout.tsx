@@ -16,7 +16,8 @@ import {
   FileText,
   Package,
   Target,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     modules?: readonly ('media' | 'merchandising')[];
   }> = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: BarChart3, label: 'Admin Dashboard', path: '/admin', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', modules: ['merchandising'], roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: History, label: 'Histórico Merch', path: '/history', modules: ['merchandising'], roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Package, label: 'Materiais', path: '/materials', modules: ['merchandising'], roles: ['super_admin', 'admin'] },
