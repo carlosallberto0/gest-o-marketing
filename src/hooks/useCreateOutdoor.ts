@@ -16,8 +16,6 @@ export function useCreateOutdoor() {
 
   return useMutation({
     mutationFn: async (input: CreateOutdoorInput) => {
-      const area = input.width * input.height;
-      
       const { data, error } = await supabase
         .from('outdoors')
         .insert({
@@ -26,7 +24,6 @@ export function useCreateOutdoor() {
           location: input.location,
           width: input.width,
           height: input.height,
-          area: area,
           photo_url: input.photoUrl || null,
           status: 'pending_evaluation',
         })
