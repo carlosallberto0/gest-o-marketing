@@ -25,6 +25,7 @@ import Users from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
 import PDVDetail from "./pages/PDVDetail";
 import Settings from "./pages/Settings";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -185,6 +186,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Settings />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/reports" 
+      element={
+        <ProtectedRoute>
+          <Reports />
         </ProtectedRoute>
       } 
     />
