@@ -17,7 +17,8 @@ import {
   Package,
   Target,
   Loader2,
-  BarChart3
+  BarChart3,
+  ArrowLeftRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -154,7 +155,15 @@ export function AppLayout({ children }: AppLayoutProps) {
             })}
           </nav>
 
-          <div className="p-4 border-t border-sidebar-border">
+          <div className="p-4 border-t border-sidebar-border space-y-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" 
+              onClick={() => { navigate('/modules'); setIsMobileMenuOpen(false); }}
+            >
+              <ArrowLeftRight className="h-5 w-5 mr-3" />
+              Trocar Módulo
+            </Button>
             <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" onClick={handleLogout}>
               <LogOut className="h-5 w-5 mr-3" />
               Sair

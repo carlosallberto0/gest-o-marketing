@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import ModuleSelection from "./pages/ModuleSelection";
+import MerchDashboard from "./pages/MerchDashboard";
+import MediaDashboard from "./pages/MediaDashboard";
 import Checklist from "./pages/Checklist";
 import History from "./pages/History";
 import Outdoors from "./pages/Outdoors";
@@ -47,10 +50,34 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/auth" element={<Auth />} />
     <Route 
+      path="/modules" 
+      element={
+        <ProtectedRoute>
+          <ModuleSelection />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
       path="/dashboard" 
       element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/merchandising/dashboard" 
+      element={
+        <ProtectedRoute>
+          <MerchDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/media/dashboard" 
+      element={
+        <ProtectedRoute>
+          <MediaDashboard />
         </ProtectedRoute>
       } 
     />
