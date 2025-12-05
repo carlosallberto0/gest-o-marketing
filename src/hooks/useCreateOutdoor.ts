@@ -9,6 +9,8 @@ interface CreateOutdoorInput {
   width: number;
   height: number;
   photoUrl?: string;
+  ownershipType?: 'owned' | 'rented';
+  supplierId?: string;
 }
 
 export function useCreateOutdoor() {
@@ -25,6 +27,8 @@ export function useCreateOutdoor() {
           width: input.width,
           height: input.height,
           photo_url: input.photoUrl || null,
+          ownership_type: input.ownershipType || 'owned',
+          supplier_id: input.supplierId || null,
           status: 'pending_evaluation',
         })
         .select()

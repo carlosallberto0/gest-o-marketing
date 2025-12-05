@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PhotoUpload, MultiPhotoUpload } from '@/components/ui/photo-upload';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2 } from 'lucide-react';
 import { usePDVs } from '@/hooks/usePDVs';
 import { useCreateOutdoor } from '@/hooks/useCreateOutdoor';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface NewOutdoorDialogProps {
   open: boolean;
@@ -24,7 +26,40 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     width: '',
     height: '',
     photoUrl: '',
+    ownershipType: 'owned' as 'owned' | 'rented',
+    supplierId: '',
   });
+
+  // Fetch suppliers
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Generate code automatically when dialog opens
+  useEffect(() => {
+    if (open) {
+      generateCode();
+    }
+  }, [open]);
+
+  const generateCode = async () => {
+    const { count } = await supabase
+      .from('outdoors')
+      .select('*', { count: 'exact', head: true });
+    
+    const nextNumber = (count || 0) + 1;
+    const code = `OUT-${String(nextNumber).padStart(4, '0')}`;
+    setFormData(prev => ({ ...prev, code }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +71,8 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       width: parseFloat(formData.width),
       height: parseFloat(formData.height),
       photoUrl: formData.photoUrl || undefined,
+      ownershipType: formData.ownershipType,
+      supplierId: formData.supplierId || undefined,
     });
     
     onOpenChange(false);
@@ -46,6 +83,8 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       width: '',
       height: '',
       photoUrl: '',
+      ownershipType: 'owned',
+      supplierId: '',
     });
   };
 
@@ -71,13 +110,12 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Código</Label>
+              <Label htmlFor="code">Código (auto)</Label>
               <Input
                 id="code"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="OUT-001"
-                required
+                readOnly
+                className="bg-muted"
               />
             </div>
             <div className="space-y-2">
@@ -142,6 +180,42 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
               </p>
             </div>
           )}
+
+          {/* Ownership Type */}
+          <div className="space-y-2">
+            <Label>Tipo de Propriedade</Label>
+            <Select 
+              value={formData.ownershipType} 
+              onValueChange={(v) => setFormData({ ...formData, ownershipType: v as 'owned' | 'rented' })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="owned">Próprio</SelectItem>
+                <SelectItem value="rented">Alugado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Supplier for maintenance */}
+          <div className="space-y-2">
+            <Label>Fornecedor de Manutenção</Label>
+            <Select 
+              value={formData.supplierId} 
+              onValueChange={(v) => setFormData({ ...formData, supplierId: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o fornecedor (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum</SelectItem>
+                {suppliers.map(supplier => (
+                  <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
