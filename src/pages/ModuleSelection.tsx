@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useModule } from '@/contexts/ModuleContext';
 import { ClipboardCheck, Megaphone, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function ModuleSelection() {
   const { profile, hasModule, signOut } = useAuth();
+  const { setActiveModule } = useModule();
   const navigate = useNavigate();
 
   const modules = [
@@ -31,7 +33,8 @@ export default function ModuleSelection() {
 
   const availableModules = modules.filter(m => hasModule(m.id as 'media' | 'merchandising'));
 
-  const handleModuleSelect = (path: string) => {
+  const handleModuleSelect = (moduleId: string, path: string) => {
+    setActiveModule(moduleId as 'media' | 'merchandising');
     navigate(path);
   };
 
@@ -79,7 +82,7 @@ export default function ModuleSelection() {
                 key={module.id}
                 className="group cursor-pointer border-2 border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => handleModuleSelect(module.path)}
+                onClick={() => handleModuleSelect(module.id, module.path)}
               >
                 <CardHeader className="pb-4">
                   <div className={`w-14 h-14 rounded-xl ${module.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>

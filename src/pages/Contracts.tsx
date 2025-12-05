@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockContracts, mockOutdoors } from '@/data/mockData';
+import { mockContracts } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,14 +8,10 @@ import {
   FileText, 
   Search, 
   Plus, 
-  User,
-  Calendar,
-  DollarSign,
   RefreshCw,
   Download,
   Filter
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -33,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
 
 const getContractStatusColor = (status: string) => {
   switch (status) {
@@ -64,6 +61,7 @@ const getPaymentMethodLabel = (method: string) => {
 export default function Contracts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isNewContractOpen, setIsNewContractOpen] = useState(false);
 
   const filteredContracts = mockContracts.filter(contract => {
     const matchesSearch = contract.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,7 +88,7 @@ export default function Contracts() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Contratos</h1>
             <p className="text-muted-foreground mt-1">Gestão de contratos de locação de área</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewContractOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Contrato
           </Button>
@@ -224,6 +222,8 @@ export default function Contracts() {
           </div>
         )}
       </div>
+
+      <NewContractDialog open={isNewContractOpen} onOpenChange={setIsNewContractOpen} />
     </AppLayout>
   );
 }

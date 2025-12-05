@@ -21,11 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
 
 export default function Outdoors() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pdvFilter, setPdvFilter] = useState<string>('all');
+  const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
 
   const filteredOutdoors = mockOutdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,7 +54,7 @@ export default function Outdoors() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Outdoors</h1>
             <p className="text-muted-foreground mt-1">Gestão de mídia externa</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewOutdoorOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Outdoor
           </Button>
@@ -177,6 +179,8 @@ export default function Outdoors() {
           </div>
         )}
       </div>
+
+      <NewOutdoorDialog open={isNewOutdoorOpen} onOpenChange={setIsNewOutdoorOpen} />
     </AppLayout>
   );
 }
