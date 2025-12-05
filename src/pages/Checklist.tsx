@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { QuestionItem } from '@/components/checklist/QuestionItem';
 import { CategoryTab } from '@/components/checklist/CategoryTab';
-import { mockCategories, mockPDVs, getScoreBgColor, getScoreLabel } from '@/data/mockData';
+import { useChecklistCategories, usePDVs } from '@/hooks/useChecklistData';
+import { useCreateMerchEvaluation } from '@/hooks/useMerchEvaluation';
+import { getScoreBgColor, getScoreLabel } from '@/data/mockData';
 import { AnswerValue, QuestionAnswer } from '@/types';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,27 +15,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle } from 'lucide-react';
+import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function Checklist() {
   const { user } = useAuth();
   const [selectedPDV, setSelectedPDV] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(mockCategories[0].id);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   
-  const currentCategory = mockCategories.find(c => c.id === selectedCategory)!;
-  const currentCategoryIndex = mockCategories.findIndex(c => c.id === selectedCategory);
+  const { data: categories = [], isLoading: categoriesLoading } = useChecklistCategories();
+  const { data: pdvs = [], isLoading: pdvsLoading } = usePDVs('merchandising');
+  const createEvaluation = useCreateMerchEvaluation();
 
-  // Filter PDVs with merchandising module
-  const availablePDVs = mockPDVs.filter(p => p.activeModules.includes('merchandising'));
+  // Set first category when data loads
+  useMemo(() => {
+    if (categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, selectedCategory]);
+
+  const currentCategory = categories.find(c => c.id === selectedCategory);
+  const currentCategoryIndex = categories.findIndex(c => c.id === selectedCategory);
 
   // Calculate scores
   const categoryScores = useMemo(() => {
     const scores: Record<string, { answered: number; total: number; score: number }> = {};
     
-    mockCategories.forEach(category => {
+    categories.forEach(category => {
       const categoryAnswers = category.questions.map(q => answers[q.id]);
       const answered = categoryAnswers.filter(a => a?.value !== null && a?.value !== undefined).length;
       const yesCount = categoryAnswers.filter(a => a?.value === 'yes' || a?.value === 'na').length;
@@ -44,7 +54,7 @@ export default function Checklist() {
     });
     
     return scores;
-  }, [answers]);
+  }, [answers, categories]);
 
   const totalAnswered = Object.values(categoryScores).reduce((acc, s) => acc + s.answered, 0);
   const totalQuestions = Object.values(categoryScores).reduce((acc, s) => acc + s.total, 0);
@@ -61,7 +71,7 @@ export default function Checklist() {
   // Check for missing required photos
   const missingRequiredPhotos = useMemo(() => {
     const missing: string[] = [];
-    mockCategories.forEach(category => {
+    categories.forEach(category => {
       category.questions.forEach(question => {
         if (question.requiresPhoto && answers[question.id]?.value && !answers[question.id]?.photoUrl) {
           missing.push(question.id);
@@ -69,7 +79,7 @@ export default function Checklist() {
       });
     });
     return missing;
-  }, [answers]);
+  }, [answers, categories]);
 
   const handleAnswer = (questionId: string, value: AnswerValue) => {
     setAnswers(prev => ({
@@ -107,7 +117,7 @@ export default function Checklist() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedPDV) {
       toast.error('Selecione um PDV antes de enviar');
       return;
@@ -120,15 +130,53 @@ export default function Checklist() {
       toast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
       return;
     }
-    toast.success('Checklist enviado com sucesso!');
+
+    try {
+      await createEvaluation.mutateAsync({
+        pdvId: selectedPDV,
+        answers,
+        categories,
+      });
+      toast.success('Checklist enviado com sucesso!');
+      // Reset form
+      setAnswers({});
+      setSelectedPDV('');
+    } catch (error) {
+      toast.error('Erro ao enviar checklist');
+      console.error(error);
+    }
   };
 
   const goToCategory = (direction: 'prev' | 'next') => {
     const newIndex = direction === 'next' 
-      ? Math.min(currentCategoryIndex + 1, mockCategories.length - 1)
+      ? Math.min(currentCategoryIndex + 1, categories.length - 1)
       : Math.max(currentCategoryIndex - 1, 0);
-    setSelectedCategory(mockCategories[newIndex].id);
+    setSelectedCategory(categories[newIndex].id);
   };
+
+  if (categoriesLoading || pdvsLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <AppLayout>
+        <div className="max-w-4xl mx-auto text-center py-12">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Nenhuma categoria encontrada</h2>
+          <p className="text-muted-foreground">Entre em contato com o administrador para configurar o checklist.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!currentCategory) return null;
 
   return (
     <AppLayout>
@@ -174,7 +222,7 @@ export default function Checklist() {
                   <SelectValue placeholder="Selecione um PDV" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availablePDVs.map(pdv => (
+                  {pdvs.map(pdv => (
                     <SelectItem key={pdv.id} value={pdv.id}>
                       {pdv.name} ({pdv.city}/{pdv.state})
                     </SelectItem>
@@ -216,7 +264,7 @@ export default function Checklist() {
 
         {/* Category Tabs - Horizontal Scrollable */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0">
-          {mockCategories.map(category => (
+          {categories.map(category => (
             <CategoryTab
               key={category.id}
               category={category}
@@ -271,7 +319,7 @@ export default function Checklist() {
           </Button>
 
           <div className="flex items-center gap-1">
-            {mockCategories.map((_, index) => (
+            {categories.map((_, index) => (
               <div
                 key={index}
                 className={cn(
@@ -282,7 +330,7 @@ export default function Checklist() {
             ))}
           </div>
 
-          {currentCategoryIndex < mockCategories.length - 1 ? (
+          {currentCategoryIndex < categories.length - 1 ? (
             <Button onClick={() => goToCategory('next')}>
               Próximo
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -291,10 +339,14 @@ export default function Checklist() {
             <Button 
               onClick={handleSubmit}
               variant="default"
-              disabled={totalAnswered < totalQuestions || missingRequiredPhotos.length > 0}
+              disabled={totalAnswered < totalQuestions || missingRequiredPhotos.length > 0 || createEvaluation.isPending}
               className="bg-success hover:bg-success/90"
             >
-              <Send className="h-4 w-4 mr-2" />
+              {createEvaluation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
               Enviar Avaliação
             </Button>
           )}
