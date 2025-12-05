@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PhotoUpload, MultiPhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { usePDVs } from '@/hooks/usePDVs';
+import { useCreateOutdoor } from '@/hooks/useCreateOutdoor';
 
 interface NewOutdoorDialogProps {
   open: boolean;
@@ -15,23 +16,28 @@ interface NewOutdoorDialogProps {
 
 export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) {
   const { data: pdvs } = usePDVs();
-  const [isLoading, setIsLoading] = useState(false);
+  const createOutdoor = useCreateOutdoor();
   const [formData, setFormData] = useState({
     code: '',
     pdvId: '',
     location: '',
     width: '',
     height: '',
+    photoUrl: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await createOutdoor.mutateAsync({
+      code: formData.code,
+      pdvId: formData.pdvId,
+      location: formData.location,
+      width: parseFloat(formData.width),
+      height: parseFloat(formData.height),
+      photoUrl: formData.photoUrl || undefined,
+    });
     
-    toast.success('Outdoor criado com sucesso!');
-    setIsLoading(false);
     onOpenChange(false);
     setFormData({
       code: '',
@@ -39,16 +45,30 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       location: '',
       width: '',
       height: '',
+      photoUrl: '',
     });
   };
 
+  const mediaPDVs = pdvs?.filter(pdv => pdv.active_modules?.includes('media')) || [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Outdoor</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Photo Upload */}
+          <div className="space-y-2">
+            <Label>Foto do Outdoor</Label>
+            <PhotoUpload
+              value={formData.photoUrl || null}
+              onChange={(url) => setFormData({ ...formData, photoUrl: url || '' })}
+              folder="outdoors"
+              placeholder="Adicionar foto do outdoor"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
@@ -67,7 +87,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                   <SelectValue placeholder="Selecione o PDV" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pdvs?.filter(pdv => pdv.active_modules?.includes('media')).map(pdv => (
+                  {mediaPDVs.map(pdv => (
                     <SelectItem key={pdv.id} value={pdv.id}>{pdv.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -76,12 +96,12 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="location">Localização</Label>
+            <Label htmlFor="location">Localização do Outdoor</Label>
             <Input
               id="location"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="Ex: Entrada principal, fachada lateral..."
+              placeholder="Ex: Entrada principal, fachada lateral, rodovia km 123..."
               required
             />
           </div>
@@ -93,6 +113,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                 id="width"
                 type="number"
                 step="0.1"
+                min="0"
                 value={formData.width}
                 onChange={(e) => setFormData({ ...formData, width: e.target.value })}
                 placeholder="0.0"
@@ -105,6 +126,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                 id="height"
                 type="number"
                 step="0.1"
+                min="0"
                 value={formData.height}
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                 placeholder="0.0"
@@ -125,8 +147,8 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createOutdoor.isPending}>
+              {createOutdoor.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar Outdoor
             </Button>
           </DialogFooter>

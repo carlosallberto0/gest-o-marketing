@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockOutdoors, mockPDVs, getStatusColor, getStatusLabel } from '@/data/mockData';
+import { useOutdoors } from '@/hooks/useOutdoorData';
+import { getStatusColor, getStatusLabel } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +13,8 @@ import {
   MapPin, 
   Maximize,
   Filter,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -22,14 +25,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
+import { usePDVs } from '@/hooks/usePDVs';
 
 export default function Outdoors() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pdvFilter, setPdvFilter] = useState<string>('all');
   const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
 
-  const filteredOutdoors = mockOutdoors.filter(outdoor => {
+  const { data: outdoors = [], isLoading } = useOutdoors();
+  const { data: pdvs = [] } = usePDVs();
+
+  const filteredOutdoors = outdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          outdoor.pdvName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          outdoor.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -39,11 +47,21 @@ export default function Outdoors() {
   });
 
   const stats = {
-    total: mockOutdoors.length,
-    operational: mockOutdoors.filter(o => o.status === 'operational').length,
-    nonOperational: mockOutdoors.filter(o => o.status === 'non_operational').length,
-    pending: mockOutdoors.filter(o => o.status === 'pending_evaluation').length,
+    total: outdoors.length,
+    operational: outdoors.filter(o => o.status === 'operational').length,
+    nonOperational: outdoors.filter(o => o.status === 'non_operational').length,
+    pending: outdoors.filter(o => o.status === 'pending_evaluation').length,
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -109,7 +127,7 @@ export default function Outdoors() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os PDVs</SelectItem>
-              {mockPDVs.map(pdv => (
+              {pdvs.filter(p => p.active_modules?.includes('media')).map(pdv => (
                 <SelectItem key={pdv.id} value={pdv.id}>{pdv.name}</SelectItem>
               ))}
             </SelectContent>
@@ -163,7 +181,12 @@ export default function Outdoors() {
                   </p>
                 )}
 
-                <Button variant="outline" size="sm" className="w-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => navigate(`/outdoor/${outdoor.id}`)}
+                >
                   <Eye className="h-4 w-4 mr-2" />
                   Ver Detalhes
                 </Button>

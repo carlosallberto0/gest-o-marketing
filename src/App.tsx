@@ -15,6 +15,7 @@ import MediaDashboard from "./pages/MediaDashboard";
 import Checklist from "./pages/Checklist";
 import History from "./pages/History";
 import Outdoors from "./pages/Outdoors";
+import OutdoorDetail from "./pages/OutdoorDetail";
 import OutdoorEvaluation from "./pages/OutdoorEvaluation";
 import Contracts from "./pages/Contracts";
 import PDVs from "./pages/PDVs";
@@ -108,6 +109,14 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/outdoor/:id" 
+      element={
+        <ProtectedRoute>
+          <OutdoorDetail />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
       path="/outdoor-evaluation" 
       element={
         <ProtectedRoute>
@@ -116,7 +125,7 @@ const AppRoutes = () => (
       } 
     />
     <Route 
-      path="/contracts" 
+      path="/contracts"
       element={
         <ProtectedRoute>
           <Contracts />
