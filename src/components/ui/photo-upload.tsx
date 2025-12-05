@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { Camera, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { uploadPhoto } from '@/lib/storage';
+import { toast } from 'sonner';
 
 interface PhotoUploadProps {
   value?: string | null;
@@ -9,6 +11,7 @@ interface PhotoUploadProps {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  folder?: string;
 }
 
 export function PhotoUpload({ 
@@ -16,7 +19,8 @@ export function PhotoUpload({
   onChange, 
   className,
   disabled = false,
-  placeholder = "Adicionar foto"
+  placeholder = "Adicionar foto",
+  folder = "photos"
 }: PhotoUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,36 +29,35 @@ export function PhotoUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione uma imagem válida');
+      toast.error('Por favor, selecione uma imagem válida');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 5MB');
+      toast.error('A imagem deve ter no máximo 5MB');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Convert to base64 for preview (in production, would upload to storage)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        onChange(base64);
-        setIsLoading(false);
-      };
-      reader.onerror = () => {
-        alert('Erro ao processar a imagem');
-        setIsLoading(false);
-      };
-      reader.readAsDataURL(file);
+      const publicUrl = await uploadPhoto(file, folder);
+      
+      if (publicUrl) {
+        onChange(publicUrl);
+        toast.success('Foto enviada com sucesso!');
+      } else {
+        toast.error('Erro ao enviar foto');
+      }
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error('Error uploading photo:', error);
+      toast.error('Erro ao enviar foto');
+    } finally {
       setIsLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -95,6 +98,7 @@ export function PhotoUpload({
                 variant="secondary"
                 size="sm"
                 onClick={triggerFileInput}
+                disabled={isLoading}
               >
                 <Camera className="h-4 w-4 mr-1" />
                 Trocar
@@ -137,13 +141,13 @@ export function PhotoUpload({
   );
 }
 
-// Multi-photo upload component
 interface MultiPhotoUploadProps {
   value: string[];
   onChange: (photos: string[]) => void;
   maxPhotos?: number;
   className?: string;
   disabled?: boolean;
+  folder?: string;
 }
 
 export function MultiPhotoUpload({
@@ -151,7 +155,8 @@ export function MultiPhotoUpload({
   onChange,
   maxPhotos = 5,
   className,
-  disabled = false
+  disabled = false,
+  folder = "photos"
 }: MultiPhotoUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -172,19 +177,19 @@ export function MultiPhotoUpload({
         if (!file.type.startsWith('image/')) continue;
         if (file.size > 5 * 1024 * 1024) continue;
 
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        
-        newPhotos.push(base64);
+        const publicUrl = await uploadPhoto(file, folder);
+        if (publicUrl) {
+          newPhotos.push(publicUrl);
+        }
       }
 
-      onChange([...value, ...newPhotos]);
+      if (newPhotos.length > 0) {
+        onChange([...value, ...newPhotos]);
+        toast.success(`${newPhotos.length} foto(s) enviada(s)`);
+      }
     } catch (error) {
-      console.error('Error processing images:', error);
+      console.error('Error uploading photos:', error);
+      toast.error('Erro ao enviar fotos');
     } finally {
       setIsLoading(false);
       if (fileInputRef.current) {
@@ -213,7 +218,6 @@ export function MultiPhotoUpload({
         disabled={disabled}
       />
 
-      {/* Photo grid */}
       {value.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {value.map((photo, index) => (
@@ -237,7 +241,6 @@ export function MultiPhotoUpload({
         </div>
       )}
 
-      {/* Add button */}
       {canAddMore && !disabled && (
         <button
           type="button"

@@ -20,7 +20,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
-  const { user, hasModule } = useAuth();
+  const { profile, hasModule } = useAuth();
   const navigate = useNavigate();
 
   // Merchandising stats
@@ -61,7 +61,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Olá, {user?.name.split(' ')[0]}!
+              Olá, {profile?.name?.split(' ')[0]}!
             </h1>
             <p className="text-muted-foreground mt-1">
               Dashboard integrado - Mídia Externa + Merchandising
