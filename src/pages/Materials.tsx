@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockMaterials } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,8 @@ import {
   AlertTriangle,
   Filter,
   Eye,
-  Edit
+  Edit,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,7 +29,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { NewMaterialDialog } from '@/components/dialogs/NewMaterialDialog';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const getMaterialTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -52,25 +64,76 @@ export default function Materials() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
   const [isNewMaterialOpen, setIsNewMaterialOpen] = useState(false);
+  const [viewMaterial, setViewMaterial] = useState<any | null>(null);
+  const [editMaterial, setEditMaterial] = useState<any | null>(null);
 
-  const filteredMaterials = mockMaterials.filter(material => {
+  // Fetch materials from database
+  const { data: materials = [], isLoading, refetch } = useQuery({
+    queryKey: ['trade-materials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trade_materials')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredMaterials = materials.filter(material => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          material.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || material.type === typeFilter;
     const matchesStock = stockFilter === 'all' || 
-                        (stockFilter === 'low' && material.currentStock <= material.minimumStock) ||
-                        (stockFilter === 'normal' && material.currentStock > material.minimumStock);
+                        (stockFilter === 'low' && material.current_stock <= material.minimum_stock) ||
+                        (stockFilter === 'normal' && material.current_stock > material.minimum_stock);
     return matchesSearch && matchesType && matchesStock;
   });
 
   const stats = {
-    total: mockMaterials.length,
-    active: mockMaterials.filter(m => m.status === 'active').length,
-    lowStock: mockMaterials.filter(m => m.currentStock <= m.minimumStock).length,
-    totalValue: mockMaterials.reduce((acc, m) => acc + (m.currentStock * m.unitCost), 0),
+    total: materials.length,
+    active: materials.filter(m => m.status === 'active').length,
+    lowStock: materials.filter(m => m.current_stock <= m.minimum_stock).length,
+    totalValue: materials.reduce((acc, m) => acc + (m.current_stock * Number(m.unit_cost)), 0),
   };
 
-  const materialTypes = [...new Set(mockMaterials.map(m => m.type))];
+  const materialTypes = [...new Set(materials.map(m => m.type))];
+
+  const handleSaveEdit = async () => {
+    if (!editMaterial) return;
+    
+    try {
+      const { error } = await supabase
+        .from('trade_materials')
+        .update({
+          name: editMaterial.name,
+          description: editMaterial.description,
+          current_stock: editMaterial.current_stock,
+          minimum_stock: editMaterial.minimum_stock,
+          unit_cost: editMaterial.unit_cost,
+        })
+        .eq('id', editMaterial.id);
+
+      if (error) throw error;
+      
+      toast.success('Material atualizado com sucesso!');
+      setEditMaterial(null);
+      refetch();
+    } catch (error) {
+      toast.error('Erro ao atualizar material');
+      console.error(error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -163,7 +226,7 @@ export default function Materials() {
             </TableHeader>
             <TableBody>
               {filteredMaterials.map((material, index) => {
-                const isLowStock = material.currentStock <= material.minimumStock;
+                const isLowStock = material.current_stock <= material.minimum_stock;
                 return (
                   <TableRow 
                     key={material.id}
@@ -188,7 +251,7 @@ export default function Materials() {
                       <span className="text-sm">{material.category}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(material.unitCost)}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(material.unit_cost))}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-2">
@@ -196,9 +259,9 @@ export default function Materials() {
                           "font-semibold",
                           isLowStock ? "text-warning" : "text-foreground"
                         )}>
-                          {material.currentStock}
+                          {material.current_stock}
                         </span>
-                        <span className="text-muted-foreground text-xs">/ {material.minimumStock} min</span>
+                        <span className="text-muted-foreground text-xs">/ {material.minimum_stock} min</span>
                         {isLowStock && (
                           <AlertTriangle className="h-4 w-4 text-warning" />
                         )}
@@ -211,10 +274,10 @@ export default function Materials() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => setViewMaterial(material)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => setEditMaterial({ ...material })}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
@@ -235,6 +298,122 @@ export default function Materials() {
       </div>
 
       <NewMaterialDialog open={isNewMaterialOpen} onOpenChange={setIsNewMaterialOpen} />
+
+      {/* View Material Dialog */}
+      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalhes do Material</DialogTitle>
+          </DialogHeader>
+          {viewMaterial && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                  <Package className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{viewMaterial.name}</h3>
+                  <p className="text-sm text-muted-foreground">{viewMaterial.code}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Tipo</p>
+                  <p className="font-medium">{getMaterialTypeLabel(viewMaterial.type)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Categoria</p>
+                  <p className="font-medium">{viewMaterial.category}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Custo Unitário</p>
+                  <p className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(viewMaterial.unit_cost))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estoque Atual</p>
+                  <p className="font-medium">{viewMaterial.current_stock} unidades</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estoque Mínimo</p>
+                  <p className="font-medium">{viewMaterial.minimum_stock} unidades</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={viewMaterial.status === 'active' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>
+                    {viewMaterial.status === 'active' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
+              </div>
+              {viewMaterial.description && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Descrição</p>
+                  <p className="text-sm">{viewMaterial.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Material Dialog */}
+      <Dialog open={!!editMaterial} onOpenChange={() => setEditMaterial(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Material</DialogTitle>
+          </DialogHeader>
+          {editMaterial && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input
+                  value={editMaterial.name}
+                  onChange={(e) => setEditMaterial({ ...editMaterial, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  value={editMaterial.description || ''}
+                  onChange={(e) => setEditMaterial({ ...editMaterial, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Custo Unitário</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editMaterial.unit_cost}
+                    onChange={(e) => setEditMaterial({ ...editMaterial, unit_cost: parseFloat(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estoque Atual</Label>
+                  <Input
+                    type="number"
+                    value={editMaterial.current_stock}
+                    onChange={(e) => setEditMaterial({ ...editMaterial, current_stock: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estoque Mínimo</Label>
+                  <Input
+                    type="number"
+                    value={editMaterial.minimum_stock}
+                    onChange={(e) => setEditMaterial({ ...editMaterial, minimum_stock: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditMaterial(null)}>Cancelar</Button>
+                <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

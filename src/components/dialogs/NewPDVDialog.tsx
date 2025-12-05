@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2 } from 'lucide-react';
 import { useCreatePDV } from '@/hooks/useCreatePDV';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NewPDVDialogProps {
   open: boolean;
@@ -26,6 +27,23 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
     modules: [] as ('media' | 'merchandising')[],
     photoUrl: '',
   });
+
+  // Generate code automatically when dialog opens
+  useEffect(() => {
+    if (open) {
+      generateCode();
+    }
+  }, [open]);
+
+  const generateCode = async () => {
+    const { count } = await supabase
+      .from('pdvs')
+      .select('*', { count: 'exact', head: true });
+    
+    const nextNumber = (count || 0) + 1;
+    const code = `PDV-${String(nextNumber).padStart(4, '0')}`;
+    setFormData(prev => ({ ...prev, code }));
+  };
 
   const handleModuleChange = (module: 'media' | 'merchandising', checked: boolean) => {
     if (checked) {
@@ -84,13 +102,12 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Código</Label>
+              <Label htmlFor="code">Código (auto)</Label>
               <Input
                 id="code"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="PDV-001"
-                required
+                readOnly
+                className="bg-muted"
               />
             </div>
             <div className="space-y-2">

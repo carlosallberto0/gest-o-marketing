@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTheme } from 'next-themes';
 
 const colorPalettes = [
   { 
@@ -58,10 +59,28 @@ const colorPalettes = [
 ];
 
 export default function Settings() {
+  const { theme, setTheme } = useTheme();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState('default');
   const [systemName, setSystemName] = useState('SR Off Trade Marketing');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Load saved settings on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('systemSettings');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      if (settings.systemName) setSystemName(settings.systemName);
+      if (settings.logo) setLogoPreview(settings.logo);
+      if (settings.palette) {
+        setSelectedPalette(settings.palette);
+        const palette = colorPalettes.find(p => p.id === settings.palette);
+        if (palette) {
+          document.documentElement.style.setProperty('--primary', palette.colors.primary);
+        }
+      }
+    }
+  }, []);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,16 +107,20 @@ export default function Settings() {
     }
   };
 
+  const handleThemeChange = (newTheme: 'light' | 'dark') => {
+    setTheme(newTheme);
+    toast.success(`Tema ${newTheme === 'light' ? 'claro' : 'escuro'} ativado!`);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
-    // Simular salvamento
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Salvar no localStorage
     const settings = {
       systemName,
       logo: logoPreview,
       palette: selectedPalette,
+      theme,
     };
     localStorage.setItem('systemSettings', JSON.stringify(settings));
     
@@ -268,11 +291,37 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
-                  <button className="flex-1 p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all">
+                  <button 
+                    onClick={() => handleThemeChange('light')}
+                    className={cn(
+                      "flex-1 p-4 rounded-xl border-2 transition-all",
+                      theme === 'light' 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {theme === 'light' && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    )}
                     <Sun className="h-8 w-8 mx-auto mb-2 text-warning" />
                     <p className="text-sm font-medium text-center">Claro</p>
                   </button>
-                  <button className="flex-1 p-4 rounded-xl border-2 border-primary bg-primary/5 transition-all">
+                  <button 
+                    onClick={() => handleThemeChange('dark')}
+                    className={cn(
+                      "flex-1 p-4 rounded-xl border-2 transition-all",
+                      theme === 'dark' 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {theme === 'dark' && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    )}
                     <Moon className="h-8 w-8 mx-auto mb-2 text-primary" />
                     <p className="text-sm font-medium text-center">Escuro</p>
                   </button>

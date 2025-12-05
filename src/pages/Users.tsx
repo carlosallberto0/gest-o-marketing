@@ -14,7 +14,8 @@ import {
   Filter,
   MoreVertical,
   Megaphone,
-  ClipboardCheck
+  ClipboardCheck,
+  Trash2
 } from 'lucide-react';
 import {
   Select,
@@ -35,9 +36,21 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { NewUserDialog } from '@/components/dialogs/NewUserDialog';
+import { toast } from 'sonner';
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -74,6 +87,7 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const filteredUsers = mockUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,6 +112,14 @@ export default function Users() {
     { value: 'collaborator', label: 'Colaborador' },
     { value: 'supplier', label: 'Fornecedor' },
   ];
+
+  const handleDeleteUser = () => {
+    if (deleteUserId) {
+      // In production, this would call an API to delete the user
+      toast.success('Usuário excluído com sucesso!');
+      setDeleteUserId(null);
+    }
+  };
 
   return (
     <AppLayout>
@@ -253,7 +275,15 @@ export default function Users() {
                           <DropdownMenuItem>Ver perfil</DropdownMenuItem>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
                           <DropdownMenuItem>Redefinir senha</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Desativar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-warning">Desativar</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => setDeleteUserId(user.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir usuário
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -273,6 +303,27 @@ export default function Users() {
       </div>
 
       <NewUserDialog open={isNewUserOpen} onOpenChange={setIsNewUserOpen} />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
