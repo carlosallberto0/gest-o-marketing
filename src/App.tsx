@@ -9,6 +9,12 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Checklist from "./pages/Checklist";
 import History from "./pages/History";
+import Outdoors from "./pages/Outdoors";
+import Contracts from "./pages/Contracts";
+import PDVs from "./pages/PDVs";
+import Materials from "./pages/Materials";
+import Campaigns from "./pages/Campaigns";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +54,54 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <History />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/outdoors" 
+      element={
+        <ProtectedRoute>
+          <Outdoors />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/contracts" 
+      element={
+        <ProtectedRoute>
+          <Contracts />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/pdvs" 
+      element={
+        <ProtectedRoute>
+          <PDVs />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/materials" 
+      element={
+        <ProtectedRoute>
+          <Materials />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/campaigns" 
+      element={
+        <ProtectedRoute>
+          <Campaigns />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/users" 
+      element={
+        <ProtectedRoute>
+          <Users />
         </ProtectedRoute>
       } 
     />
