@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockOutdoors, mockPDVs, getStatusColor, getStatusLabel } from '@/data/mockData';
+import { useOutdoors, useCreateMediaEvaluation } from '@/hooks/useOutdoorData';
+import { getStatusColor, getStatusLabel } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { MultiPhotoUpload } from '@/components/ui/photo-upload';
@@ -23,7 +24,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Ruler
+  Ruler,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -38,8 +41,10 @@ export default function OutdoorEvaluation() {
   const [measuresConfirmed, setMeasuresConfirmed] = useState(false);
   const [observations, setObservations] = useState('');
 
-  const outdoor = mockOutdoors.find(o => o.id === selectedOutdoor);
-  const pdv = outdoor ? mockPDVs.find(p => p.id === outdoor.pdvId) : null;
+  const { data: outdoors = [], isLoading } = useOutdoors();
+  const createEvaluation = useCreateMediaEvaluation();
+
+  const outdoor = outdoors.find(o => o.id === selectedOutdoor);
 
   const statusOptions: { value: OutdoorStatus; label: string; icon: React.ReactNode; color: string }[] = [
     { value: 'operational', label: 'Operacional', icon: <CheckCircle className="h-5 w-5" />, color: 'bg-success text-success-foreground' },
@@ -61,14 +66,51 @@ export default function OutdoorEvaluation() {
   const canSubmit = selectedOutdoor && status && photos.length > 0 && 
     (status !== 'non_operational' || nonOperationalReason) && measuresConfirmed;
 
-  const handleSubmit = () => {
-    if (!canSubmit) {
+  const handleSubmit = async () => {
+    if (!canSubmit || !outdoor || !status) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-    toast.success('Avaliação enviada com sucesso!');
-    navigate('/outdoors');
+
+    try {
+      await createEvaluation.mutateAsync({
+        outdoorId: outdoor.id,
+        pdvId: outdoor.pdvId,
+        status: status as OutdoorStatus,
+        nonOperationalReason: status === 'non_operational' ? nonOperationalReason : undefined,
+        photos,
+        measuresConfirmed,
+        observations: observations || undefined,
+      });
+      toast.success('Avaliação enviada com sucesso!');
+      navigate('/outdoors');
+    } catch (error) {
+      toast.error('Erro ao enviar avaliação');
+      console.error(error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (outdoors.length === 0) {
+    return (
+      <AppLayout>
+        <div className="max-w-2xl mx-auto text-center py-12">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Nenhum outdoor encontrado</h2>
+          <p className="text-muted-foreground">Entre em contato com o administrador para cadastrar outdoors.</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -92,7 +134,7 @@ export default function OutdoorEvaluation() {
               <SelectValue placeholder="Escolha um outdoor" />
             </SelectTrigger>
             <SelectContent>
-              {mockOutdoors.map(out => (
+              {outdoors.map(out => (
                 <SelectItem key={out.id} value={out.id}>
                   {out.code} - {out.pdvName} ({out.location})
                 </SelectItem>
@@ -260,9 +302,13 @@ export default function OutdoorEvaluation() {
             <Button 
               className="flex-1 bg-success hover:bg-success/90"
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || createEvaluation.isPending}
             >
-              <Send className="h-4 w-4 mr-2" />
+              {createEvaluation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
               Enviar Avaliação
             </Button>
           </div>
