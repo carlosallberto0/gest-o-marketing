@@ -215,7 +215,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Email sent successfully",
-        emailId: emailResponse.id 
+        emailId: emailResponse.data?.id 
       }),
       {
         status: 200,
