@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useModule } from '@/contexts/ModuleContext';
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   FileText,
   Download,
@@ -30,7 +33,6 @@ import { ptBR } from 'date-fns/locale';
 export default function Reports() {
   const { activeModule } = useModule();
   const [period, setPeriod] = useState('30');
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('pdf');
 
   // Fetch media evaluations
   const { data: mediaEvaluations = [], isLoading: loadingMedia } = useQuery({
@@ -148,34 +150,96 @@ export default function Reports() {
     }
   };
 
-  const handleExport = () => {
-    // In a real implementation, this would generate PDF/Excel
-    // For now, we'll create a simple CSV download
+  const handleExportPDF = () => {
     const data = activeModule === 'media' ? mediaEvaluations : merchEvaluations;
     
     if (data.length === 0) {
+      toast.error('Nenhum dado para exportar');
       return;
     }
 
-    let csvContent = '';
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Relatório de ${activeModule === 'media' ? 'Mídia Externa' : 'Merchandising'}`, pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: Últimos ${period} dias`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 34, { align: 'center' });
+
+    // Stats section
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo', 14, 48);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
     
     if (activeModule === 'media') {
-      csvContent = 'Data,Outdoor,PDV,Local,Status,Avaliador,Observações\n';
-      mediaEvaluations.forEach(e => {
-        csvContent += `${format(new Date(e.evaluated_at), 'dd/MM/yyyy', { locale: ptBR })},${(e as any).outdoors?.code || ''},${(e as any).pdvs?.name || ''},${(e as any).outdoors?.location || ''},${e.status},${(e as any).profiles?.name || ''},${e.observations || ''}\n`;
+      doc.text(`Total de Avaliações: ${mediaStats.total}`, 14, 56);
+      doc.text(`Operacionais: ${mediaStats.operational}`, 14, 62);
+      doc.text(`Não Operacionais: ${mediaStats.nonOperational}`, 14, 68);
+      doc.text(`Pendentes: ${mediaStats.pending}`, 14, 74);
+    } else {
+      doc.text(`Total de Avaliações: ${merchStats.total}`, 14, 56);
+      doc.text(`Completas: ${merchStats.completed}`, 14, 62);
+      doc.text(`Rascunhos: ${merchStats.draft}`, 14, 68);
+      doc.text(`Score Médio: ${merchStats.averageScore}%`, 14, 74);
+    }
+
+    // Table
+    if (activeModule === 'media') {
+      autoTable(doc, {
+        startY: 85,
+        head: [['Data', 'Outdoor', 'PDV', 'Local', 'Status', 'Avaliador']],
+        body: mediaEvaluations.map(e => [
+          format(new Date(e.evaluated_at), 'dd/MM/yyyy', { locale: ptBR }),
+          (e as any).outdoors?.code || '-',
+          (e as any).pdvs?.name || '-',
+          (e as any).outdoors?.location || '-',
+          e.status === 'operational' ? 'Operacional' : e.status === 'non_operational' ? 'Não Operacional' : 'Pendente',
+          (e as any).profiles?.name || '-',
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
       });
     } else {
-      csvContent = 'Data,PDV,Cidade,Estado,Score (%),Status,Avaliador\n';
-      merchEvaluations.forEach(e => {
-        csvContent += `${format(new Date(e.created_at), 'dd/MM/yyyy', { locale: ptBR })},${(e as any).pdvs?.name || ''},${(e as any).pdvs?.city || ''},${(e as any).pdvs?.state || ''},${e.percentage_score}%,${e.status},${(e as any).profiles?.name || ''}\n`;
+      autoTable(doc, {
+        startY: 85,
+        head: [['Data', 'PDV', 'Cidade', 'Estado', 'Score (%)', 'Status', 'Avaliador']],
+        body: merchEvaluations.map(e => [
+          format(new Date(e.created_at), 'dd/MM/yyyy', { locale: ptBR }),
+          (e as any).pdvs?.name || '-',
+          (e as any).pdvs?.city || '-',
+          (e as any).pdvs?.state || '-',
+          `${e.percentage_score}%`,
+          e.status === 'completed' ? 'Completo' : 'Rascunho',
+          (e as any).profiles?.name || '-',
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
       });
     }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `relatorio-${activeModule}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(
+        `Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+
+    doc.save(`relatorio-${activeModule}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast.success('PDF exportado com sucesso!');
   };
 
   return (
@@ -203,9 +267,9 @@ export default function Reports() {
                 <SelectItem value="365">Último ano</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleExport} variant="outline">
+            <Button onClick={handleExportPDF} variant="outline">
               <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
+              Exportar PDF
             </Button>
           </div>
         </div>
@@ -426,7 +490,7 @@ export default function Reports() {
                                 {(evaluation as any).pdvs?.name || '-'}
                               </td>
                               <td className="py-3 px-2 text-sm text-muted-foreground">
-                                {(evaluation as any).pdvs?.city || ''}, {(evaluation as any).pdvs?.state || ''}
+                                {(evaluation as any).pdvs?.city}, {(evaluation as any).pdvs?.state}
                               </td>
                               <td className="py-3 px-2">
                                 <Badge className={getScoreColor(Number(evaluation.percentage_score))}>
@@ -455,28 +519,18 @@ export default function Reports() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pdvSummary.slice(0, 6).map((pdv) => (
-                    <div key={pdv.id} className="p-4 border border-border rounded-lg">
-                      <h4 className="font-medium text-foreground">{pdv.name}</h4>
-                      <p className="text-sm text-muted-foreground">{pdv.code}</p>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{pdv.city}, {pdv.state}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {pdv.active_modules?.map((mod: string) => (
-                          <Badge key={mod} variant="secondary" className="text-xs">
-                            {mod === 'media' ? 'Mídia' : 'Merchandising'}
-                          </Badge>
-                        ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {pdvSummary.slice(0, 10).map((pdv) => (
+                    <div key={pdv.id} className="p-3 bg-muted/50 rounded-lg">
+                      <p className="font-medium text-sm truncate">{pdv.name}</p>
+                      <p className="text-xs text-muted-foreground">{pdv.city}, {pdv.state}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{pdv.code}</span>
                       </div>
                     </div>
                   ))}
                 </div>
-                {pdvSummary.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">Nenhum PDV cadastrado</p>
-                )}
               </CardContent>
             </Card>
           </>

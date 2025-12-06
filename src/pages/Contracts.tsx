@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockContracts } from '@/data/mockData';
+import { useContracts } from '@/hooks/useContracts';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +12,10 @@ import {
   Plus, 
   RefreshCw,
   Download,
-  Filter
+  Filter,
+  Edit,
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,6 +35,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
+import { EditContractDialog } from '@/components/dialogs/EditContractDialog';
+import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
 
 const getContractStatusColor = (status: string) => {
   switch (status) {
@@ -59,25 +66,47 @@ const getPaymentMethodLabel = (method: string) => {
 };
 
 export default function Contracts() {
+  const [searchParams] = useSearchParams();
+  const outdoorFilter = searchParams.get('outdoor');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewContractOpen, setIsNewContractOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<any>(null);
+  const [viewingContract, setViewingContract] = useState<any>(null);
+  
+  const { data: contracts = [], isLoading } = useContracts();
+  const { user } = useAuth();
 
-  const filteredContracts = mockContracts.filter(contract => {
-    const matchesSearch = contract.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contract.outdoorCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contract.farmerCpf.includes(searchTerm);
+  const canEdit = user?.role === 'super_admin' || user?.role === 'admin';
+
+  const filteredContracts = contracts.filter(contract => {
+    const matchesSearch = 
+      contract.farmer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.outdoors?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.farmer_cpf.includes(searchTerm);
     const matchesStatus = statusFilter === 'all' || contract.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesOutdoor = !outdoorFilter || contract.outdoor_id === outdoorFilter;
+    return matchesSearch && matchesStatus && matchesOutdoor;
   });
 
   const stats = {
-    total: mockContracts.length,
-    active: mockContracts.filter(c => c.status === 'active').length,
-    expiring: mockContracts.filter(c => c.status === 'expiring').length,
-    expired: mockContracts.filter(c => c.status === 'expired').length,
-    totalValue: mockContracts.reduce((acc, c) => acc + c.annualValue, 0),
+    total: contracts.length,
+    active: contracts.filter(c => c.status === 'active').length,
+    expiring: contracts.filter(c => c.status === 'expiring').length,
+    expired: contracts.filter(c => c.status === 'expired').length,
+    totalValue: contracts.reduce((acc, c) => acc + Number(c.annual_value), 0),
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -169,30 +198,30 @@ export default function Contracts() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium">{contract.outdoorCode}</span>
+                      <span className="font-medium">{contract.outdoors?.code || '-'}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{contract.farmerName}</p>
-                      <p className="text-xs text-muted-foreground">{contract.farmerCpf}</p>
+                      <p className="font-medium">{contract.farmer_name}</p>
+                      <p className="text-xs text-muted-foreground">{contract.farmer_cpf}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p>{format(new Date(contract.startDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                      <p className="text-muted-foreground">até {format(new Date(contract.endDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                      <p>{format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                      <p className="text-muted-foreground">até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="font-medium">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.monthlyValue)}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(contract.monthly_value))}
                     </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {getPaymentMethodLabel(contract.paymentMethod)}
-                      {contract.autoRenewal && (
+                      {getPaymentMethodLabel(contract.payment_method)}
+                      {contract.auto_renewal && (
                         <span title="Renovação automática">
                           <RefreshCw className="h-3 w-3 text-success" />
                         </span>
@@ -205,9 +234,36 @@ export default function Contracts() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => setViewingContract(contract)}
+                        title="Ver detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setEditingContract(contract)}
+                          title="Editar contrato"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {contract.document_url && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => window.open(contract.document_url, '_blank')}
+                          title="Baixar documento"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -224,6 +280,16 @@ export default function Contracts() {
       </div>
 
       <NewContractDialog open={isNewContractOpen} onOpenChange={setIsNewContractOpen} />
+      <EditContractDialog 
+        open={!!editingContract} 
+        onOpenChange={(open) => !open && setEditingContract(null)} 
+        contract={editingContract}
+      />
+      <ViewContractDialog
+        open={!!viewingContract}
+        onOpenChange={(open) => !open && setViewingContract(null)}
+        contract={viewingContract}
+      />
     </AppLayout>
   );
 }

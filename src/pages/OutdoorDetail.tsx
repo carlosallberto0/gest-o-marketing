@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
+import { useContractByOutdoor } from '@/hooks/useContracts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getStatusColor, getStatusLabel } from '@/data/mockData';
+import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -20,6 +23,8 @@ export default function OutdoorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: outdoors = [], isLoading } = useOutdoors();
+  const { data: contract, isLoading: loadingContract } = useContractByOutdoor(id || null);
+  const [showContractDialog, setShowContractDialog] = useState(false);
   
   const outdoor = outdoors.find(o => o.id === id);
 
@@ -141,15 +146,26 @@ export default function OutdoorDetail() {
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => navigate(`/contracts?outdoor=${outdoor.id}`)}
+                onClick={() => setShowContractDialog(true)}
+                disabled={loadingContract}
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Ver Contrato
+                {loadingContract ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                {contract ? 'Ver Contrato' : 'Sem Contrato'}
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      <ViewContractDialog
+        open={showContractDialog}
+        onOpenChange={setShowContractDialog}
+        contract={contract}
+      />
     </AppLayout>
   );
 }
