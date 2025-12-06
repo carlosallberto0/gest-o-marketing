@@ -13,11 +13,13 @@ import {
   Image,
   Moon,
   Sun,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
+import { supabase } from '@/integrations/supabase/client';
 
 const colorPalettes = [
   { 
@@ -64,6 +66,7 @@ export default function Settings() {
   const [selectedPalette, setSelectedPalette] = useState('default');
   const [systemName, setSystemName] = useState('SR Off Trade Marketing');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -82,19 +85,46 @@ export default function Settings() {
     }
   }, []);
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 5MB.');
-        return;
-      }
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 5MB.');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      // Upload to Supabase Storage
+      const fileName = `system/logo-${Date.now()}.${file.name.split('.').pop()}`;
+      const { data, error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(data.path);
+
+      setLogoPreview(urlData.publicUrl);
+      toast.success('Logo carregada com sucesso!');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      // Fallback to base64 for local storage
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
         toast.success('Logo carregada com sucesso!');
       };
       reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
@@ -123,6 +153,9 @@ export default function Settings() {
       theme,
     };
     localStorage.setItem('systemSettings', JSON.stringify(settings));
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('systemSettingsUpdated', { detail: settings }));
     
     setIsSaving(false);
     toast.success('Configurações salvas com sucesso!');
@@ -206,10 +239,17 @@ export default function Settings() {
                           className="hidden"
                           accept="image/*"
                           onChange={handleLogoUpload}
+                          disabled={isUploadingLogo}
                         />
                         <label htmlFor="logo-upload" className="cursor-pointer">
-                          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                          <p className="text-sm font-medium">Clique para enviar</p>
+                          {isUploadingLogo ? (
+                            <Loader2 className="h-8 w-8 mx-auto text-primary animate-spin mb-2" />
+                          ) : (
+                            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          )}
+                          <p className="text-sm font-medium">
+                            {isUploadingLogo ? 'Enviando...' : 'Clique para enviar'}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             PNG, JPG ou SVG (máx. 5MB)
                           </p>
@@ -294,7 +334,7 @@ export default function Settings() {
                   <button 
                     onClick={() => handleThemeChange('light')}
                     className={cn(
-                      "flex-1 p-4 rounded-xl border-2 transition-all",
+                      "relative flex-1 p-4 rounded-xl border-2 transition-all",
                       theme === 'light' 
                         ? "border-primary bg-primary/5" 
                         : "border-border hover:border-primary/50"
@@ -311,7 +351,7 @@ export default function Settings() {
                   <button 
                     onClick={() => handleThemeChange('dark')}
                     className={cn(
-                      "flex-1 p-4 rounded-xl border-2 transition-all",
+                      "relative flex-1 p-4 rounded-xl border-2 transition-all",
                       theme === 'dark' 
                         ? "border-primary bg-primary/5" 
                         : "border-border hover:border-primary/50"
