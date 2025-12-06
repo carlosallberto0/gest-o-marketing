@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockCampaigns } from '@/data/mockData';
+import { useCampaigns, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
+import { getCampaignTypeLabel, getCampaignStatusLabel, getCampaignStatusColor } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,8 @@ import {
   Filter,
   Eye,
   Play,
-  Pause
+  Pause,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, isPast, isFuture } from 'date-fns';
@@ -29,42 +31,16 @@ import {
 } from "@/components/ui/select";
 import { NewCampaignDialog } from '@/components/dialogs/NewCampaignDialog';
 
-const getCampaignTypeLabel = (type: string) => {
-  const labels: Record<string, string> = {
-    promotional: 'Promocional',
-    institutional: 'Institucional',
-    seasonal: 'Sazonal',
-    launch: 'Lançamento',
-    partnership: 'Parceria',
-  };
-  return labels[type] || type;
-};
-
-const getCampaignStatusLabel = (status: string) => {
-  switch (status) {
-    case 'draft': return 'Rascunho';
-    case 'active': return 'Ativa';
-    case 'ended': return 'Encerrada';
-    default: return status;
-  }
-};
-
-const getCampaignStatusColor = (status: string) => {
-  switch (status) {
-    case 'draft': return 'bg-muted text-muted-foreground';
-    case 'active': return 'bg-success/10 text-success border-success/20';
-    case 'ended': return 'bg-secondary text-secondary-foreground';
-    default: return 'bg-muted text-muted-foreground';
-  }
-};
-
 export default function Campaigns() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
 
-  const filteredCampaigns = mockCampaigns.filter(campaign => {
+  const { data: campaigns = [], isLoading } = useCampaigns();
+  const { mutate: updateStatus, isPending: isUpdating } = useUpdateCampaignStatus();
+
+  const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
@@ -73,13 +49,13 @@ export default function Campaigns() {
   });
 
   const stats = {
-    total: mockCampaigns.length,
-    active: mockCampaigns.filter(c => c.status === 'active').length,
-    draft: mockCampaigns.filter(c => c.status === 'draft').length,
-    ended: mockCampaigns.filter(c => c.status === 'ended').length,
+    total: campaigns.length,
+    active: campaigns.filter(c => c.status === 'active').length,
+    draft: campaigns.filter(c => c.status === 'draft').length,
+    ended: campaigns.filter(c => c.status === 'ended').length,
   };
 
-  const campaignTypes = [...new Set(mockCampaigns.map(c => c.type))];
+  const campaignTypes = [...new Set(campaigns.map(c => c.type))];
 
   const getCampaignProgress = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
@@ -93,6 +69,24 @@ export default function Campaigns() {
     const elapsed = differenceInDays(now, start);
     return Math.round((elapsed / total) * 100);
   };
+
+  const handleActivate = (id: string) => {
+    updateStatus({ id, status: 'active' });
+  };
+
+  const handlePause = (id: string) => {
+    updateStatus({ id, status: 'draft' });
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -168,8 +162,8 @@ export default function Campaigns() {
         {/* Campaigns Grid */}
         <div className="grid md:grid-cols-2 gap-4">
           {filteredCampaigns.map((campaign, index) => {
-            const progress = getCampaignProgress(campaign.startDate, campaign.endDate);
-            const daysRemaining = differenceInDays(new Date(campaign.endDate), new Date());
+            const progress = getCampaignProgress(campaign.start_date, campaign.end_date);
+            const daysRemaining = differenceInDays(new Date(campaign.end_date), new Date());
             
             return (
               <div 
@@ -226,16 +220,16 @@ export default function Campaigns() {
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {format(new Date(campaign.startDate), 'dd/MM', { locale: ptBR })} - {format(new Date(campaign.endDate), 'dd/MM/yy', { locale: ptBR })}
+                        {format(new Date(campaign.start_date), 'dd/MM', { locale: ptBR })} - {format(new Date(campaign.end_date), 'dd/MM/yy', { locale: ptBR })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Store className="h-4 w-4" />
-                      <span>{campaign.targetPdvIds.length} PDVs</span>
+                      <span>{campaign.target_pdv_ids.length} PDVs</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Package className="h-4 w-4" />
-                      <span>{campaign.requiredMaterials.length} materiais</span>
+                      <span>{campaign.required_materials.length} materiais</span>
                     </div>
                   </div>
 
@@ -244,10 +238,10 @@ export default function Campaigns() {
                     <Badge variant="outline">{getCampaignTypeLabel(campaign.type)}</Badge>
                     <div className="flex gap-3 text-xs">
                       <span className="text-muted-foreground">
-                        Meta: <span className="font-medium text-foreground">{campaign.kpiTargets.targetScore}%</span>
+                        Meta: <span className="font-medium text-foreground">{campaign.kpi_targets.targetScore}%</span>
                       </span>
                       <span className="text-muted-foreground">
-                        Cobertura: <span className="font-medium text-foreground">{campaign.kpiTargets.targetCoverage}%</span>
+                        Cobertura: <span className="font-medium text-foreground">{campaign.kpi_targets.targetCoverage}%</span>
                       </span>
                     </div>
                   </div>
@@ -259,13 +253,22 @@ export default function Campaigns() {
                       Ver Detalhes
                     </Button>
                     {campaign.status === 'draft' && (
-                      <Button size="sm">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleActivate(campaign.id)}
+                        disabled={isUpdating}
+                      >
                         <Play className="h-4 w-4 mr-2" />
                         Ativar
                       </Button>
                     )}
                     {campaign.status === 'active' && (
-                      <Button variant="secondary" size="sm">
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                        onClick={() => handlePause(campaign.id)}
+                        disabled={isUpdating}
+                      >
                         <Pause className="h-4 w-4 mr-2" />
                         Pausar
                       </Button>

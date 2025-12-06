@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors, useCreateMediaEvaluation } from '@/hooks/useOutdoorData';
-import { getStatusColor, getStatusLabel } from '@/data/mockData';
+import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { MultiPhotoUpload } from '@/components/ui/photo-upload';

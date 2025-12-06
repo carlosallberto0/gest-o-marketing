@@ -1,7 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
-import { mockOutdoors, getStatusColor } from '@/data/mockData';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useOutdoors } from '@/hooks/useOutdoorData';
+import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
 import { 
   Megaphone, 
@@ -9,7 +11,8 @@ import {
   ArrowRight,
   FileText,
   Truck,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,11 +23,10 @@ export default function MediaDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
-  const totalOutdoors = mockOutdoors.length;
-  const operationalOutdoors = mockOutdoors.filter(o => o.status === 'operational').length;
-  const nonOperationalOutdoors = mockOutdoors.filter(o => o.status === 'non_operational').length;
-  const pendingEvaluations = mockOutdoors.filter(o => o.status === 'pending_evaluation').length;
-  const operationalRate = Math.round((operationalOutdoors / totalOutdoors) * 100);
+  const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
+  const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
+
+  const isLoading = isLoadingStats || isLoadingOutdoors;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -38,6 +40,16 @@ export default function MediaDashboard() {
         return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -62,21 +74,21 @@ export default function MediaDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <ScoreCard 
             title="Taxa Operacional" 
-            score={operationalRate} 
-            subtitle={`${operationalOutdoors}/${totalOutdoors} outdoors`}
+            score={stats?.operationalRate || 0} 
+            subtitle={`${stats?.operationalOutdoors || 0}/${stats?.totalOutdoors || 0} outdoors`}
             trend={-2}
             icon={<CheckCircle className="h-5 w-5 text-white" />}
           />
           <ScoreCard 
             title="Total Outdoors" 
-            score={totalOutdoors} 
+            score={stats?.totalOutdoors || 0} 
             subtitle="Cadastrados"
             icon={<Megaphone className="h-5 w-5 text-white" />}
             className="[&>div>div:first-child>div:last-child]:hidden"
           />
           <ScoreCard 
             title="Contratos" 
-            score={mockOutdoors.filter(o => o.contractId).length} 
+            score={stats?.activeContracts || 0} 
             subtitle="Ativos"
             icon={<FileText className="h-5 w-5 text-white" />}
             className="[&>div>div:first-child>div:last-child]:hidden"
@@ -85,7 +97,7 @@ export default function MediaDashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-destructive">Pendentes</p>
-                <p className="text-3xl font-bold text-destructive mt-2">{pendingEvaluations}</p>
+                <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
                 <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
@@ -107,9 +119,9 @@ export default function MediaDashboard() {
             </div>
             <div className="space-y-4">
               {[
-                { label: 'Operacionais', count: operationalOutdoors, status: 'operational', icon: CheckCircle },
-                { label: 'Não Operacionais', count: nonOperationalOutdoors, status: 'non_operational', icon: AlertTriangle },
-                { label: 'Aguardando Avaliação', count: pendingEvaluations, status: 'pending_evaluation', icon: Megaphone },
+                { label: 'Operacionais', count: stats?.operationalOutdoors || 0, status: 'operational', icon: CheckCircle },
+                { label: 'Não Operacionais', count: stats?.nonOperationalOutdoors || 0, status: 'non_operational', icon: AlertTriangle },
+                { label: 'Aguardando Avaliação', count: stats?.pendingEvaluations || 0, status: 'pending_evaluation', icon: Megaphone },
               ].map((item, index) => (
                 <div key={item.label} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                   <div className="flex items-center justify-between mb-2">
@@ -135,7 +147,7 @@ export default function MediaDashboard() {
                         item.status === 'operational' ? 'bg-success' :
                         item.status === 'pending_evaluation' ? 'bg-warning' : 'bg-destructive'
                       )}
-                      style={{ width: `${(item.count / totalOutdoors) * 100}%`, transitionDelay: `${index * 100}ms` }}
+                      style={{ width: `${(stats?.totalOutdoors || 0) > 0 ? (item.count / (stats?.totalOutdoors || 1)) * 100 : 0}%`, transitionDelay: `${index * 100}ms` }}
                     />
                   </div>
                 </div>
@@ -182,7 +194,7 @@ export default function MediaDashboard() {
             </Button>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockOutdoors.slice(0, 6).map((outdoor, index) => (
+            {outdoors.slice(0, 6).map((outdoor, index) => (
               <Card 
                 key={outdoor.id} 
                 className="cursor-pointer hover:shadow-md transition-shadow animate-slide-up"

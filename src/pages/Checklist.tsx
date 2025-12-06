@@ -5,7 +5,7 @@ import { QuestionItem } from '@/components/checklist/QuestionItem';
 import { CategoryTab } from '@/components/checklist/CategoryTab';
 import { useChecklistCategories, usePDVs } from '@/hooks/useChecklistData';
 import { useCreateMerchEvaluation } from '@/hooks/useMerchEvaluation';
-import { getScoreBgColor, getScoreLabel } from '@/data/mockData';
+import { getScoreBgColor, getScoreLabel } from '@/lib/helpers';
 import { AnswerValue, QuestionAnswer } from '@/types';
 import { Button } from '@/components/ui/button';
 import { 

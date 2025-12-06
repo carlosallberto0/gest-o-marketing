@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockUsers, getRoleLabel, mockPDVs } from '@/data/mockData';
+import { useProfiles, useDeleteProfile } from '@/hooks/useProfiles';
+import { usePDVsWithStats } from '@/hooks/useDashboardStats';
+import { getRoleLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +17,8 @@ import {
   MoreVertical,
   Megaphone,
   ClipboardCheck,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import {
   Select,
@@ -50,7 +53,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { NewUserDialog } from '@/components/dialogs/NewUserDialog';
-import { toast } from 'sonner';
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -89,7 +91,10 @@ export default function Users() {
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
-  const filteredUsers = mockUsers.filter(user => {
+  const { data: users = [], isLoading } = useProfiles();
+  const { mutate: deleteProfile, isPending: isDeleting } = useDeleteProfile();
+
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
@@ -98,10 +103,10 @@ export default function Users() {
   });
 
   const stats = {
-    total: mockUsers.length,
-    active: mockUsers.filter(u => u.status === 'active').length,
-    admins: mockUsers.filter(u => ['super_admin', 'admin'].includes(u.role)).length,
-    managers: mockUsers.filter(u => u.role === 'manager').length,
+    total: users.length,
+    active: users.filter(u => u.status === 'active').length,
+    admins: users.filter(u => ['super_admin', 'admin'].includes(u.role)).length,
+    managers: users.filter(u => u.role === 'manager').length,
   };
 
   const roles = [
@@ -115,11 +120,20 @@ export default function Users() {
 
   const handleDeleteUser = () => {
     if (deleteUserId) {
-      // In production, this would call an API to delete the user
-      toast.success('Usuário excluído com sucesso!');
+      deleteProfile(deleteUserId);
       setDeleteUserId(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -207,89 +221,86 @@ export default function Users() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user, index) => {
-                const pdv = user.pdvId ? mockPDVs.find(p => p.id === user.pdvId) : null;
-                return (
-                  <TableRow 
-                    key={user.id}
-                    className="animate-slide-up"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </p>
-                        </div>
+              {filteredUsers.map((user, index) => (
+                <TableRow 
+                  key={user.id}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{user.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {user.email}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getRoleColor(user.role)}>
-                        {getRoleLabel(user.role)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {user.modules.includes('media') && (
-                          <Badge variant="outline" className="text-xs">
-                            <Megaphone className="h-3 w-3 mr-1" />
-                            Mídia
-                          </Badge>
-                        )}
-                        {user.modules.includes('merchandising') && (
-                          <Badge variant="outline" className="text-xs">
-                            <ClipboardCheck className="h-3 w-3 mr-1" />
-                            Merch
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {pdv ? (
-                        <span className="text-sm">{pdv.name}</span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getRoleColor(user.role)}>
+                      {getRoleLabel(user.role)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {user.modules.includes('media') && (
+                        <Badge variant="outline" className="text-xs">
+                          <Megaphone className="h-3 w-3 mr-1" />
+                          Mídia
+                        </Badge>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(user.status)}>
-                        {getStatusLabel(user.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver perfil</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem>Redefinir senha</DropdownMenuItem>
-                          <DropdownMenuItem className="text-warning">Desativar</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => setDeleteUserId(user.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir usuário
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      {user.modules.includes('merchandising') && (
+                        <Badge variant="outline" className="text-xs">
+                          <ClipboardCheck className="h-3 w-3 mr-1" />
+                          Merch
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {user.pdv_name ? (
+                      <span className="text-sm">{user.pdv_name}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(user.status)}>
+                      {getStatusLabel(user.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>Ver perfil</DropdownMenuItem>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem>Redefinir senha</DropdownMenuItem>
+                        <DropdownMenuItem className="text-warning">Desativar</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => setDeleteUserId(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir usuário
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -317,8 +328,10 @@ export default function Users() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteUser}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,5 +1,5 @@
 import { PDV } from '@/types';
-import { getScoreBgColor } from '@/data/mockData';
+import { getScoreBgColor } from '@/lib/helpers';
 import { MapPin, Calendar, ChevronRight, Fuel, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
