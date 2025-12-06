@@ -2,7 +2,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { PDVCard } from '@/components/dashboard/StoreCard';
-import { mockPDVs, mockCategories, mockMerchEvaluations, mockOutdoors, mockAlerts, getScoreBgColor, getStatusColor, getStatusLabel } from '@/data/mockData';
+import { useDashboardStats, usePDVsWithStats, useCategoryAverages } from '@/hooks/useDashboardStats';
+import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -13,7 +14,8 @@ import {
   BarChart3,
   Megaphone,
   FileText,
-  Bell
+  Bell,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -23,36 +25,30 @@ export default function Dashboard() {
   const { profile, hasModule } = useAuth();
   const navigate = useNavigate();
 
-  // Merchandising stats
-  const pdvsWithMerch = mockPDVs.filter(p => p.activeModules.includes('merchandising'));
-  const avgMerchScore = Math.round(
-    pdvsWithMerch.reduce((acc, s) => acc + (s.lastMerchScore || 0), 0) / pdvsWithMerch.length
-  );
-  const criticalPDVs = pdvsWithMerch.filter(s => (s.lastMerchScore || 0) < 70).length;
-  const totalMerchEvaluations = mockMerchEvaluations.length;
+  const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
+  const { data: pdvs = [], isLoading: isLoadingPDVs } = usePDVsWithStats();
+  const { data: categoryAvg = [], isLoading: isLoadingCategories } = useCategoryAverages();
 
-  // Media stats
-  const totalOutdoors = mockOutdoors.length;
-  const operationalOutdoors = mockOutdoors.filter(o => o.status === 'operational').length;
-  const pendingEvaluations = mockOutdoors.filter(o => o.status === 'pending_evaluation').length;
-  const operationalRate = Math.round((operationalOutdoors / totalOutdoors) * 100);
+  const isLoading = isLoadingStats || isLoadingPDVs;
 
-  // Alerts
-  const relevantAlerts = mockAlerts.filter(a => {
-    if (hasModule('media') && a.module === 'media') return true;
-    if (hasModule('merchandising') && a.module === 'merchandising') return true;
-    return false;
-  });
+  // Filter PDVs by module
+  const pdvsWithMerch = pdvs.filter(p => p.active_modules.includes('merchandising'));
 
+  // Prepare chart data
   const merchChartData = pdvsWithMerch.map(pdv => ({
     name: pdv.name.replace('Posto ', '').replace('Conveniência ', '').substring(0, 12),
     score: pdv.lastMerchScore || 0,
   }));
 
-  const categoryAvg = mockCategories.map(cat => ({
-    name: cat.name.split(' ')[0],
-    score: Math.round(Math.random() * 20 + 75),
-  }));
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -83,38 +79,20 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Alerts Banner */}
-        {relevantAlerts.length > 0 && (
-          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-warning" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  {relevantAlerts.length} alertas pendentes
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {relevantAlerts[0].title}
-                </p>
-              </div>
-              <Button variant="ghost" size="sm">Ver todos</Button>
-            </div>
-          </div>
-        )}
-
         {/* Module Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {hasModule('merchandising') && (
             <>
               <ScoreCard 
                 title="Score Médio Merch" 
-                score={avgMerchScore} 
+                score={stats?.avgMerchScore || 0} 
                 subtitle="Merchandising"
                 trend={3}
                 icon={<TrendingUp className="h-5 w-5 text-white" />}
               />
               <ScoreCard 
                 title="Avaliações" 
-                score={totalMerchEvaluations} 
+                score={stats?.totalMerchEvaluations || 0} 
                 subtitle="Este mês"
                 icon={<ClipboardCheck className="h-5 w-5 text-white" />}
                 className="[&>div>div:first-child>div:last-child]:hidden"
@@ -126,8 +104,8 @@ export default function Dashboard() {
             <>
               <ScoreCard 
                 title="Taxa Operacional" 
-                score={operationalRate} 
-                subtitle={`${operationalOutdoors}/${totalOutdoors} outdoors`}
+                score={stats?.operationalRate || 0} 
+                subtitle={`${stats?.operationalOutdoors || 0}/${stats?.totalOutdoors || 0} outdoors`}
                 trend={-2}
                 icon={<Megaphone className="h-5 w-5 text-white" />}
               />
@@ -135,7 +113,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-destructive">Pendentes</p>
-                    <p className="text-3xl font-bold text-destructive mt-2">{pendingEvaluations}</p>
+                    <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
                     <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
@@ -150,7 +128,7 @@ export default function Dashboard() {
         {/* Charts Section */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Merchandising Chart */}
-          {hasModule('merchandising') && (
+          {hasModule('merchandising') && merchChartData.length > 0 && (
             <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -206,9 +184,9 @@ export default function Dashboard() {
             {hasModule('media') ? (
               <div className="space-y-4">
                 {[
-                  { label: 'Operacionais', count: operationalOutdoors, status: 'operational' },
-                  { label: 'Não Operacionais', count: mockOutdoors.filter(o => o.status === 'non_operational').length, status: 'non_operational' },
-                  { label: 'Aguardando Avaliação', count: pendingEvaluations, status: 'pending_evaluation' },
+                  { label: 'Operacionais', count: stats?.operationalOutdoors || 0, status: 'operational' },
+                  { label: 'Não Operacionais', count: stats?.nonOperationalOutdoors || 0, status: 'non_operational' },
+                  { label: 'Aguardando Avaliação', count: stats?.pendingEvaluations || 0, status: 'pending_evaluation' },
                 ].map((item, index) => (
                   <div key={item.label} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                     <div className="flex items-center justify-between mb-2">
@@ -227,7 +205,7 @@ export default function Dashboard() {
                           item.status === 'operational' ? 'bg-success' :
                           item.status === 'pending_evaluation' ? 'bg-warning' : 'bg-destructive'
                         )}
-                        style={{ width: `${(item.count / totalOutdoors) * 100}%`, transitionDelay: `${index * 100}ms` }}
+                        style={{ width: `${(stats?.totalOutdoors || 0) > 0 ? (item.count / (stats?.totalOutdoors || 1)) * 100 : 0}%`, transitionDelay: `${index * 100}ms` }}
                       />
                     </div>
                   </div>
@@ -276,14 +254,28 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockPDVs.slice(0, 6).map((pdv, index) => (
+            {pdvs.slice(0, 6).map((pdv, index) => (
               <div 
                 key={pdv.id} 
                 className="animate-slide-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <PDVCard 
-                  pdv={pdv} 
+                  pdv={{
+                    id: pdv.id,
+                    code: pdv.code,
+                    name: pdv.name,
+                    type: pdv.type as 'posto' | 'conveniencia' | 'both',
+                    address: pdv.address,
+                    city: pdv.city,
+                    state: pdv.state,
+                    activeModules: pdv.active_modules as ('media' | 'merchandising')[],
+                    status: pdv.status as 'active' | 'inactive',
+                    lastMerchScore: pdv.lastMerchScore || undefined,
+                    lastMerchEvaluation: pdv.lastMerchEvaluation || undefined,
+                    totalOutdoors: pdv.totalOutdoors,
+                    operationalOutdoors: pdv.operationalOutdoors,
+                  }} 
                   onClick={() => navigate(`/pdv/${pdv.id}`)}
                 />
               </div>

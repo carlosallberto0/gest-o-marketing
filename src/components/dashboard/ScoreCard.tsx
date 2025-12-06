@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { getScoreBgColor, getScoreLabel } from '@/data/mockData';
+import { getScoreBgColor, getScoreLabel } from '@/lib/helpers';
 
 interface ScoreCardProps {
   title: string;

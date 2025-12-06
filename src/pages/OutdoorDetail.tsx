@@ -5,7 +5,7 @@ import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getStatusColor, getStatusLabel } from '@/data/mockData';
+import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
 import { 
   ArrowLeft, 

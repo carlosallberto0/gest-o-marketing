@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { PDVCard } from '@/components/dashboard/StoreCard';
-import { mockPDVs, mockCategories, mockMerchEvaluations, getScoreBgColor } from '@/data/mockData';
+import { useDashboardStats, usePDVsWithStats, useCategoryAverages } from '@/hooks/useDashboardStats';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
-  Bell
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -19,22 +19,26 @@ export default function MerchDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
-  const pdvsWithMerch = mockPDVs.filter(p => p.activeModules.includes('merchandising'));
-  const avgMerchScore = Math.round(
-    pdvsWithMerch.reduce((acc, s) => acc + (s.lastMerchScore || 0), 0) / pdvsWithMerch.length
-  );
-  const criticalPDVs = pdvsWithMerch.filter(s => (s.lastMerchScore || 0) < 70).length;
-  const totalMerchEvaluations = mockMerchEvaluations.length;
+  const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
+  const { data: pdvs = [], isLoading: isLoadingPDVs } = usePDVsWithStats('merchandising');
+  const { data: categoryAvg = [], isLoading: isLoadingCategories } = useCategoryAverages();
 
-  const merchChartData = pdvsWithMerch.map(pdv => ({
+  const isLoading = isLoadingStats || isLoadingPDVs || isLoadingCategories;
+
+  const merchChartData = pdvs.map(pdv => ({
     name: pdv.name.replace('Posto ', '').replace('Conveniência ', '').substring(0, 12),
     score: pdv.lastMerchScore || 0,
   }));
 
-  const categoryAvg = mockCategories.map(cat => ({
-    name: cat.name.split(' ')[0],
-    score: Math.round(Math.random() * 20 + 75),
-  }));
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -59,21 +63,21 @@ export default function MerchDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <ScoreCard 
             title="Score Médio" 
-            score={avgMerchScore} 
+            score={stats?.avgMerchScore || 0} 
             subtitle="Todas as lojas"
             trend={3}
             icon={<TrendingUp className="h-5 w-5 text-white" />}
           />
           <ScoreCard 
             title="Avaliações" 
-            score={totalMerchEvaluations} 
+            score={stats?.totalMerchEvaluations || 0} 
             subtitle="Este mês"
             icon={<ClipboardCheck className="h-5 w-5 text-white" />}
             className="[&>div>div:first-child>div:last-child]:hidden"
           />
           <ScoreCard 
             title="PDVs Ativos" 
-            score={pdvsWithMerch.length} 
+            score={pdvs.length} 
             subtitle="Total cadastrados"
             icon={<BarChart3 className="h-5 w-5 text-white" />}
             className="[&>div>div:first-child>div:last-child]:hidden"
@@ -82,7 +86,7 @@ export default function MerchDashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-destructive">PDVs Críticos</p>
-                <p className="text-3xl font-bold text-destructive mt-2">{criticalPDVs}</p>
+                <p className="text-3xl font-bold text-destructive mt-2">{stats?.criticalPDVs || 0}</p>
                 <p className="text-xs text-destructive/70 mt-1">Score abaixo de 70%</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
@@ -95,43 +99,45 @@ export default function MerchDashboard() {
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Performance by PDV */}
-          <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-foreground">Performance por PDV</h3>
-                <p className="text-sm text-muted-foreground">Últimas avaliações</p>
+          {merchChartData.length > 0 && (
+            <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-foreground">Performance por PDV</h3>
+                  <p className="text-sm text-muted-foreground">Últimas avaliações</p>
+                </div>
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
               </div>
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={merchChartData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                    <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      formatter={(value: number) => [`${value}%`, 'Score']}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+                      {merchChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.score >= 90 ? 'hsl(var(--success))' : 
+                                entry.score >= 75 ? 'hsl(152, 69%, 50%)' :
+                                entry.score >= 60 ? 'hsl(var(--warning))' : 
+                                'hsl(var(--destructive))'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={merchChartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
-                  <Tooltip 
-                    formatter={(value: number) => [`${value}%`, 'Score']}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                    {merchChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.score >= 90 ? 'hsl(var(--success))' : 
-                              entry.score >= 75 ? 'hsl(152, 69%, 50%)' :
-                              entry.score >= 60 ? 'hsl(var(--warning))' : 
-                              'hsl(var(--destructive))'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          )}
 
           {/* Category Performance */}
           <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
@@ -142,7 +148,7 @@ export default function MerchDashboard() {
               </div>
             </div>
             <div className="space-y-4">
-              {categoryAvg.map((cat, index) => (
+              {categoryAvg.length > 0 ? categoryAvg.map((cat, index) => (
                 <div key={cat.name} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-foreground">{cat.name}</span>
@@ -167,7 +173,11 @@ export default function MerchDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma avaliação encontrada
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -182,14 +192,28 @@ export default function MerchDashboard() {
             </Button>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pdvsWithMerch.slice(0, 6).map((pdv, index) => (
+            {pdvs.slice(0, 6).map((pdv, index) => (
               <div 
                 key={pdv.id} 
                 className="animate-slide-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <PDVCard 
-                  pdv={pdv} 
+                  pdv={{
+                    id: pdv.id,
+                    code: pdv.code,
+                    name: pdv.name,
+                    type: pdv.type as 'posto' | 'conveniencia' | 'both',
+                    address: pdv.address,
+                    city: pdv.city,
+                    state: pdv.state,
+                    activeModules: pdv.active_modules as ('media' | 'merchandising')[],
+                    status: pdv.status as 'active' | 'inactive',
+                    lastMerchScore: pdv.lastMerchScore || undefined,
+                    lastMerchEvaluation: pdv.lastMerchEvaluation || undefined,
+                    totalOutdoors: pdv.totalOutdoors,
+                    operationalOutdoors: pdv.operationalOutdoors,
+                  }} 
                   onClick={() => navigate(`/pdv/${pdv.id}`)}
                 />
               </div>
