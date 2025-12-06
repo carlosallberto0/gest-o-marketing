@@ -288,6 +288,45 @@ export type Database = {
           },
         ]
       }
+      evaluation_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          evaluation_id: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          evaluation_id: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          evaluation_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_comments_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "merch_evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_evaluation_photos: {
         Row: {
           created_at: string
