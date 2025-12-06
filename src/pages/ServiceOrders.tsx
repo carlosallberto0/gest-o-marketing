@@ -37,13 +37,16 @@ import {
   XCircle,
   Play,
   Trash2,
-  Wrench
+  Wrench,
+  Download
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder } from '@/hooks/useServiceOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
+import { generateServiceOrderPDF } from '@/lib/pdfGenerator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const statusConfig = {
   pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
@@ -94,6 +97,45 @@ export default function ServiceOrders() {
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta ordem de serviço?')) {
       deleteOrder.mutate(id);
+    }
+  };
+
+  const handleExportPDF = (order: typeof orders[0]) => {
+    try {
+      generateServiceOrderPDF({
+        number: order.number,
+        type: order.type,
+        status: order.status,
+        description: order.description,
+        total_cost: order.total_cost,
+        created_at: order.created_at,
+        approved_at: order.approved_at,
+        completed_at: order.completed_at,
+        outdoor: order.outdoor ? {
+          code: order.outdoor.code,
+          location: order.outdoor.location,
+          width: order.outdoor.width,
+          height: order.outdoor.height,
+          area: order.outdoor.area,
+          pdv: order.outdoor.pdv ? {
+            name: order.outdoor.pdv.name,
+            address: order.outdoor.pdv.address,
+            city: order.outdoor.pdv.city,
+            state: order.outdoor.pdv.state,
+          } : undefined,
+        } : undefined,
+        supplier: order.supplier ? {
+          name: order.supplier.name,
+          cnpj: order.supplier.cnpj,
+          phone: order.supplier.phone,
+          email: order.supplier.email,
+          address: order.supplier.address,
+        } : undefined,
+      });
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
     }
   };
 
@@ -274,6 +316,11 @@ export default function ServiceOrders() {
                                   </DropdownMenuItem>
                                 </>
                               )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleExportPDF(order)}>
+                                <Download className="h-4 w-4 mr-2" />
+                                Exportar PDF
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDelete(order.id)}

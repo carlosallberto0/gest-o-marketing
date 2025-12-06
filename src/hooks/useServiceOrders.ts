@@ -19,12 +19,22 @@ export interface ServiceOrder {
   outdoor?: {
     code: string;
     location: string;
+    width: number;
+    height: number;
+    area: number | null;
     pdv?: {
       name: string;
+      address: string;
+      city: string;
+      state: string;
     };
   };
   supplier?: {
     name: string;
+    cnpj: string;
+    phone: string;
+    email: string;
+    address: string;
   };
 }
 
@@ -36,8 +46,8 @@ export function useServiceOrders() {
         .from('service_orders')
         .select(`
           *,
-          outdoor:outdoors(code, location, pdv:pdvs(name)),
-          supplier:suppliers(name)
+          outdoor:outdoors(code, location, width, height, area, pdv:pdvs(name, address, city, state)),
+          supplier:suppliers(name, cnpj, phone, email, address)
         `)
         .order('created_at', { ascending: false });
 
