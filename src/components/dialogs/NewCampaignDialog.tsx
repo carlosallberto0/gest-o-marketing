@@ -6,14 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useCreateCampaign } from '@/hooks/useCreateCampaign';
+import type { Database } from '@/integrations/supabase/types';
+
+type CampaignType = Database['public']['Enums']['campaign_type'];
 
 interface NewCampaignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const campaignTypes = [
+const campaignTypes: { value: CampaignType; label: string }[] = [
   { value: 'promotional', label: 'Promocional' },
   { value: 'institutional', label: 'Institucional' },
   { value: 'seasonal', label: 'Sazonal' },
@@ -22,11 +25,10 @@ const campaignTypes = [
 ];
 
 export function NewCampaignDialog({ open, onOpenChange }: NewCampaignDialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const createCampaign = useCreateCampaign();
   const [formData, setFormData] = useState({
-    code: '',
     name: '',
-    type: '',
+    type: '' as CampaignType | '',
     description: '',
     startDate: '',
     endDate: '',
@@ -36,15 +38,21 @@ export function NewCampaignDialog({ open, onOpenChange }: NewCampaignDialogProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!formData.type) return;
     
-    toast.success('Campanha criada com sucesso!');
-    setIsLoading(false);
+    await createCampaign.mutateAsync({
+      name: formData.name,
+      type: formData.type as CampaignType,
+      description: formData.description || undefined,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      targetScore: parseInt(formData.targetScore),
+      targetCoverage: parseInt(formData.targetCoverage),
+    });
+
     onOpenChange(false);
     setFormData({
-      code: '',
       name: '',
       type: '',
       description: '',
@@ -62,30 +70,18 @@ export function NewCampaignDialog({ open, onOpenChange }: NewCampaignDialogProps
           <DialogTitle>Nova Campanha</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Código</Label>
-              <Input
-                id="code"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="CAM-001"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo</Label>
-              <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {campaignTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="type">Tipo</Label>
+            <Select value={formData.type} onValueChange={(v: CampaignType) => setFormData({ ...formData, type: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {campaignTypes.map(type => (
+                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -158,12 +154,16 @@ export function NewCampaignDialog({ open, onOpenChange }: NewCampaignDialogProps
             </div>
           </div>
 
+          <p className="text-sm text-muted-foreground">
+            O código da campanha será gerado automaticamente no formato CAMP-XXXX
+          </p>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createCampaign.isPending || !formData.type}>
+              {createCampaign.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar Campanha
             </Button>
           </DialogFooter>
