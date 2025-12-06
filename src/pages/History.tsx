@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMerchEvaluations } from '@/hooks/useMerchEvaluations';
 import { Calendar, User, ChevronRight, Search, Loader2, Eye } from 'lucide-react';
@@ -13,8 +12,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CommentsSection } from '@/components/evaluations/CommentsSection';
 
 const getScoreBgColor = (score: number) => {
   if (score >= 85) return 'bg-success';
@@ -23,7 +24,6 @@ const getScoreBgColor = (score: number) => {
 };
 
 export default function History() {
-  const navigate = useNavigate();
   const { data: evaluations = [], isLoading } = useMerchEvaluations();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvaluation, setSelectedEvaluation] = useState<any | null>(null);
@@ -188,6 +188,11 @@ export default function History() {
                   <p className="font-semibold">{selectedEvaluation.total_score} / {selectedEvaluation.total_possible_points} pontos</p>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Comments Section */}
+              <CommentsSection evaluationId={selectedEvaluation.id} />
 
               {/* Actions */}
               <div className="flex gap-3">
