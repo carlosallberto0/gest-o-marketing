@@ -13,7 +13,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier, Supplier, CreateSupplierInput } from '@/hooks/useSuppliers';
 import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
 
-const serviceTypeOptions = [
+type ServiceType = 'installation' | 'maintenance' | 'removal' | 'replacement';
+
+const serviceTypeOptions: { value: ServiceType; label: string }[] = [
   { value: 'installation', label: 'Instalação' },
   { value: 'maintenance', label: 'Manutenção' },
   { value: 'removal', label: 'Remoção' },
@@ -93,12 +95,12 @@ export default function Suppliers() {
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
-      service_types: supplier.service_types,
+      service_types: supplier.service_types as ServiceType[],
     });
     setEditingSupplier(supplier);
   };
 
-  const handleServiceTypeChange = (type: string, checked: boolean) => {
+  const handleServiceTypeChange = (type: ServiceType, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       service_types: checked
