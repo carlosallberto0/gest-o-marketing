@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_plans: {
+        Row: {
+          answer_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string
+          due_date: string
+          evaluation_id: string
+          id: string
+          notes: string | null
+          responsible_id: string | null
+          status: string
+        }
+        Insert: {
+          answer_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          due_date: string
+          evaluation_id: string
+          id?: string
+          notes?: string | null
+          responsible_id?: string | null
+          status?: string
+        }
+        Update: {
+          answer_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string
+          evaluation_id?: string
+          id?: string
+          notes?: string | null
+          responsible_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_plans_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "merch_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           created_at: string

@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CommentsSection } from '@/components/evaluations/CommentsSection';
+import { ActionPlanSection } from '@/components/evaluations/ActionPlanSection';
 
 const getScoreBgColor = (score: number) => {
   if (score >= 85) return 'bg-success';
@@ -188,6 +189,11 @@ export default function History() {
                   <p className="font-semibold">{selectedEvaluation.total_score} / {selectedEvaluation.total_possible_points} pontos</p>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Action Plan Section */}
+              <ActionPlanSection evaluationId={selectedEvaluation.id} />
 
               <Separator />
 
