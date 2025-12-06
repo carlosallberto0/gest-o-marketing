@@ -28,7 +28,9 @@ import PDVDetail from "./pages/PDVDetail";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import { RequireRole } from "@/components/auth/RequireRole";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,7 @@ const AppRoutes = () => (
     <Route path="/" element={<Index />} />
     <Route path="/login" element={<Login />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route 
       path="/modules" 
       element={
@@ -131,7 +134,9 @@ const AppRoutes = () => (
       path="/contracts"
       element={
         <ProtectedRoute>
-          <Contracts />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <Contracts />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -139,7 +144,9 @@ const AppRoutes = () => (
       path="/pdvs" 
       element={
         <ProtectedRoute>
-          <PDVs />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <PDVs />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -147,7 +154,9 @@ const AppRoutes = () => (
       path="/materials" 
       element={
         <ProtectedRoute>
-          <Materials />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <Materials />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -155,7 +164,9 @@ const AppRoutes = () => (
       path="/campaigns" 
       element={
         <ProtectedRoute>
-          <Campaigns />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <Campaigns />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -163,7 +174,9 @@ const AppRoutes = () => (
       path="/users" 
       element={
         <ProtectedRoute>
-          <Users />
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <Users />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -171,7 +184,9 @@ const AppRoutes = () => (
       path="/admin" 
       element={
         <ProtectedRoute>
-          <AdminDashboard />
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <AdminDashboard />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -187,7 +202,9 @@ const AppRoutes = () => (
       path="/settings" 
       element={
         <ProtectedRoute>
-          <Settings />
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <Settings />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -195,7 +212,9 @@ const AppRoutes = () => (
       path="/reports" 
       element={
         <ProtectedRoute>
-          <Reports />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <Reports />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />
@@ -203,7 +222,9 @@ const AppRoutes = () => (
       path="/service-orders" 
       element={
         <ProtectedRoute>
-          <ServiceOrders />
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <ServiceOrders />
+          </RequireRole>
         </ProtectedRoute>
       } 
     />

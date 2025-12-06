@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Fuel, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -21,6 +22,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -187,14 +189,25 @@ export default function Auth() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre'}
-            </button>
+          <div className="mt-4 text-center space-y-2">
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-primary hover:underline"
+              >
+                Esqueceu sua senha?
+              </button>
+            )}
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm text-primary hover:underline"
+              >
+                {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -203,6 +216,11 @@ export default function Auth() {
           Ao continuar, você concorda com nossos termos de uso
         </p>
       </div>
+
+      <ForgotPasswordDialog 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword} 
+      />
     </div>
   );
 }
