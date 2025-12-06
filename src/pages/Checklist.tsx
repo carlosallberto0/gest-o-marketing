@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { QuestionItem } from '@/components/checklist/QuestionItem';
 import { CategoryTab } from '@/components/checklist/CategoryTab';
+import { SignaturePad } from '@/components/ui/signature-pad';
 import { useChecklistCategories, usePDVs } from '@/hooks/useChecklistData';
 import { useCreateMerchEvaluation } from '@/hooks/useMerchEvaluation';
 import { getScoreBgColor, getScoreLabel } from '@/lib/helpers';
@@ -15,15 +16,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle, Loader2, PenTool, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Checklist() {
   const { user } = useAuth();
   const [selectedPDV, setSelectedPDV] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false);
   
   const { data: categories = [], isLoading: categoriesLoading } = useChecklistCategories();
   const { data: pdvs = [], isLoading: pdvsLoading } = usePDVs('merchandising');
@@ -81,6 +93,8 @@ export default function Checklist() {
     return missing;
   }, [answers, categories]);
 
+  const canSubmit = totalAnswered === totalQuestions && missingRequiredPhotos.length === 0 && signatureUrl;
+
   const handleAnswer = (questionId: string, value: AnswerValue) => {
     setAnswers(prev => ({
       ...prev,
@@ -117,6 +131,39 @@ export default function Checklist() {
     }
   };
 
+  const handleSignatureSave = async (signatureDataUrl: string) => {
+    setIsUploadingSignature(true);
+    try {
+      // Convert base64 to blob
+      const response = await fetch(signatureDataUrl);
+      const blob = await response.blob();
+      
+      // Upload to Supabase Storage
+      const fileName = `signatures/${user?.id}/${Date.now()}.png`;
+      const { data, error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, blob, {
+          contentType: 'image/png',
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(data.path);
+
+      setSignatureUrl(urlData.publicUrl);
+      setShowSignatureDialog(false);
+      toast.success('Assinatura confirmada!');
+    } catch (error) {
+      console.error('Error uploading signature:', error);
+      toast.error('Erro ao salvar assinatura');
+    } finally {
+      setIsUploadingSignature(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedPDV) {
       toast.error('Selecione um PDV antes de enviar');
@@ -130,17 +177,24 @@ export default function Checklist() {
       toast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
       return;
     }
+    if (!signatureUrl) {
+      toast.error('É necessário assinar o checklist antes de enviar');
+      setShowSignatureDialog(true);
+      return;
+    }
 
     try {
       await createEvaluation.mutateAsync({
         pdvId: selectedPDV,
         answers,
         categories,
+        signatureUrl,
       });
       toast.success('Checklist enviado com sucesso!');
       // Reset form
       setAnswers({});
       setSelectedPDV('');
+      setSignatureUrl(null);
     } catch (error) {
       toast.error('Erro ao enviar checklist');
       console.error(error);
@@ -247,7 +301,7 @@ export default function Checklist() {
 
           {/* Stats row */}
           {totalAnswered > 0 && (
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border text-sm">
+            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-border text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Camera className="h-4 w-4" />
                 <span>{totalPhotos} foto(s) anexada(s)</span>
@@ -257,6 +311,22 @@ export default function Checklist() {
                   <AlertCircle className="h-4 w-4" />
                   <span>{missingRequiredPhotos.length} foto(s) obrigatória(s) pendente(s)</span>
                 </div>
+              )}
+              {signatureUrl ? (
+                <div className="flex items-center gap-2 text-success">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Assinatura confirmada</span>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowSignatureDialog(true)}
+                  className="ml-auto"
+                >
+                  <PenTool className="h-4 w-4 mr-2" />
+                  Assinar
+                </Button>
               )}
             </div>
           )}
@@ -339,7 +409,7 @@ export default function Checklist() {
             <Button 
               onClick={handleSubmit}
               variant="default"
-              disabled={totalAnswered < totalQuestions || missingRequiredPhotos.length > 0 || createEvaluation.isPending}
+              disabled={!canSubmit || createEvaluation.isPending}
               className="bg-success hover:bg-success/90"
             >
               {createEvaluation.isPending ? (
@@ -351,7 +421,43 @@ export default function Checklist() {
             </Button>
           )}
         </div>
+
+        {/* Signature reminder if on last category */}
+        {currentCategoryIndex === categories.length - 1 && !signatureUrl && totalAnswered === totalQuestions && missingRequiredPhotos.length === 0 && (
+          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 flex items-center gap-3">
+            <PenTool className="h-5 w-5 text-warning" />
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Assinatura Pendente</p>
+              <p className="text-sm text-muted-foreground">Você precisa assinar o checklist antes de enviar</p>
+            </div>
+            <Button onClick={() => setShowSignatureDialog(true)}>
+              Assinar Agora
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Signature Dialog */}
+      <Dialog open={showSignatureDialog} onOpenChange={setShowSignatureDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assinatura do Responsável</DialogTitle>
+            <DialogDescription>
+              Desenhe sua assinatura no campo abaixo para confirmar a avaliação
+            </DialogDescription>
+          </DialogHeader>
+          {isUploadingSignature ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <SignaturePad 
+              onSave={handleSignatureSave}
+              onClear={() => setSignatureUrl(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

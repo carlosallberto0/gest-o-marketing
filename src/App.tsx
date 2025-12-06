@@ -26,6 +26,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PDVDetail from "./pages/PDVDetail";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
+import ServiceOrders from "./pages/ServiceOrders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -194,6 +195,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Reports />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/service-orders" 
+      element={
+        <ProtectedRoute>
+          <ServiceOrders />
         </ProtectedRoute>
       } 
     />
