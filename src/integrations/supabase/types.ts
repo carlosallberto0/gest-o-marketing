@@ -445,6 +445,90 @@ export type Database = {
           },
         ]
       }
+      maintenance_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          evaluation_id: string | null
+          id: string
+          observations: string | null
+          outdoor_id: string
+          photos: string[] | null
+          reason: string
+          requester_id: string
+          service_order_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          evaluation_id?: string | null
+          id?: string
+          observations?: string | null
+          outdoor_id: string
+          photos?: string[] | null
+          reason: string
+          requester_id: string
+          service_order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          evaluation_id?: string | null
+          id?: string
+          observations?: string | null
+          outdoor_id?: string
+          photos?: string[] | null
+          reason?: string
+          requester_id?: string
+          service_order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "media_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_evaluation_photos: {
         Row: {
           created_at: string
@@ -785,6 +869,55 @@ export type Database = {
             columns: ["pdv_id"]
             isOneToOne: false
             referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          maintenance_request_id: string | null
+          observations: string | null
+          outdoor_id: string
+          service_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maintenance_request_id?: string | null
+          observations?: string | null
+          outdoor_id: string
+          service_order_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maintenance_request_id?: string | null
+          observations?: string | null
+          outdoor_id?: string
+          service_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_items_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_items_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_items_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
             referencedColumns: ["id"]
           },
         ]
