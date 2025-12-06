@@ -21,7 +21,10 @@ import {
   BarChart3,
   ArrowLeftRight,
   Eye,
-  ScrollText
+  ScrollText,
+  Building2,
+  Wrench,
+  FilePlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +96,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
+    { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin', 'director'] },
+    { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];
 

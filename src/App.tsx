@@ -28,6 +28,9 @@ import PDVDetail from "./pages/PDVDetail";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
+import Suppliers from "./pages/Suppliers";
+import MaintenanceRequests from "./pages/MaintenanceRequests";
+import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
@@ -235,6 +238,36 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin']}>
             <AuditLogs />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/suppliers" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <Suppliers />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/maintenance-requests" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <MaintenanceRequests />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/generate-service-order" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <GenerateServiceOrder />
           </RequireRole>
         </ProtectedRoute>
       } 
