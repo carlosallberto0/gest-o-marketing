@@ -20,7 +20,8 @@ import {
   Loader2,
   BarChart3,
   ArrowLeftRight,
-  Eye
+  Eye,
+  ScrollText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +102,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: BarChart3, label: 'Admin Dashboard', path: '/admin', roles: ['super_admin', 'admin'] },
     { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
+    { icon: ScrollText, label: 'Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 

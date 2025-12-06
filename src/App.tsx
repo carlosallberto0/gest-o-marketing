@@ -29,6 +29,7 @@ import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
 import ResetPassword from "./pages/ResetPassword";
+import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -224,6 +225,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
             <ServiceOrders />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/audit-logs" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <AuditLogs />
           </RequireRole>
         </ProtectedRoute>
       } 
