@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AlertsPopover } from '@/components/alerts/AlertsPopover';
+import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -48,6 +50,22 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [systemLogo, setSystemLogo] = useState<string | null>(null);
+  const [systemName, setSystemName] = useState('SR Off Trade');
+
+  // Load system settings
+  useEffect(() => {
+    const saved = localStorage.getItem('systemSettings');
+    if (saved) {
+      try {
+        const settings = JSON.parse(saved);
+        if (settings.logo) setSystemLogo(settings.logo);
+        if (settings.systemName) setSystemName(settings.systemName);
+      } catch (error) {
+        console.error('Error loading system settings:', error);
+      }
+    }
+  }, []);
 
   type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
   
@@ -152,9 +170,16 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <span className="font-semibold text-foreground">SR Off Trade</span>
+          {systemLogo ? (
+            <img src={systemLogo} alt={systemName} className="h-8 w-auto" />
+          ) : (
+            <span className="font-semibold text-foreground">{systemName}</span>
+          )}
         </div>
-        <span className="text-sm text-muted-foreground">{profile?.name?.split(' ')[0]}</span>
+        <div className="flex items-center gap-1">
+          <OfflineIndicator />
+          <AlertsPopover />
+        </div>
       </header>
 
       {isMobileMenuOpen && (
@@ -168,15 +193,26 @@ export function AppLayout({ children }: AppLayoutProps) {
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
-          <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
+          <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <Fuel className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <span className="font-bold text-sm block">SR Off Trade</span>
-                <span className="text-[10px] text-sidebar-foreground/60">Marketing v2.0</span>
-              </div>
+              {systemLogo ? (
+                <img src={systemLogo} alt={systemName} className="h-10 w-auto max-w-[140px] object-contain" />
+              ) : (
+                <>
+                  <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+                    <Fuel className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-sm block">{systemName}</span>
+                    <span className="text-[10px] text-sidebar-foreground/60">Marketing v2.0</span>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Desktop alerts and offline indicators */}
+            <div className="hidden lg:flex items-center gap-1">
+              <OfflineIndicator />
+              <AlertsPopover />
             </div>
           </div>
 
