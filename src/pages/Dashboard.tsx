@@ -2,19 +2,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { PDVCard } from '@/components/dashboard/StoreCard';
+import { EvolutionChart } from '@/components/dashboard/EvolutionChart';
+import { CriticalItemsCard } from '@/components/dashboard/CriticalItemsCard';
+import { ContractAlertsCard } from '@/components/dashboard/ContractAlertsCard';
 import { useDashboardStats, usePDVsWithStats, useCategoryAverages } from '@/hooks/useDashboardStats';
+import { useEvolutionData, useCriticalItems, useExpiringContracts } from '@/hooks/useAdvancedStats';
 import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
-  Fuel, 
   ClipboardCheck, 
   AlertTriangle,
   ArrowRight,
   BarChart3,
   Megaphone,
-  FileText,
-  Bell,
   Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,10 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: pdvs = [], isLoading: isLoadingPDVs } = usePDVsWithStats();
-  const { data: categoryAvg = [], isLoading: isLoadingCategories } = useCategoryAverages();
+  const { data: categoryAvg = [] } = useCategoryAverages();
+  const { data: evolutionData = [] } = useEvolutionData();
+  const { data: criticalItems = [] } = useCriticalItems();
+  const { data: expiringContracts = [] } = useExpiringContracts();
 
   const isLoading = isLoadingStats || isLoadingPDVs;
 
@@ -240,6 +244,23 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Evolution Chart + Alerts Section */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {evolutionData.length > 0 && (
+            <EvolutionChart data={evolutionData} title="Evolução dos Últimos 6 Meses" />
+          )}
+          
+          <div className="space-y-6">
+            {hasModule('merchandising') && criticalItems.length > 0 && (
+              <CriticalItemsCard items={criticalItems} />
+            )}
+            
+            {hasModule('media') && expiringContracts.length > 0 && (
+              <ContractAlertsCard contracts={expiringContracts} />
             )}
           </div>
         </div>
