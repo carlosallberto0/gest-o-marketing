@@ -5,6 +5,7 @@ import { QuestionItem } from '@/components/checklist/QuestionItem';
 import { CategoryTab } from '@/components/checklist/CategoryTab';
 import { SignaturePad } from '@/components/ui/signature-pad';
 import { useChecklistCategories, usePDVs } from '@/hooks/useChecklistData';
+import { useSimplifiedChecklistCategories } from '@/hooks/useSimplifiedChecklist';
 import { useCreateMerchEvaluation } from '@/hooks/useMerchEvaluation';
 import { getScoreBgColor, getScoreLabel } from '@/lib/helpers';
 import { AnswerValue, QuestionAnswer } from '@/types';
@@ -29,7 +30,9 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function Checklist() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isCollaborator = profile?.role === 'collaborator';
+  
   const [selectedPDV, setSelectedPDV] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
@@ -37,7 +40,13 @@ export default function Checklist() {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
   
-  const { data: categories = [], isLoading: categoriesLoading } = useChecklistCategories();
+  // Use simplified checklist for collaborators
+  const { data: fullCategories = [], isLoading: fullLoading } = useChecklistCategories();
+  const { data: simplifiedCategories = [], isLoading: simplifiedLoading } = useSimplifiedChecklistCategories();
+  
+  const categories = isCollaborator ? simplifiedCategories : fullCategories;
+  const categoriesLoading = isCollaborator ? simplifiedLoading : fullLoading;
+  
   const { data: pdvs = [], isLoading: pdvsLoading } = usePDVs('merchandising');
   const createEvaluation = useCreateMerchEvaluation();
 
@@ -238,9 +247,14 @@ export default function Checklist() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Nova Avaliação de Merchandising</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isCollaborator ? 'Checklist Operacional' : 'Nova Avaliação de Merchandising'}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Preencha o checklist para avaliar o PDV
+              {isCollaborator 
+                ? 'Preencha os itens operacionais básicos do PDV'
+                : 'Preencha o checklist para avaliar o PDV'
+              }
             </p>
           </div>
           
