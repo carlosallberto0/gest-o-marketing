@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { usePDVs } from '@/hooks/usePDVs';
+import { useCreateUser } from '@/hooks/useCreateUser';
 
 interface NewUserDialogProps {
   open: boolean;
@@ -25,17 +25,18 @@ const roles = [
 
 export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
   const { data: pdvs } = usePDVs();
-  const [isLoading, setIsLoading] = useState(false);
+  const createUser = useCreateUser();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     cpf: '',
-    role: '',
+    role: '' as 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | '',
     pdvId: '',
-    modules: [] as string[],
+    modules: [] as ('media' | 'merchandising')[],
   });
 
-  const handleModuleChange = (module: string, checked: boolean) => {
+  const handleModuleChange = (module: 'media' | 'merchandising', checked: boolean) => {
     if (checked) {
       setFormData({ ...formData, modules: [...formData.modules, module] });
     } else {
@@ -45,12 +46,20 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!formData.role || formData.modules.length === 0) {
+      return;
+    }
+
+    await createUser.mutateAsync({
+      name: formData.name,
+      email: formData.email,
+      cpf: formData.cpf || undefined,
+      role: formData.role,
+      modules: formData.modules,
+      pdvId: formData.pdvId && formData.pdvId !== 'none' ? formData.pdvId : undefined,
+    });
     
-    toast.success('Usuário criado com sucesso! Um email de convite foi enviado.');
-    setIsLoading(false);
     onOpenChange(false);
     setFormData({
       name: '',
@@ -106,7 +115,10 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="role">Perfil</Label>
-              <Select value={formData.role} onValueChange={(v) => setFormData({ ...formData, role: v })}>
+              <Select 
+                value={formData.role} 
+                onValueChange={(v) => setFormData({ ...formData, role: v as typeof formData.role })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -159,8 +171,8 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createUser.isPending}>
+              {createUser.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar Usuário
             </Button>
           </DialogFooter>
