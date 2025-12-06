@@ -47,13 +47,52 @@ export function useProfiles() {
   });
 }
 
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      name: string;
+      cpf: string | null;
+      role: Profile['role'];
+      modules: ('media' | 'merchandising')[];
+      pdv_id: string | null;
+      status: string;
+    }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: data.name,
+          cpf: data.cpf,
+          role: data.role,
+          modules: data.modules,
+          pdv_id: data.pdv_id,
+          status: data.status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast.success('Usuário atualizado com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error updating profile:', error);
+      toast.error('Erro ao atualizar usuário');
+    },
+  });
+}
+
 export function useDeleteProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (profileId: string) => {
-      // First update the profile status to inactive
-      // Note: Full deletion requires admin auth privileges
+      // Update the profile status to inactive
+      // Full user deletion from auth.users requires admin privileges
       const { error } = await supabase
         .from('profiles')
         .update({ status: 'inactive' })
@@ -68,6 +107,29 @@ export function useDeleteProfile() {
     onError: (error) => {
       console.error('Error deleting profile:', error);
       toast.error('Erro ao desativar usuário');
+    },
+  });
+}
+
+export function useReactivateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: 'active' })
+        .eq('id', profileId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast.success('Usuário reativado com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error reactivating profile:', error);
+      toast.error('Erro ao reativar usuário');
     },
   });
 }

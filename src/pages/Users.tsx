@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useProfiles, useDeleteProfile } from '@/hooks/useProfiles';
-import { usePDVsWithStats } from '@/hooks/useDashboardStats';
+import { useProfiles, useDeleteProfile, useReactivateProfile, Profile } from '@/hooks/useProfiles';
 import { getRoleLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,10 @@ import {
   Megaphone,
   ClipboardCheck,
   Trash2,
-  Loader2
+  Loader2,
+  Pencil,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import {
   Select,
@@ -53,6 +55,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { NewUserDialog } from '@/components/dialogs/NewUserDialog';
+import { EditUserDialog } from '@/components/dialogs/EditUserDialog';
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -89,10 +92,12 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
+  const [editUser, setEditUser] = useState<Profile | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useProfiles();
   const { mutate: deleteProfile, isPending: isDeleting } = useDeleteProfile();
+  const { mutate: reactivateProfile, isPending: isReactivating } = useReactivateProfile();
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -284,17 +289,34 @@ export default function Users() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Ver perfil</DropdownMenuItem>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem>Redefinir senha</DropdownMenuItem>
-                        <DropdownMenuItem className="text-warning">Desativar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditUser(user)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        {user.status === 'inactive' ? (
+                          <DropdownMenuItem
+                            onClick={() => reactivateProfile(user.id)}
+                            disabled={isReactivating}
+                          >
+                            <UserCheck className="h-4 w-4 mr-2" />
+                            Reativar
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            className="text-warning"
+                            onClick={() => deleteProfile(user.id)}
+                          >
+                            <UserX className="h-4 w-4 mr-2" />
+                            Desativar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           className="text-destructive"
                           onClick={() => setDeleteUserId(user.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir usuário
+                          Excluir permanentemente
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -314,7 +336,7 @@ export default function Users() {
       </div>
 
       <NewUserDialog open={isNewUserOpen} onOpenChange={setIsNewUserOpen} />
-
+      <EditUserDialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)} user={editUser} />
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
         <AlertDialogContent>
