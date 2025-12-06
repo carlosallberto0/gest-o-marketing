@@ -10,6 +10,7 @@ import { useModule } from '@/contexts/ModuleContext';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { exportEvaluationsToExcel } from '@/lib/excelExport';
 import {
   FileText,
   Download,
@@ -25,7 +26,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  FileSpreadsheet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -242,6 +244,31 @@ export default function Reports() {
     toast.success('PDF exportado com sucesso!');
   };
 
+  const handleExportExcel = () => {
+    const data = activeModule === 'media' ? mediaEvaluations : merchEvaluations;
+    
+    if (data.length === 0) {
+      toast.error('Nenhum dado para exportar');
+      return;
+    }
+
+    // Format data for export
+    const formattedData = data.map(e => ({
+      pdv: { name: (e as any).pdvs?.name || 'N/A' },
+      evaluation_date: activeModule === 'media' ? (e as any).evaluated_at : (e as any).created_at,
+      evaluator: { name: (e as any).profiles?.name || 'N/A' },
+      percentage_score: activeModule === 'media' 
+        ? ((e as any).status === 'operational' ? 100 : 0)
+        : (e as any).percentage_score,
+      status: (e as any).status,
+      total_score: (e as any).total_score || 0,
+      total_possible_points: (e as any).total_possible_points || 0,
+    }));
+
+    exportEvaluationsToExcel(formattedData);
+    toast.success('Excel exportado com sucesso!');
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
@@ -269,7 +296,11 @@ export default function Reports() {
             </Select>
             <Button onClick={handleExportPDF} variant="outline">
               <Download className="h-4 w-4 mr-2" />
-              Exportar PDF
+              PDF
+            </Button>
+            <Button onClick={handleExportExcel} variant="outline">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
             </Button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { 
   Settings as SettingsIcon, 
   Palette, 
@@ -14,7 +15,8 @@ import {
   Moon,
   Sun,
   Check,
-  Loader2
+  Loader2,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -180,7 +182,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -188,6 +190,10 @@ export default function Settings() {
             <TabsTrigger value="appearance">
               <Palette className="h-4 w-4 mr-2" />
               Aparência
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="h-4 w-4 mr-2" />
+              Notificações
             </TabsTrigger>
           </TabsList>
 
@@ -368,6 +374,11 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-6">
+            <NotificationSettings />
           </TabsContent>
         </Tabs>
       </div>
