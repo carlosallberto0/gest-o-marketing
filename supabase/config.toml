@@ -2,3 +2,6 @@ project_id = "mgknzbjzwtkumdihzthd"
 
 [functions.create-user]
 verify_jwt = false
+
+[functions.notify-supplier]
+verify_jwt = false
