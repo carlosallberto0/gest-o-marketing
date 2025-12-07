@@ -16,6 +16,7 @@ import {
   Megaphone,
   FileText,
   Package,
+  ShoppingCart,
   Target,
   Loader2,
   BarChart3,
@@ -86,6 +87,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: History, label: 'Histórico', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Package, label: 'Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
+    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'director', 'manager', 'collaborator'] },
     { icon: Target, label: 'Campanhas', path: '/campaigns', roles: ['super_admin', 'admin', 'director'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];

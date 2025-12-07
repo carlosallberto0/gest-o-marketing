@@ -529,6 +529,83 @@ export type Database = {
           },
         ]
       }
+      material_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          justification: string
+          material_id: string
+          pdv_id: string
+          quantity: number
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          justification: string
+          material_id: string
+          pdv_id: string
+          quantity: number
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          justification?: string
+          material_id?: string
+          pdv_id?: string
+          quantity?: number
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "trade_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_evaluation_photos: {
         Row: {
           created_at: string

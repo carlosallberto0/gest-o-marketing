@@ -21,6 +21,7 @@ import OutdoorEvaluation from "./pages/OutdoorEvaluation";
 import Contracts from "./pages/Contracts";
 import PDVs from "./pages/PDVs";
 import Materials from "./pages/Materials";
+import MaterialRequests from "./pages/MaterialRequests";
 import Campaigns from "./pages/Campaigns";
 import Users from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -165,6 +166,16 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/material-requests" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager', 'collaborator']}>
+            <MaterialRequests />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route
       path="/campaigns" 
       element={
         <ProtectedRoute>
