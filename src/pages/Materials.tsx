@@ -11,7 +11,8 @@ import {
   Filter,
   Eye,
   Edit,
-  Loader2
+  Loader2,
+  Minus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,9 +40,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NewMaterialDialog } from '@/components/dialogs/NewMaterialDialog';
+import { WithdrawMaterialDialog } from '@/components/dialogs/WithdrawMaterialDialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const getMaterialTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -60,12 +63,16 @@ const getMaterialTypeLabel = (type: string) => {
 };
 
 export default function Materials() {
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
   const [isNewMaterialOpen, setIsNewMaterialOpen] = useState(false);
   const [viewMaterial, setViewMaterial] = useState<any | null>(null);
   const [editMaterial, setEditMaterial] = useState<any | null>(null);
+  const [withdrawMaterial, setWithdrawMaterial] = useState<any | null>(null);
+
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   // Fetch materials from database
   const { data: materials = [], isLoading, refetch } = useQuery({
@@ -280,6 +287,16 @@ export default function Materials() {
                         <Button variant="ghost" size="icon" onClick={() => setEditMaterial({ ...material })}>
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {isSuperAdmin && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setWithdrawMaterial(material)}
+                            title="Retirar do estoque"
+                          >
+                            <Minus className="h-4 w-4 text-warning" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -414,6 +431,13 @@ export default function Materials() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Withdraw Material Dialog */}
+      <WithdrawMaterialDialog 
+        open={!!withdrawMaterial} 
+        onOpenChange={(open) => !open && setWithdrawMaterial(null)}
+        material={withdrawMaterial}
+      />
     </AppLayout>
   );
 }
