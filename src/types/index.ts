@@ -77,6 +77,9 @@ export interface Outdoor {
   status: OutdoorStatus;
   lastEvaluation?: string;
   nonOperationalReason?: string;
+  lat: number | null;
+  lng: number | null;
+  validationRadiusMeters: number;
 }
 
 // =============== CONTRACT TYPES ===============
