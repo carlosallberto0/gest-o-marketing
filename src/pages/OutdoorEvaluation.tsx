@@ -5,7 +5,7 @@ import { useOutdoors, useCreateMediaEvaluation } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MultiPhotoUpload } from '@/components/ui/photo-upload';
+import { GeoPhotoUpload, GeoPhotoData } from '@/components/ui/geo-photo-upload';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -29,7 +29,8 @@ import {
   Loader2,
   AlertCircle,
   Building,
-  ChevronRight
+  ChevronRight,
+  Navigation
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -41,7 +42,7 @@ export default function OutdoorEvaluation() {
   const [selectedOutdoor, setSelectedOutdoor] = useState<string>('');
   const [status, setStatus] = useState<OutdoorStatus | ''>('');
   const [nonOperationalReason, setNonOperationalReason] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<GeoPhotoData[]>([]);
   const [measuresConfirmed, setMeasuresConfirmed] = useState(false);
   const [observations, setObservations] = useState('');
 
@@ -327,21 +328,25 @@ export default function OutdoorEvaluation() {
               )}
             </div>
 
-            {/* Photo Upload */}
+            {/* Photo Upload with Geolocation */}
             {status && (
               <div className="bg-card rounded-xl p-5 border border-border shadow-sm animate-slide-up">
                 <label className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
-                  Fotos do Outdoor <span className="text-destructive">*</span>
+                  <Navigation className="h-4 w-4" />
+                  Fotos com Validação GPS <span className="text-destructive">*</span>
                   <span className="text-xs text-muted-foreground ml-auto">Mínimo 1 foto</span>
                 </label>
-                <MultiPhotoUpload
+                <GeoPhotoUpload
                   value={photos}
                   onChange={setPhotos}
+                  outdoorLat={outdoor.lat ?? null}
+                  outdoorLng={outdoor.lng ?? null}
+                  validationRadius={outdoor.validationRadiusMeters || 50}
                   maxPhotos={5}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Tire fotos claras mostrando o estado atual do outdoor
+                  Tire fotos no local do outdoor. O GPS validará sua localização automaticamente.
                 </p>
               </div>
             )}

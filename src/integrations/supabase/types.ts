@@ -762,6 +762,73 @@ export type Database = {
           },
         ]
       }
+      outdoor_geolocation_history: {
+        Row: {
+          accuracy: number | null
+          captured_by: string | null
+          created_at: string
+          distance_from_outdoor: number | null
+          evaluation_id: string | null
+          id: string
+          is_valid: boolean | null
+          latitude: number
+          longitude: number
+          outdoor_id: string
+          photo_url: string | null
+          validation_notes: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          captured_by?: string | null
+          created_at?: string
+          distance_from_outdoor?: number | null
+          evaluation_id?: string | null
+          id?: string
+          is_valid?: boolean | null
+          latitude: number
+          longitude: number
+          outdoor_id: string
+          photo_url?: string | null
+          validation_notes?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          captured_by?: string | null
+          created_at?: string
+          distance_from_outdoor?: number | null
+          evaluation_id?: string | null
+          id?: string
+          is_valid?: boolean | null
+          latitude?: number
+          longitude?: number
+          outdoor_id?: string
+          photo_url?: string | null
+          validation_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_geolocation_history_captured_by_fkey"
+            columns: ["captured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outdoor_geolocation_history_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "media_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outdoor_geolocation_history_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outdoors: {
         Row: {
           area: number | null
@@ -771,6 +838,8 @@ export type Database = {
           height: number
           id: string
           last_evaluation: string | null
+          lat: number | null
+          lng: number | null
           location: string
           non_operational_reason: string | null
           ownership_type: string | null
@@ -779,6 +848,7 @@ export type Database = {
           status: Database["public"]["Enums"]["outdoor_status"]
           supplier_id: string | null
           updated_at: string
+          validation_radius_meters: number | null
           width: number
         }
         Insert: {
@@ -789,6 +859,8 @@ export type Database = {
           height: number
           id?: string
           last_evaluation?: string | null
+          lat?: number | null
+          lng?: number | null
           location: string
           non_operational_reason?: string | null
           ownership_type?: string | null
@@ -797,6 +869,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["outdoor_status"]
           supplier_id?: string | null
           updated_at?: string
+          validation_radius_meters?: number | null
           width: number
         }
         Update: {
@@ -807,6 +880,8 @@ export type Database = {
           height?: number
           id?: string
           last_evaluation?: string | null
+          lat?: number | null
+          lng?: number | null
           location?: string
           non_operational_reason?: string | null
           ownership_type?: string | null
@@ -815,6 +890,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["outdoor_status"]
           supplier_id?: string | null
           updated_at?: string
+          validation_radius_meters?: number | null
           width?: number
         }
         Relationships: [
