@@ -202,14 +202,14 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
           <div className="space-y-2">
             <Label>Fornecedor de Manutenção</Label>
             <Select 
-              value={formData.supplierId} 
-              onValueChange={(v) => setFormData({ ...formData, supplierId: v })}
+              value={formData.supplierId || 'none'} 
+              onValueChange={(v) => setFormData({ ...formData, supplierId: v === 'none' ? '' : v })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o fornecedor (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
                 ))}
