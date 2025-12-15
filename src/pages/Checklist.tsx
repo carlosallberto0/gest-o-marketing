@@ -248,12 +248,12 @@ export default function Checklist() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              {isCollaborator ? 'Checklist Operacional' : 'Nova Avaliação de Merchandising'}
+              {isCollaborator ? 'Avaliação Operacional' : 'Avaliação de PDV'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {isCollaborator 
                 ? 'Preencha os itens operacionais básicos do PDV'
-                : 'Preencha o checklist para avaliar o PDV'
+                : 'Preencha a avaliação completa do ponto de venda'
               }
             </p>
           </div>
