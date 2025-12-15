@@ -81,36 +81,42 @@ export function AppLayout({ children }: AppLayoutProps) {
     roles: UserRole[];
   }
 
-  // Menu items for Merchandising module
+  // Menu items for Merchandising module - organized by workflow
   const merchandisingItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/merchandising/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: ClipboardCheck, label: 'Novo Checklist', path: '/checklist', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
-    { icon: Package, label: 'Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
+    // Avaliações
+    { icon: ClipboardCheck, label: 'Avaliação de PDV', path: '/checklist', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: History, label: 'Histórico de Avaliações', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    // Materiais
+    { icon: Package, label: 'Estoque de Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
     { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'director', 'manager', 'collaborator'] },
+    // Campanhas e Relatórios
     { icon: Target, label: 'Campanhas', path: '/campaigns', roles: ['super_admin', 'admin', 'director'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];
 
-  // Menu items for Media module
+  // Menu items for Media module - organized by workflow
   const mediaItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
+    // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin', 'director'] },
+    // Fornecedores e Relatórios
     { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
   ];
 
-  // Common items (admin only)
+  // Admin items - system administration
   const adminItems: MenuItem[] = [
-    { icon: BarChart3, label: 'Admin Dashboard', path: '/admin', roles: ['super_admin', 'admin'] },
-    { icon: Fuel, label: 'PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
-    { icon: Users, label: 'Usuários', path: '/users', roles: ['super_admin', 'admin'] },
-    { icon: ScrollText, label: 'Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
+    { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin', 'admin'] },
+    { icon: Fuel, label: 'Gestão de PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
+    { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin', 'admin'] },
+    { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 
