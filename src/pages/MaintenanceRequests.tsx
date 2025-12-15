@@ -95,9 +95,9 @@ export default function MaintenanceRequests() {
     setSelectedRequest(null);
   };
 
-  // Filter outdoors that need maintenance (non_operational or pending_evaluation)
-  const outdoorsNeedingMaintenance = outdoors?.filter(
-    o => o.status === 'non_operational' || o.status === 'pending_evaluation'
+  // Show all operational and non-operational outdoors for maintenance requests
+  const outdoorsAvailableForMaintenance = outdoors?.filter(
+    o => o.status === 'operational' || o.status === 'non_operational'
   ) || [];
 
   const stats = {
@@ -194,9 +194,9 @@ export default function MaintenanceRequests() {
                       <SelectValue placeholder="Selecione o outdoor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {outdoorsNeedingMaintenance.map(outdoor => (
+                      {outdoorsAvailableForMaintenance.map(outdoor => (
                         <SelectItem key={outdoor.id} value={outdoor.id}>
-                          {outdoor.code} - {(outdoor as any).pdv?.name || outdoor.location}
+                          {outdoor.pdvName} – {outdoor.code}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -17,9 +17,18 @@ type ServiceType = 'installation' | 'maintenance' | 'removal' | 'replacement';
 
 const serviceTypeOptions: { value: ServiceType; label: string }[] = [
   { value: 'installation', label: 'Instalação' },
-  { value: 'maintenance', label: 'Manutenção' },
+  { value: 'maintenance', label: 'Manutenção Geral' },
   { value: 'removal', label: 'Remoção' },
-  { value: 'replacement', label: 'Substituição' },
+  { value: 'replacement', label: 'Substituição de Lona' },
+];
+
+const additionalServiceOptions = [
+  { id: 'printing', label: 'Impressão de Lona' },
+  { id: 'lighting', label: 'Iluminação de Outdoor' },
+  { id: 'painting', label: 'Pintura/Estrutura' },
+  { id: 'cleaning', label: 'Limpeza Profissional' },
+  { id: 'structure_repair', label: 'Conserto de Estrutura' },
+  { id: 'led_installation', label: 'Instalação de LED' },
 ];
 
 export default function Suppliers() {
