@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,92 +6,114 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Nazox Design System - Light Theme */
+    --background: 240 33% 98%;
+    --foreground: 210 8% 31%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 210 8% 31%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 210 8% 31%;
 
-    --primary: 217 91% 45%;
+    /* Nazox Primary Blue */
+    --primary: 230 76% 63%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 234 10% 96%;
+    --secondary-foreground: 210 8% 31%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 234 10% 96%;
+    --muted-foreground: 234 10% 51%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 234 10% 96%;
+    --accent-foreground: 210 8% 31%;
 
-    --destructive: 0 84% 60%;
+    /* Nazox Semantic Colors */
+    --destructive: 0 86% 69%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 69% 40%;
+    --success: 158 58% 49%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 39 85% 62%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 45%;
+    --info: 208 84% 63%;
+    --info-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --border: 234 10% 91%;
+    --input: 234 10% 91%;
+    --ring: 230 76% 63%;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --radius: 0.25rem;
+
+    /* Nazox Sidebar - Dark */
+    --sidebar-background: 222 22% 21%;
+    --sidebar-foreground: 234 10% 96%;
+    --sidebar-primary: 230 76% 63%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 32% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 32% 20%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 222 18% 28%;
+    --sidebar-accent-foreground: 234 10% 96%;
+    --sidebar-border: 222 18% 28%;
+    --sidebar-ring: 230 76% 63%;
 
-    --chart-1: 217 91% 45%;
-    --chart-2: 152 69% 40%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 0 84% 60%;
-    --chart-5: 262 83% 58%;
+    /* Chart Colors - Nazox Palette */
+    --chart-1: 230 76% 63%;
+    --chart-2: 158 58% 49%;
+    --chart-3: 39 85% 62%;
+    --chart-4: 0 86% 69%;
+    --chart-5: 208 84% 63%;
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    /* Nazox Dark Theme */
+    --background: 222 22% 15%;
+    --foreground: 234 10% 96%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 22% 18%;
+    --card-foreground: 234 10% 96%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 22% 18%;
+    --popover-foreground: 234 10% 96%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 230 76% 63%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 222 18% 25%;
+    --secondary-foreground: 234 10% 96%;
 
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 222 18% 25%;
+    --muted-foreground: 234 10% 65%;
 
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 222 18% 25%;
+    --accent-foreground: 234 10% 96%;
 
-    --destructive: 0 62% 50%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 69% 35%;
+    --success: 158 58% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 45%;
+    --warning: 39 85% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 217 91% 60%;
+    --info: 208 84% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 222 18% 28%;
+    --input: 222 18% 28%;
+    --ring: 230 76% 63%;
+
+    /* Dark Sidebar */
+    --sidebar-background: 222 22% 12%;
+    --sidebar-foreground: 234 10% 96%;
+    --sidebar-primary: 230 76% 63%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 18% 20%;
+    --sidebar-accent-foreground: 234 10% 96%;
+    --sidebar-border: 222 18% 20%;
+    --sidebar-ring: 230 76% 63%;
   }
 }
 
@@ -102,7 +124,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Poppins', sans-serif;
   }
 }
 
@@ -123,8 +145,9 @@
     @apply bg-destructive text-destructive-foreground;
   }
 
+  /* Nazox Card Style */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
+    @apply bg-card border border-border shadow-sm rounded-sm;
   }
 
   .gradient-primary {
@@ -135,6 +158,7 @@
     @apply bg-gradient-to-br from-success to-emerald-600;
   }
 
+  /* Nazox Animations */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
@@ -145,6 +169,11 @@
 
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
+  }
+
+  /* Nazox Preloader */
+  .spin-icon {
+    animation: spin 1.5s linear infinite;
   }
 }
 
@@ -172,5 +201,14 @@
   to { 
     opacity: 1; 
     transform: scale(1); 
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

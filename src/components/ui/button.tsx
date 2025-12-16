@@ -5,24 +5,32 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 rounded",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded",
+        ghost: "hover:bg-accent hover:text-accent-foreground rounded",
         link: "text-primary underline-offset-4 hover:underline",
-        success: "bg-success text-success-foreground hover:bg-success/90 shadow-md",
-        warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-md",
+        success: "bg-success text-success-foreground hover:bg-success/90 rounded",
+        warning: "bg-warning text-warning-foreground hover:bg-warning/90 rounded",
+        info: "bg-info text-info-foreground hover:bg-info/90 rounded",
+        "outline-primary": "border border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground rounded",
+        "outline-success": "border border-success text-success bg-transparent hover:bg-success hover:text-success-foreground rounded",
+        "outline-danger": "border border-destructive text-destructive bg-transparent hover:bg-destructive hover:text-destructive-foreground rounded",
+        "soft-primary": "bg-primary/10 text-primary hover:bg-primary/20 rounded",
+        "soft-success": "bg-success/10 text-success hover:bg-success/20 rounded",
+        "soft-warning": "bg-warning/10 text-warning hover:bg-warning/20 rounded",
+        "soft-danger": "bg-destructive/10 text-destructive hover:bg-destructive/20 rounded",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded px-3 text-xs",
+        lg: "h-11 rounded px-8",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
