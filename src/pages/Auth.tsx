@@ -115,34 +115,60 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary mb-4">
-            <Fuel className="h-8 w-8 text-primary-foreground" />
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side - Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80" />
+        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-primary-foreground">
+          <div className="w-20 h-20 rounded-lg bg-white/10 flex items-center justify-center mb-8">
+            <Fuel className="h-10 w-10" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">SR Off Trade Marketing</h1>
-          <p className="text-muted-foreground mt-1">
-            {isLogin ? 'Entre na sua conta' : 'Crie sua conta'}
+          <h1 className="text-4xl font-bold mb-4 text-center">SR Off Trade Marketing</h1>
+          <p className="text-lg text-primary-foreground/80 text-center max-w-md">
+            Sistema completo para gestão de merchandising e mídia externa
           </p>
         </div>
+        {/* Decorative circles */}
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full border border-white/10" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full border border-white/10" />
+        <div className="absolute bottom-20 right-20 w-64 h-64 rounded-full border border-white/10" />
+      </div>
 
-        {/* Form */}
-        <div className="bg-card rounded-2xl border border-border p-6 shadow-xl animate-slide-up">
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Right Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded bg-primary mb-4">
+              <Fuel className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">SR Off Trade Marketing</h1>
+          </div>
+
+          {/* Form Header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground">
+              {isLogin ? 'Bem-vindo!' : 'Criar Conta'}
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              {isLogin ? 'Entre com suas credenciais para acessar o sistema.' : 'Preencha os dados para criar sua conta.'}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="name">Nome completo</Label>
+                <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Seu nome"
+                    placeholder="Digite seu nome"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-10"
+                    className="pl-10 h-10"
                     required={!isLogin}
                   />
                 </div>
@@ -150,71 +176,77 @@ export default function Auth() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="Digite seu email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 h-10"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Digite sua senha"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 h-10"
                   required
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+            {isLogin && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="rounded border-input" />
+                  <span className="text-muted-foreground">Lembrar-me</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Esqueceu a senha?
+                </button>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full h-10" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {isLogin ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
 
-          <div className="mt-4 text-center space-y-2">
-            {isLogin && (
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-muted-foreground hover:text-primary hover:underline"
-              >
-                Esqueceu sua senha?
-              </button>
-            )}
-            <div>
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-primary hover:underline"
-              >
-                {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre'}
-              </button>
-            </div>
+          <div className="mt-6 text-center">
+            <span className="text-sm text-muted-foreground">
+              {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-primary font-medium hover:underline"
+            >
+              {isLogin ? 'Cadastre-se' : 'Entre'}
+            </button>
           </div>
-        </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Ao continuar, você concorda com nossos termos de uso
-        </p>
+          {/* Footer */}
+          <p className="text-center text-xs text-muted-foreground mt-8">
+            © {new Date().getFullYear()} SR Off Trade Marketing. Todos os direitos reservados.
+          </p>
+        </div>
       </div>
 
       <ForgotPasswordDialog 

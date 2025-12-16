@@ -12,6 +12,7 @@ import {
   Menu, 
   X,
   ChevronRight,
+  ChevronDown,
   History,
   Megaphone,
   FileText,
@@ -25,7 +26,10 @@ import {
   ScrollText,
   Building2,
   Wrench,
-  FilePlus
+  FilePlus,
+  Search,
+  Bell,
+  Maximize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +61,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [systemLogo, setSystemLogo] = useState<string | null>(null);
   const [systemName, setSystemName] = useState('SR Off Trade');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load system settings
   useEffect(() => {
@@ -71,6 +76,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
   }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
   
@@ -161,7 +176,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="mt-3 text-sm text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
@@ -173,15 +191,54 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   const getModuleColor = () => {
-    if (activeModule === 'merchandising') return 'bg-emerald-500';
-    if (activeModule === 'media') return 'bg-blue-500';
+    if (activeModule === 'merchandising') return 'bg-success';
+    if (activeModule === 'media') return 'bg-info';
     return 'bg-primary';
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Desktop Header - Nazox Style */}
+      <header className="hidden lg:flex fixed top-0 left-64 right-0 h-[70px] bg-card border-b border-border z-40 items-center justify-between px-6 shadow-nazox">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-muted-foreground hover:text-foreground">
+            <Menu className="h-5 w-5" />
+          </Button>
+          {/* Search Bar - Nazox Style */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Buscar..." 
+              className="h-9 w-64 pl-10 pr-4 rounded bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <OfflineIndicator />
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-muted-foreground hover:text-foreground">
+            <Maximize2 className="h-5 w-5" />
+          </Button>
+          <AlertsPopover />
+          {/* User dropdown */}
+          <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-primary font-semibold text-sm">
+                {profile?.name?.charAt(0) || '?'}
+              </span>
+            </div>
+            <div className="hidden xl:block">
+              <p className="text-sm font-medium text-foreground">{profile?.name}</p>
+              <p className="text-xs text-muted-foreground">{getRoleLabel(profile?.role || '')}</p>
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      </header>
+
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50 flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-[70px] bg-card border-b border-border z-50 flex items-center justify-between px-4 shadow-nazox">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -202,59 +259,41 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="lg:hidden fixed inset-0 bg-foreground/20 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Nazox Dark Style */}
       <aside className={cn(
         "fixed top-0 left-0 h-full w-64 bg-sidebar text-sidebar-foreground z-50 transition-transform duration-300 ease-in-out",
         "lg:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
-          <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border">
-            <div className="flex items-center gap-3">
-              {systemLogo ? (
-                <img src={systemLogo} alt={systemName} className="h-10 w-auto max-w-[140px] object-contain" />
-              ) : (
-                <>
-                  <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                    <Fuel className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-sm block">{systemName}</span>
-                    <span className="text-[10px] text-sidebar-foreground/60">Marketing v2.0</span>
-                  </div>
-                </>
-              )}
-            </div>
-            {/* Desktop alerts and offline indicators */}
-            <div className="hidden lg:flex items-center gap-1">
-              <OfflineIndicator />
-              <AlertsPopover />
-            </div>
-          </div>
-
-          <div className="px-4 py-4 border-b border-sidebar-border">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent">
-              <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center">
-                <span className="text-sidebar-primary-foreground font-semibold">
-                  {profile?.name?.charAt(0) || '?'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{profile?.name}</p>
-                <p className="text-xs text-sidebar-foreground/70">{getRoleLabel(profile?.role || '')}</p>
-              </div>
-            </div>
-            {/* Active Module Badge */}
-            {activeModule && (
-              <div className="mt-3">
-                <Badge className={cn("w-full justify-center py-1.5 text-white", getModuleColor())}>
-                  {getModuleLabel()}
-                </Badge>
+          {/* Logo Area */}
+          <div className="h-[70px] flex items-center justify-center px-5 border-b border-sidebar-border">
+            {systemLogo ? (
+              <img src={systemLogo} alt={systemName} className="h-10 w-auto max-w-[180px] object-contain" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded bg-primary flex items-center justify-center">
+                  <Fuel className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <span className="font-semibold text-lg block text-sidebar-foreground">{systemName}</span>
+                </div>
               </div>
             )}
           </div>
 
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {/* Active Module Badge */}
+          {activeModule && (
+            <div className="px-5 py-3 border-b border-sidebar-border">
+              <Badge className={cn("w-full justify-center py-1.5 text-white border-0", getModuleColor())}>
+                {getModuleLabel()}
+              </Badge>
+            </div>
+          )}
+
+          {/* Navigation Menu - Nazox Style */}
+          <nav className="flex-1 px-4 py-5 space-y-1 overflow-y-auto scrollbar-thin">
+            <p className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">Menu</p>
             {filteredMenuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -262,37 +301,43 @@ export function AppLayout({ children }: AppLayoutProps) {
                   key={item.path}
                   onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent"
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] font-medium transition-all duration-200",
+                    isActive 
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                  {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                  <item.icon className="h-[18px] w-[18px]" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {isActive && <ChevronRight className="h-4 w-4 opacity-60" />}
                 </button>
               );
             })}
           </nav>
 
-          <div className="p-4 border-t border-sidebar-border space-y-2">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" 
+          {/* Footer Actions */}
+          <div className="p-4 border-t border-sidebar-border space-y-1">
+            <button 
               onClick={handleSwitchModule}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
             >
-              <ArrowLeftRight className="h-5 w-5 mr-3" />
-              Trocar Módulo
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent" onClick={handleLogout}>
-              <LogOut className="h-5 w-5 mr-3" />
-              Sair
-            </Button>
+              <ArrowLeftRight className="h-[18px] w-[18px]" />
+              <span>Trocar Módulo</span>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+              <span>Sair</span>
+            </button>
           </div>
         </div>
       </aside>
 
-      <main className={cn("min-h-screen transition-all duration-300", "pt-16 lg:pt-0 lg:pl-64")}>
-        <div className="p-4 lg:p-8">{children}</div>
+      {/* Main Content */}
+      <main className={cn("min-h-screen transition-all duration-300", "pt-[70px] lg:pl-64")}>
+        <div className="p-5 lg:p-6">{children}</div>
       </main>
     </div>
   );
