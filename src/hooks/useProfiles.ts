@@ -2,16 +2,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras';
+
 export interface Profile {
   id: string;
   name: string;
   email: string;
   cpf: string | null;
-  role: 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
+  role: UserRole;
   modules: ('media' | 'merchandising')[];
   pdv_id: string | null;
   pdv_name?: string | null;
   status: string;
+  pode_aprovar_os?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -35,11 +38,12 @@ export function useProfiles() {
         name: profile.name,
         email: profile.email,
         cpf: profile.cpf,
-        role: profile.role,
+        role: profile.role as UserRole,
         modules: profile.modules,
         pdv_id: profile.pdv_id,
         pdv_name: profile.pdvs?.name || null,
         status: profile.status,
+        pode_aprovar_os: profile.pode_aprovar_os ?? false,
         created_at: profile.created_at,
         updated_at: profile.updated_at,
       }));
@@ -55,10 +59,11 @@ export function useUpdateProfile() {
       id: string;
       name: string;
       cpf: string | null;
-      role: Profile['role'];
+      role: UserRole;
       modules: ('media' | 'merchandising')[];
       pdv_id: string | null;
       status: string;
+      pode_aprovar_os?: boolean;
     }) => {
       const { error } = await supabase
         .from('profiles')
@@ -69,6 +74,7 @@ export function useUpdateProfile() {
           modules: data.modules,
           pdv_id: data.pdv_id,
           status: data.status,
+          pode_aprovar_os: data.pode_aprovar_os ?? false,
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.id);

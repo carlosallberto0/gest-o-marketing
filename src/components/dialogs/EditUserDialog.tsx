@@ -28,16 +28,17 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePDVs } from '@/hooks/usePDVs';
-import { useUpdateProfile, Profile } from '@/hooks/useProfiles';
+import { useUpdateProfile, Profile, UserRole } from '@/hooks/useProfiles';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   cpf: z.string().optional(),
-  role: z.enum(['super_admin', 'admin', 'director', 'manager', 'collaborator', 'supplier']),
+  role: z.enum(['super_admin', 'admin', 'director', 'manager', 'collaborator', 'supplier', 'coordenador_compras']),
   modules: z.array(z.enum(['media', 'merchandising'])).min(1, 'Selecione pelo menos um módulo'),
   pdv_id: z.string().nullable(),
   status: z.enum(['active', 'pending', 'inactive']),
+  pode_aprovar_os: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,8 +63,11 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
       modules: ['merchandising'],
       pdv_id: null,
       status: 'active',
+      pode_aprovar_os: false,
     },
   });
+
+  const selectedRole = form.watch('role');
 
   useEffect(() => {
     if (user) {
@@ -75,6 +79,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
         modules: user.modules,
         pdv_id: user.pdv_id,
         status: user.status as 'active' | 'pending' | 'inactive',
+        pode_aprovar_os: user.pode_aprovar_os ?? false,
       });
     }
   }, [user, form]);
@@ -86,10 +91,11 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
       id: user.id,
       name: data.name,
       cpf: data.cpf || null,
-      role: data.role,
+      role: data.role as UserRole,
       modules: data.modules as ('media' | 'merchandising')[],
       pdv_id: data.pdv_id,
       status: data.status,
+      pode_aprovar_os: data.role === 'director' ? data.pode_aprovar_os : false,
     });
 
     onOpenChange(false);
@@ -102,6 +108,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
     { value: 'manager', label: 'Gerente' },
     { value: 'collaborator', label: 'Colaborador' },
     { value: 'supplier', label: 'Fornecedor' },
+    { value: 'coordenador_compras', label: 'Coordenador de Compras' },
   ];
 
   const statuses = [
@@ -185,6 +192,32 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                 </FormItem>
               )}
             />
+
+            {/* Checkbox para permissão de aprovar OS - só aparece para Diretores */}
+            {selectedRole === 'director' && (
+              <FormField
+                control={form.control}
+                name="pode_aprovar_os"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/30">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-medium">
+                        Pode aprovar Ordens de Serviço
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Permite que este diretor aprove ordens de serviço de manutenção de outdoors
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

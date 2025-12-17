@@ -72,6 +72,7 @@ export function getRoleLabel(role: string): string {
     manager: 'Gerente',
     collaborator: 'Colaborador',
     supplier: 'Fornecedor',
+    coordenador_compras: 'Coordenador de Compras',
   };
   return labels[role] || role;
 }
