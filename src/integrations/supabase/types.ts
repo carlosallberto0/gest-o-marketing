@@ -762,6 +762,56 @@ export type Database = {
           },
         ]
       }
+      notificacoes_sistema: {
+        Row: {
+          criada_em: string | null
+          id: string
+          id_referencia: string | null
+          lida: boolean | null
+          mensagem: string
+          modulo: string
+          tipo: string
+          tipo_referencia: string | null
+          titulo: string
+          url_acao: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          criada_em?: string | null
+          id?: string
+          id_referencia?: string | null
+          lida?: boolean | null
+          mensagem: string
+          modulo: string
+          tipo: string
+          tipo_referencia?: string | null
+          titulo: string
+          url_acao?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          criada_em?: string | null
+          id?: string
+          id_referencia?: string | null
+          lida?: boolean | null
+          mensagem?: string
+          modulo?: string
+          tipo?: string
+          tipo_referencia?: string | null
+          titulo?: string
+          url_acao?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_sistema_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outdoor_geolocation_history: {
         Row: {
           accuracy: number | null
@@ -988,6 +1038,7 @@ export type Database = {
           modules: Database["public"]["Enums"]["module_access"][]
           name: string
           pdv_id: string | null
+          pode_aprovar_os: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           status: string
           updated_at: string
@@ -1000,6 +1051,7 @@ export type Database = {
           modules?: Database["public"]["Enums"]["module_access"][]
           name: string
           pdv_id?: string | null
+          pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           updated_at?: string
@@ -1012,6 +1064,7 @@ export type Database = {
           modules?: Database["public"]["Enums"]["module_access"][]
           name?: string
           pdv_id?: string | null
+          pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           updated_at?: string
@@ -1278,6 +1331,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enviar_notificacao: {
+        Args: {
+          p_id_referencia?: string
+          p_mensagem: string
+          p_modulo: string
+          p_tipo: string
+          p_tipo_referencia?: string
+          p_titulo: string
+          p_url_acao?: string
+          p_usuario_id: string
+        }
+        Returns: string
+      }
       generate_contract_alerts: { Args: never; Returns: undefined }
       generate_outdoor_alerts: { Args: never; Returns: undefined }
       get_user_role: {
@@ -1290,6 +1356,29 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      notificar_diretores_aprovadores: {
+        Args: {
+          p_id_referencia?: string
+          p_mensagem: string
+          p_tipo: string
+          p_titulo: string
+          p_url_acao?: string
+        }
+        Returns: undefined
+      }
+      notificar_por_role: {
+        Args: {
+          p_id_referencia?: string
+          p_mensagem: string
+          p_modulo: string
+          p_role: Database["public"]["Enums"]["user_role"]
+          p_tipo: string
+          p_tipo_referencia?: string
+          p_titulo: string
+          p_url_acao?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
@@ -1329,6 +1418,7 @@ export type Database = {
         | "manager"
         | "collaborator"
         | "supplier"
+        | "coordenador_compras"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1495,6 +1585,7 @@ export const Constants = {
         "manager",
         "collaborator",
         "supplier",
+        "coordenador_compras",
       ],
     },
   },

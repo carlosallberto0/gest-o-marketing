@@ -34,6 +34,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertsPopover } from '@/components/alerts/AlertsPopover';
+import { NotificationsPopover } from '@/components/notifications/NotificationsPopover';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
 
@@ -220,6 +221,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-muted-foreground hover:text-foreground">
             <Maximize2 className="h-5 w-5" />
           </Button>
+          <NotificationsPopover />
           <AlertsPopover />
           {/* User dropdown */}
           <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border">
@@ -251,6 +253,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <div className="flex items-center gap-1">
           <OfflineIndicator />
+          <NotificationsPopover />
           <AlertsPopover />
         </div>
       </header>
