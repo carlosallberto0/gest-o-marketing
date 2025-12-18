@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// New status flow for service orders
+// New status flow for service orders (extended from DB enum)
 export type ServiceOrderStatus = 
   | 'pending'           // Gerente criou, aguardando Admin
-  | 'approved'          // Admin aprovou, aguardando Diretoria  
+  | 'approved'          // Admin aprovou (legacy)  
   | 'pending_director'  // Aguardando aprovação da diretoria
   | 'director_approved' // Diretoria aprovou
   | 'in_progress'       // Fornecedor em execução
@@ -14,7 +14,7 @@ export type ServiceOrderStatus =
   | 'cancelled'         // Cancelada
   | 'correction_requested'; // Correção solicitada
 
-export const statusConfig = {
+export const statusConfig: Record<ServiceOrderStatus, { label: string; color: string; step: number }> = {
   pending: { label: 'Pendente Admin', color: 'bg-yellow-500', step: 1 },
   approved: { label: 'Aprovada Admin', color: 'bg-blue-500', step: 2 },
   pending_director: { label: 'Aguardando Diretoria', color: 'bg-orange-500', step: 3 },
@@ -93,7 +93,7 @@ export function usePendingAdminServiceOrders() {
           outdoor:outdoors(code, location, width, height, area, pdv:pdvs(name, address, city, state)),
           supplier:suppliers(name, cnpj, phone, email, address)
         `)
-        .eq('status', 'pending')
+        .eq('status', 'pending' as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -114,7 +114,7 @@ export function usePendingDirectorServiceOrders() {
           outdoor:outdoors(code, location, width, height, area, pdv:pdvs(name, address, city, state)),
           supplier:suppliers(name, cnpj, phone, email, address)
         `)
-        .eq('status', 'pending_director')
+        .eq('status', 'pending_director' as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -135,7 +135,7 @@ export function useInProgressServiceOrders() {
           outdoor:outdoors(code, location, width, height, area, pdv:pdvs(name, address, city, state)),
           supplier:suppliers(name, cnpj, phone, email, address)
         `)
-        .in('status', ['director_approved', 'in_progress'])
+        .in('status', ['director_approved', 'in_progress'] as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -156,7 +156,7 @@ export function usePendingValidationServiceOrders() {
           outdoor:outdoors(code, location, width, height, area, pdv:pdvs(name, address, city, state)),
           supplier:suppliers(name, cnpj, phone, email, address)
         `)
-        .eq('status', 'completed')
+        .eq('status', 'completed' as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -206,7 +206,7 @@ export function useCreateServiceOrder() {
         .insert({
           ...input,
           number: orderNumber,
-          status: 'pending', // Start with pending admin approval
+          status: 'pending' as any, // Start with pending admin approval
         })
         .select()
         .single();
@@ -214,16 +214,20 @@ export function useCreateServiceOrder() {
       if (error) throw error;
       
       // Send notification to admin
-      await supabase.rpc('notificar_por_role', {
-        p_role: 'admin',
-        p_tipo: 'os_nova',
-        p_modulo: 'media',
-        p_titulo: 'Nova Ordem de Serviço',
-        p_mensagem: `Nova OS ${orderNumber} aguardando aprovação`,
-        p_url_acao: '/admin/aprovacoes/os',
-        p_id_referencia: data.id,
-        p_tipo_referencia: 'service_order'
-      });
+      try {
+        await supabase.rpc('notificar_por_role', {
+          p_role: 'admin' as any,
+          p_tipo: 'os_nova',
+          p_modulo: 'media',
+          p_titulo: 'Nova Ordem de Serviço',
+          p_mensagem: `Nova OS ${orderNumber} aguardando aprovação`,
+          p_url_acao: '/admin/aprovacoes/os',
+          p_id_referencia: data.id,
+          p_tipo_referencia: 'service_order'
+        });
+      } catch (e) {
+        console.error('Error sending notification:', e);
+      }
 
       return data;
     },
@@ -248,7 +252,7 @@ export function useUpdateServiceOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status, observations }: UpdateServiceOrderInput) => {
+    mutationFn: async ({ id, status }: UpdateServiceOrderInput) => {
       const updates: Record<string, unknown> = { status };
       
       if (status === 'approved' || status === 'director_approved') {
@@ -259,55 +263,12 @@ export function useUpdateServiceOrder() {
 
       const { data, error } = await supabase
         .from('service_orders')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-
-      // Send notifications based on status change
-      const notificationMessages: Record<string, { role: string; title: string; message: string; url: string }> = {
-        pending_director: {
-          role: 'director',
-          title: 'OS Aguardando Aprovação',
-          message: `Ordem de serviço ${data.number} aguardando aprovação da diretoria`,
-          url: '/diretoria/aprovacoes/os'
-        },
-        director_approved: {
-          role: 'supplier',
-          title: 'Nova OS Aprovada',
-          message: `Ordem de serviço ${data.number} aprovada - iniciar execução`,
-          url: '/service-orders'
-        },
-        completed: {
-          role: 'manager',
-          title: 'OS Concluída',
-          message: `Ordem de serviço ${data.number} concluída pelo fornecedor - validar qualidade`,
-          url: '/gerente/validacoes'
-        },
-        validated: {
-          role: 'admin',
-          title: 'OS Validada',
-          message: `Ordem de serviço ${data.number} validada pelo gerente`,
-          url: '/service-orders'
-        }
-      };
-
-      const notification = notificationMessages[status];
-      if (notification) {
-        await supabase.rpc('notificar_por_role', {
-          p_role: notification.role,
-          p_tipo: 'os_status',
-          p_modulo: 'media',
-          p_titulo: notification.title,
-          p_mensagem: notification.message,
-          p_url_acao: notification.url,
-          p_id_referencia: id,
-          p_tipo_referencia: 'service_order'
-        });
-      }
-
       return data;
     },
     onSuccess: () => {
@@ -353,7 +314,7 @@ export function useAdminApproveServiceOrder() {
       const { data, error } = await supabase
         .from('service_orders')
         .update({ 
-          status: 'pending_director',
+          status: 'pending_director' as any,
           approved_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -363,13 +324,17 @@ export function useAdminApproveServiceOrder() {
       if (error) throw error;
 
       // Notify directors with approval permission
-      await supabase.rpc('notificar_diretores_aprovadores', {
-        p_tipo: 'os_aprovacao',
-        p_titulo: 'OS Aguardando Aprovação',
-        p_mensagem: `Ordem de serviço ${data.number} aguardando aprovação da diretoria`,
-        p_url_acao: '/diretoria/aprovacoes/os',
-        p_id_referencia: id
-      });
+      try {
+        await supabase.rpc('notificar_diretores_aprovadores', {
+          p_tipo: 'os_aprovacao',
+          p_titulo: 'OS Aguardando Aprovação',
+          p_mensagem: `Ordem de serviço ${data.number} aguardando aprovação da diretoria`,
+          p_url_acao: '/diretoria/aprovacoes/os',
+          p_id_referencia: id
+        });
+      } catch (e) {
+        console.error('Error sending notification:', e);
+      }
 
       return data;
     },
@@ -393,7 +358,7 @@ export function useDirectorApproveServiceOrder() {
       const { data, error } = await supabase
         .from('service_orders')
         .update({ 
-          status: 'director_approved'
+          status: 'director_approved' as any
         })
         .eq('id', id)
         .select(`
@@ -404,17 +369,21 @@ export function useDirectorApproveServiceOrder() {
 
       if (error) throw error;
 
-      // Notify admin and supplier
-      await supabase.rpc('notificar_por_role', {
-        p_role: 'admin',
-        p_tipo: 'os_aprovada',
-        p_modulo: 'media',
-        p_titulo: 'OS Aprovada pela Diretoria',
-        p_mensagem: `Ordem de serviço ${data.number} foi aprovada pela diretoria`,
-        p_url_acao: '/service-orders',
-        p_id_referencia: id,
-        p_tipo_referencia: 'service_order'
-      });
+      // Notify admin
+      try {
+        await supabase.rpc('notificar_por_role', {
+          p_role: 'admin' as any,
+          p_tipo: 'os_aprovada',
+          p_modulo: 'media',
+          p_titulo: 'OS Aprovada pela Diretoria',
+          p_mensagem: `Ordem de serviço ${data.number} foi aprovada pela diretoria`,
+          p_url_acao: '/service-orders',
+          p_id_referencia: id,
+          p_tipo_referencia: 'service_order'
+        });
+      } catch (e) {
+        console.error('Error sending notification:', e);
+      }
 
       return data;
     },
@@ -437,7 +406,7 @@ export function useStartServiceOrderExecution() {
     mutationFn: async (id: string) => {
       const { data, error } = await supabase
         .from('service_orders')
-        .update({ status: 'in_progress' })
+        .update({ status: 'in_progress' as any })
         .eq('id', id)
         .select()
         .single();
@@ -465,7 +434,7 @@ export function useCompleteServiceOrder() {
       const { data, error } = await supabase
         .from('service_orders')
         .update({ 
-          status: 'completed',
+          status: 'completed' as any,
           completed_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -475,16 +444,20 @@ export function useCompleteServiceOrder() {
       if (error) throw error;
 
       // Notify manager for validation
-      await supabase.rpc('notificar_por_role', {
-        p_role: 'manager',
-        p_tipo: 'os_concluida',
-        p_modulo: 'media',
-        p_titulo: 'OS Concluída - Validar',
-        p_mensagem: `Ordem de serviço ${data.number} concluída - aguardando validação`,
-        p_url_acao: '/gerente/validacoes',
-        p_id_referencia: id,
-        p_tipo_referencia: 'service_order'
-      });
+      try {
+        await supabase.rpc('notificar_por_role', {
+          p_role: 'manager' as any,
+          p_tipo: 'os_concluida',
+          p_modulo: 'media',
+          p_titulo: 'OS Concluída - Validar',
+          p_mensagem: `Ordem de serviço ${data.number} concluída - aguardando validação`,
+          p_url_acao: '/gerente/validacoes',
+          p_id_referencia: id,
+          p_tipo_referencia: 'service_order'
+        });
+      } catch (e) {
+        console.error('Error sending notification:', e);
+      }
 
       return data;
     },
@@ -507,7 +480,7 @@ export function useValidateServiceOrder() {
     mutationFn: async (id: string) => {
       const { data, error } = await supabase
         .from('service_orders')
-        .update({ status: 'validated' })
+        .update({ status: 'validated' as any })
         .eq('id', id)
         .select()
         .single();
@@ -515,16 +488,20 @@ export function useValidateServiceOrder() {
       if (error) throw error;
 
       // Notify admin
-      await supabase.rpc('notificar_por_role', {
-        p_role: 'admin',
-        p_tipo: 'os_validada',
-        p_modulo: 'media',
-        p_titulo: 'OS Validada',
-        p_mensagem: `Ordem de serviço ${data.number} foi validada pelo gerente`,
-        p_url_acao: '/service-orders',
-        p_id_referencia: id,
-        p_tipo_referencia: 'service_order'
-      });
+      try {
+        await supabase.rpc('notificar_por_role', {
+          p_role: 'admin' as any,
+          p_tipo: 'os_validada',
+          p_modulo: 'media',
+          p_titulo: 'OS Validada',
+          p_mensagem: `Ordem de serviço ${data.number} foi validada pelo gerente`,
+          p_url_acao: '/service-orders',
+          p_id_referencia: id,
+          p_tipo_referencia: 'service_order'
+        });
+      } catch (e) {
+        console.error('Error sending notification:', e);
+      }
 
       return data;
     },
@@ -548,8 +525,8 @@ export function useRequestServiceOrderCorrection() {
       const { data, error } = await supabase
         .from('service_orders')
         .update({ 
-          status: 'correction_requested',
-          description: observations // Append observations
+          status: 'correction_requested' as any,
+          description: observations
         })
         .eq('id', id)
         .select()

@@ -1410,6 +1410,10 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+        | "pending_director"
+        | "director_approved"
+        | "validated"
+        | "correction_requested"
       service_type: "installation" | "maintenance" | "removal" | "replacement"
       user_role:
         | "super_admin"
@@ -1576,6 +1580,10 @@ export const Constants = {
         "in_progress",
         "completed",
         "cancelled",
+        "pending_director",
+        "director_approved",
+        "validated",
+        "correction_requested",
       ],
       service_type: ["installation", "maintenance", "removal", "replacement"],
       user_role: [

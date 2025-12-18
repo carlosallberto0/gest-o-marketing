@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import ModuleSelection from "./pages/ModuleSelection";
 import MerchDashboard from "./pages/MerchDashboard";
 import MediaDashboard from "./pages/MediaDashboard";
+import SupervisorDashboard from "./pages/SupervisorDashboard";
 import Checklist from "./pages/Checklist";
 import History from "./pages/History";
 import Outdoors from "./pages/Outdoors";
@@ -25,6 +26,9 @@ import MaterialRequests from "./pages/MaterialRequests";
 import Campaigns from "./pages/Campaigns";
 import Users from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAprovacoes from "./pages/AdminAprovacoes";
+import DiretoriaAprovacoes from "./pages/DiretoriaAprovacoes";
+import GerenteValidacoes from "./pages/GerenteValidacoes";
 import PDVDetail from "./pages/PDVDetail";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
@@ -88,6 +92,14 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/supervisor/dashboard" 
+      element={
+        <ProtectedRoute>
+          <SupervisorDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
       path="/media/dashboard" 
       element={
         <ProtectedRoute>
@@ -96,6 +108,36 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/admin/aprovacoes" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin']}>
+            <AdminAprovacoes />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/diretoria/aprovacoes" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <DiretoriaAprovacoes />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/gerente/validacoes" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <GerenteValidacoes />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route
       path="/checklist" 
       element={
         <ProtectedRoute>
