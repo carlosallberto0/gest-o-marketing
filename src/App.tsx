@@ -38,6 +38,7 @@ import MaintenanceRequests from "./pages/MaintenanceRequests";
 import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
+import StrategicMap from "./pages/StrategicMap";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -108,7 +109,17 @@ const AppRoutes = () => (
       } 
     />
     <Route 
-      path="/admin/aprovacoes" 
+      path="/mapa" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
+            <StrategicMap />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/aprovacoes"
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin']}>

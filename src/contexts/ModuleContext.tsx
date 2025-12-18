@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-type ActiveModule = 'media' | 'merchandising' | null;
+type ActiveModule = 'media' | 'merchandising' | 'mapa' | null;
 
 interface ModuleContextType {
   activeModule: ActiveModule;

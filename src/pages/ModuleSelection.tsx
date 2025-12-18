@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
-import { ClipboardCheck, Megaphone, LogOut } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -29,12 +29,27 @@ export default function ModuleSelection() {
       color: 'bg-blue-500',
       features: ['Cadastro de Outdoors', 'Contratos', 'Ordens de Serviço', 'Avaliações de Mídia', 'Fornecedores'],
     },
+    {
+      id: 'mapa',
+      title: 'Mapa Estratégico',
+      description: 'Visualização geográfica unificada de PDVs, outdoors e status operacional em tempo real.',
+      icon: Map,
+      path: '/mapa',
+      color: 'bg-purple-500',
+      features: ['Mapa Interativo', 'Status em Tempo Real', 'Alertas Visuais', 'KPIs Consolidados', 'Ações Rápidas'],
+    },
   ];
 
-  const availableModules = modules.filter(m => hasModule(m.id as 'media' | 'merchandising'));
+  // Filter modules - Mapa is available for admin/super_admin/director, others filter by hasModule
+  const availableModules = modules.filter(m => {
+    if (m.id === 'mapa') {
+      return profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director' || profile?.role === 'manager';
+    }
+    return hasModule(m.id as 'media' | 'merchandising');
+  });
 
   const handleModuleSelect = (moduleId: string, path: string) => {
-    setActiveModule(moduleId as 'media' | 'merchandising');
+    setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa');
     navigate(path);
   };
 
