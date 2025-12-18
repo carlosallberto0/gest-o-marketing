@@ -40,7 +40,7 @@ import {
   Wrench,
   Download
 } from 'lucide-react';
-import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder } from '@/hooks/useServiceOrders';
+import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { generateServiceOrderPDF } from '@/lib/pdfGenerator';
 import { format } from 'date-fns';
@@ -48,12 +48,16 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const statusConfig = {
-  pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
+const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
+  pending: { label: 'Pendente Admin', color: 'bg-yellow-500', icon: Clock },
   approved: { label: 'Aprovada', color: 'bg-blue-500', icon: CheckCircle },
-  in_progress: { label: 'Em Andamento', color: 'bg-purple-500', icon: Play },
-  completed: { label: 'Concluída', color: 'bg-green-500', icon: CheckCircle },
+  pending_director: { label: 'Aguardando Diretoria', color: 'bg-orange-500', icon: Clock },
+  director_approved: { label: 'Aprovada Diretoria', color: 'bg-green-500', icon: CheckCircle },
+  in_progress: { label: 'Em Execução', color: 'bg-purple-500', icon: Play },
+  completed: { label: 'Concluída', color: 'bg-emerald-500', icon: CheckCircle },
+  validated: { label: 'Validada', color: 'bg-green-600', icon: CheckCircle },
   cancelled: { label: 'Cancelada', color: 'bg-red-500', icon: XCircle },
+  correction_requested: { label: 'Correção Solicitada', color: 'bg-amber-500', icon: Clock },
 };
 
 const typeConfig = {
@@ -90,7 +94,7 @@ export default function ServiceOrders() {
     completed: orders.filter(o => o.status === 'completed').length,
   };
 
-  const handleUpdateStatus = (id: string, status: 'pending' | 'approved' | 'in_progress' | 'completed' | 'cancelled') => {
+  const handleUpdateStatus = (id: string, status: ServiceOrderStatus) => {
     updateOrder.mutate({ id, status });
   };
 
@@ -207,10 +211,13 @@ export default function ServiceOrders() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="approved">Aprovada</SelectItem>
-              <SelectItem value="in_progress">Em Andamento</SelectItem>
+              <SelectItem value="pending">Pendente Admin</SelectItem>
+              <SelectItem value="pending_director">Aguardando Diretoria</SelectItem>
+              <SelectItem value="director_approved">Aprovada Diretoria</SelectItem>
+              <SelectItem value="in_progress">Em Execução</SelectItem>
               <SelectItem value="completed">Concluída</SelectItem>
+              <SelectItem value="validated">Validada</SelectItem>
+              <SelectItem value="correction_requested">Correção Solicitada</SelectItem>
               <SelectItem value="cancelled">Cancelada</SelectItem>
             </SelectContent>
           </Select>
