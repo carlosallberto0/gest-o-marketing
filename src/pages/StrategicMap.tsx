@@ -121,26 +121,26 @@ export default function StrategicMap() {
     
     const container = document.createElement('div');
     const root = createRoot(container);
-    root.render(<PDVPopup pdv={pdv} onClose={closePopup} />);
+    root.render(<PDVPopup pdv={pdv} onClose={closePopup} onNavigate={navigate} />);
 
     popupRef.current = new mapboxgl.Popup({ closeOnClick: true, maxWidth: '320px' })
       .setLngLat(lngLat)
       .setDOMContent(container)
       .addTo(map.current!);
-  }, [closePopup]);
+  }, [closePopup, navigate]);
 
   const showOutdoorPopup = useCallback((outdoor: MapOutdoor, lngLat: [number, number]) => {
     closePopup();
     
     const container = document.createElement('div');
     const root = createRoot(container);
-    root.render(<OutdoorPopup outdoor={outdoor} onClose={closePopup} />);
+    root.render(<OutdoorPopup outdoor={outdoor} onClose={closePopup} onNavigate={navigate} />);
 
     popupRef.current = new mapboxgl.Popup({ closeOnClick: true, maxWidth: '320px' })
       .setLngLat(lngLat)
       .setDOMContent(container)
       .addTo(map.current!);
-  }, [closePopup]);
+  }, [closePopup, navigate]);
 
   // Create GeoJSON for PDVs
   const pdvGeoJSON = useMemo(() => ({
@@ -224,7 +224,7 @@ export default function StrategicMap() {
 
   // Setup clustering layers
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || !map.current.isStyleLoaded()) return;
 
     // Remove existing layers and sources
     ['pdv-clusters', 'pdv-cluster-count', 'pdv-unclustered', 'outdoor-markers'].forEach(layer => {
