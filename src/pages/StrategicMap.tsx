@@ -9,8 +9,9 @@ import { MapLayerControls } from '@/components/map/MapLayerControls';
 import { MapSearchFilters } from '@/components/map/MapSearchFilters';
 import { PDVPopup } from '@/components/map/PDVPopup';
 import { OutdoorPopup } from '@/components/map/OutdoorPopup';
+import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 
 // Cluster colors by point count
@@ -41,6 +42,7 @@ export default function StrategicMap() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedState, setSelectedState] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Filter data based on user role
   const roleFilteredPDVs = useMemo(() => {
@@ -442,6 +444,13 @@ export default function StrategicMap() {
     refetchOutdoors();
   };
 
+  const handleImportSuccess = () => {
+    refetchPDVs();
+    refetchOutdoors();
+  };
+
+  const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
+
   if (tokenLoading || pdvsLoading || outdoorsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -498,14 +507,26 @@ export default function StrategicMap() {
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="icon"
-          className="bg-background/95 backdrop-blur-sm shadow-lg pointer-events-auto"
-          onClick={handleRefresh}
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="bg-background/95 backdrop-blur-sm shadow-lg"
+              onClick={() => setShowImportDialog(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Importar
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-background/95 backdrop-blur-sm shadow-lg"
+            onClick={handleRefresh}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Left Panel - KPIs and Search */}
@@ -540,6 +561,13 @@ export default function StrategicMap() {
           {filteredPDVs.filter(p => p.lat && p.lng).length} PDVs • {filteredOutdoors.filter(o => o.lat && o.lng).length} Outdoors
         </p>
       </div>
+
+      {/* Bulk Import Dialog */}
+      <BulkImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 }
