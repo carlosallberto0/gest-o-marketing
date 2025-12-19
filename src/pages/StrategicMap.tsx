@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -6,18 +6,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMapboxToken, useMapPDVs, useMapOutdoors, useMapKPIs, MapPDV, MapOutdoor } from '@/hooks/useStrategicMapData';
 import { MapKPIPanel } from '@/components/map/MapKPIPanel';
 import { MapLayerControls } from '@/components/map/MapLayerControls';
+import { MapSearchFilters } from '@/components/map/MapSearchFilters';
 import { PDVPopup } from '@/components/map/PDVPopup';
 import { OutdoorPopup } from '@/components/map/OutdoorPopup';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Map, RefreshCw } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 
+// Cluster colors by point count
+const CLUSTER_COLORS = {
+  small: '#51bbd6',  // < 10
+  medium: '#f1f075', // 10-50
+  large: '#f28cb1',  // > 50
+};
+
 export default function StrategicMap() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
   const { data: token, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
@@ -30,26 +37,77 @@ export default function StrategicMap() {
   const [showAlerts, setShowAlerts] = useState(true);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Filter data based on user role
-  const filteredPDVs = pdvs?.filter(pdv => {
-    if (profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director') {
-      return true;
-    }
-    if (profile?.role === 'manager' && profile?.pdv_id) {
-      return pdv.id === profile.pdv_id;
-    }
-    return true;
-  });
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedState, setSelectedState] = useState('all');
+  const [selectedCity, setSelectedCity] = useState('all');
 
-  const filteredOutdoors = outdoors?.filter(outdoor => {
-    if (profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director') {
+  // Filter data based on user role
+  const roleFilteredPDVs = useMemo(() => {
+    return pdvs?.filter(pdv => {
+      if (profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director') {
+        return true;
+      }
+      if (profile?.role === 'manager' && profile?.pdv_id) {
+        return pdv.id === profile.pdv_id;
+      }
       return true;
+    }) || [];
+  }, [pdvs, profile]);
+
+  // Apply search and location filters
+  const filteredPDVs = useMemo(() => {
+    return roleFilteredPDVs.filter(pdv => {
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesSearch = 
+          pdv.name.toLowerCase().includes(search) ||
+          pdv.code.toLowerCase().includes(search) ||
+          pdv.address.toLowerCase().includes(search) ||
+          pdv.city.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+      }
+      
+      // State filter
+      if (selectedState !== 'all' && pdv.state !== selectedState) {
+        return false;
+      }
+      
+      // City filter
+      if (selectedCity !== 'all' && pdv.city !== selectedCity) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [roleFilteredPDVs, searchTerm, selectedState, selectedCity]);
+
+  const filteredOutdoors = useMemo(() => {
+    const roleFiltered = outdoors?.filter(outdoor => {
+      if (profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director') {
+        return true;
+      }
+      if (profile?.role === 'manager' && profile?.pdv_id) {
+        return outdoor.pdv_id === profile.pdv_id;
+      }
+      return true;
+    }) || [];
+
+    // Apply search filter to outdoors
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      return roleFiltered.filter(outdoor =>
+        outdoor.code.toLowerCase().includes(search) ||
+        outdoor.location.toLowerCase().includes(search) ||
+        outdoor.pdvName.toLowerCase().includes(search)
+      );
     }
-    if (profile?.role === 'manager' && profile?.pdv_id) {
-      return outdoor.pdv_id === profile.pdv_id;
-    }
-    return true;
-  });
+
+    // Filter by PDVs in filtered list
+    const pdvIds = new Set(filteredPDVs.map(p => p.id));
+    return roleFiltered.filter(o => pdvIds.has(o.pdv_id));
+  }, [outdoors, profile, searchTerm, filteredPDVs]);
 
   const closePopup = useCallback(() => {
     if (popupRef.current) {
@@ -84,6 +142,48 @@ export default function StrategicMap() {
       .addTo(map.current!);
   }, [closePopup]);
 
+  // Create GeoJSON for PDVs
+  const pdvGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: filteredPDVs
+      .filter(pdv => pdv.lat && pdv.lng)
+      .map(pdv => ({
+        type: 'Feature' as const,
+        properties: {
+          id: pdv.id,
+          name: pdv.name,
+          code: pdv.code,
+          status: pdv.evaluationStatus,
+          isAlert: pdv.evaluationStatus === 'pending' || pdv.evaluationStatus === 'critical',
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [pdv.lng!, pdv.lat!],
+        },
+      })),
+  }), [filteredPDVs]);
+
+  // Create GeoJSON for Outdoors
+  const outdoorGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: filteredOutdoors
+      .filter(outdoor => outdoor.lat && outdoor.lng)
+      .map(outdoor => ({
+        type: 'Feature' as const,
+        properties: {
+          id: outdoor.id,
+          code: outdoor.code,
+          status: outdoor.status,
+          hasAlert: outdoor.status === 'non_operational' ||
+            (outdoor.daysUntilContractEnd !== null && outdoor.daysUntilContractEnd <= 30 && outdoor.daysUntilContractEnd > 0),
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [outdoor.lng!, outdoor.lat!],
+        },
+      })),
+  }), [filteredOutdoors]);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !token || map.current) return;
@@ -95,8 +195,8 @@ export default function StrategicMap() {
     let zoom = 4;
 
     // If manager, center on their PDV
-    if (profile?.role === 'manager' && profile?.pdv_id && filteredPDVs?.length) {
-      const userPDV = filteredPDVs.find(p => p.id === profile.pdv_id);
+    if (profile?.role === 'manager' && profile?.pdv_id && roleFilteredPDVs?.length) {
+      const userPDV = roleFilteredPDVs.find(p => p.id === profile.pdv_id);
       if (userPDV?.lat && userPDV?.lng) {
         center = [userPDV.lng, userPDV.lat];
         zoom = 14;
@@ -120,86 +220,222 @@ export default function StrategicMap() {
       map.current?.remove();
       map.current = null;
     };
-  }, [token, profile, filteredPDVs]);
+  }, [token, profile, roleFilteredPDVs]);
 
-  // Update markers when data or filters change
+  // Setup clustering layers
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
+    // Remove existing layers and sources
+    ['pdv-clusters', 'pdv-cluster-count', 'pdv-unclustered', 'outdoor-markers'].forEach(layer => {
+      if (map.current?.getLayer(layer)) {
+        map.current.removeLayer(layer);
+      }
+    });
+    ['pdvs', 'outdoors'].forEach(source => {
+      if (map.current?.getSource(source)) {
+        map.current.removeSource(source);
+      }
+    });
 
-    // Add PDV markers
-    if (showPDVs && filteredPDVs) {
-      filteredPDVs.forEach(pdv => {
-        if (pdv.lat && pdv.lng) {
-          const isAlert = showAlerts && (pdv.evaluationStatus === 'pending' || pdv.evaluationStatus === 'critical');
-          
-          const el = document.createElement('div');
-          el.className = 'pdv-marker';
-          el.style.cssText = `
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            ${pdv.evaluationStatus === 'ok' ? 'background-color: #10b981;' : ''}
-            ${pdv.evaluationStatus === 'pending' ? 'background-color: #f59e0b;' : ''}
-            ${pdv.evaluationStatus === 'critical' ? 'background-color: #ef4444;' : ''}
-            ${isAlert ? 'animation: pulse 1.5s infinite;' : ''}
-          `;
+    if (showPDVs && pdvGeoJSON.features.length > 0) {
+      // Add PDV source with clustering
+      map.current.addSource('pdvs', {
+        type: 'geojson',
+        data: pdvGeoJSON,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+      });
 
-          el.addEventListener('click', () => {
-            showPDVPopup(pdv, [pdv.lng!, pdv.lat!]);
+      // Cluster circles
+      map.current.addLayer({
+        id: 'pdv-clusters',
+        type: 'circle',
+        source: 'pdvs',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step',
+            ['get', 'point_count'],
+            CLUSTER_COLORS.small,
+            10,
+            CLUSTER_COLORS.medium,
+            50,
+            CLUSTER_COLORS.large,
+          ],
+          'circle-radius': [
+            'step',
+            ['get', 'point_count'],
+            20,
+            10,
+            25,
+            50,
+            35,
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+        },
+      });
+
+      // Cluster count label
+      map.current.addLayer({
+        id: 'pdv-cluster-count',
+        type: 'symbol',
+        source: 'pdvs',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': '#333',
+        },
+      });
+
+      // Individual PDV markers
+      map.current.addLayer({
+        id: 'pdv-unclustered',
+        type: 'circle',
+        source: 'pdvs',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match',
+            ['get', 'status'],
+            'ok', '#10b981',
+            'pending', '#f59e0b',
+            'critical', '#ef4444',
+            '#888',
+          ],
+          'circle-radius': 10,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+        },
+      });
+
+      // Click on cluster to zoom
+      map.current.on('click', 'pdv-clusters', (e) => {
+        const features = map.current!.queryRenderedFeatures(e.point, { layers: ['pdv-clusters'] });
+        const clusterId = features[0].properties?.cluster_id;
+        const source = map.current!.getSource('pdvs') as mapboxgl.GeoJSONSource;
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.current!.easeTo({
+            center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
+            zoom: zoom!,
           });
+        });
+      });
 
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([pdv.lng, pdv.lat])
-            .addTo(map.current!);
-          
-          markersRef.current.push(marker);
+      // Click on individual PDV
+      map.current.on('click', 'pdv-unclustered', (e) => {
+        const feature = e.features?.[0];
+        if (feature) {
+          const pdv = filteredPDVs.find(p => p.id === feature.properties?.id);
+          if (pdv && pdv.lat && pdv.lng) {
+            showPDVPopup(pdv, [pdv.lng, pdv.lat]);
+          }
         }
+      });
+
+      // Cursor styles
+      map.current.on('mouseenter', 'pdv-clusters', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', 'pdv-clusters', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+      map.current.on('mouseenter', 'pdv-unclustered', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', 'pdv-unclustered', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
       });
     }
 
-    // Add Outdoor markers
-    if (showOutdoors && filteredOutdoors) {
-      filteredOutdoors.forEach(outdoor => {
-        if (outdoor.lat && outdoor.lng) {
-          const hasAlert = showAlerts && (
-            outdoor.status === 'non_operational' ||
-            (outdoor.daysUntilContractEnd !== null && outdoor.daysUntilContractEnd <= 30 && outdoor.daysUntilContractEnd > 0)
-          );
+    // Add outdoor markers (smaller, no clustering)
+    if (showOutdoors && outdoorGeoJSON.features.length > 0) {
+      map.current.addSource('outdoors', {
+        type: 'geojson',
+        data: outdoorGeoJSON,
+      });
 
-          const el = document.createElement('div');
-          el.className = 'outdoor-marker';
-          el.style.cssText = `
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            ${outdoor.status === 'operational' ? 'background-color: #3b82f6;' : ''}
-            ${outdoor.status === 'non_operational' ? 'background-color: #ef4444;' : ''}
-            ${outdoor.status === 'pending_evaluation' ? 'background-color: #f59e0b;' : ''}
-            ${hasAlert ? 'animation: pulse 1.5s infinite;' : ''}
-          `;
+      map.current.addLayer({
+        id: 'outdoor-markers',
+        type: 'circle',
+        source: 'outdoors',
+        paint: {
+          'circle-color': [
+            'match',
+            ['get', 'status'],
+            'operational', '#3b82f6',
+            'non_operational', '#ef4444',
+            'pending_evaluation', '#f59e0b',
+            '#888',
+          ],
+          'circle-radius': 7,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+        },
+      });
 
-          el.addEventListener('click', () => {
-            showOutdoorPopup(outdoor, [outdoor.lng!, outdoor.lat!]);
-          });
-
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([outdoor.lng, outdoor.lat])
-            .addTo(map.current!);
-          
-          markersRef.current.push(marker);
+      map.current.on('click', 'outdoor-markers', (e) => {
+        const feature = e.features?.[0];
+        if (feature) {
+          const outdoor = filteredOutdoors.find(o => o.id === feature.properties?.id);
+          if (outdoor && outdoor.lat && outdoor.lng) {
+            showOutdoorPopup(outdoor, [outdoor.lng, outdoor.lat]);
+          }
         }
       });
+
+      map.current.on('mouseenter', 'outdoor-markers', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', 'outdoor-markers', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
     }
-  }, [mapLoaded, filteredPDVs, filteredOutdoors, showPDVs, showOutdoors, showAlerts, showPDVPopup, showOutdoorPopup]);
+  }, [mapLoaded, pdvGeoJSON, outdoorGeoJSON, showPDVs, showOutdoors, showAlerts, filteredPDVs, filteredOutdoors, showPDVPopup, showOutdoorPopup]);
+
+  // Update source data when filters change
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    const pdvSource = map.current.getSource('pdvs') as mapboxgl.GeoJSONSource;
+    if (pdvSource) {
+      pdvSource.setData(pdvGeoJSON);
+    }
+
+    const outdoorSource = map.current.getSource('outdoors') as mapboxgl.GeoJSONSource;
+    if (outdoorSource) {
+      outdoorSource.setData(outdoorGeoJSON);
+    }
+  }, [pdvGeoJSON, outdoorGeoJSON, mapLoaded]);
+
+  // Fly to filtered location when filters change
+  useEffect(() => {
+    if (!map.current || !mapLoaded || filteredPDVs.length === 0) return;
+
+    const pdvsWithCoords = filteredPDVs.filter(p => p.lat && p.lng);
+    if (pdvsWithCoords.length === 0) return;
+
+    if (pdvsWithCoords.length === 1) {
+      map.current.flyTo({
+        center: [pdvsWithCoords[0].lng!, pdvsWithCoords[0].lat!],
+        zoom: 12,
+      });
+    } else {
+      // Fit bounds to all filtered PDVs
+      const bounds = new mapboxgl.LngLatBounds();
+      pdvsWithCoords.forEach(pdv => {
+        bounds.extend([pdv.lng!, pdv.lat!]);
+      });
+      map.current.fitBounds(bounds, { padding: 50 });
+    }
+  }, [selectedState, selectedCity, mapLoaded]);
 
   const handleRefresh = () => {
     refetchPDVs();
@@ -272,8 +508,17 @@ export default function StrategicMap() {
         </Button>
       </div>
 
-      {/* Left Panel - KPIs */}
-      <div className="absolute top-20 left-4 w-64 pointer-events-auto">
+      {/* Left Panel - KPIs and Search */}
+      <div className="absolute top-20 left-4 w-64 space-y-3 pointer-events-auto">
+        <MapSearchFilters
+          pdvs={roleFilteredPDVs}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedState={selectedState}
+          onStateChange={setSelectedState}
+          selectedCity={selectedCity}
+          onCityChange={setSelectedCity}
+        />
         <MapKPIPanel kpis={kpis} />
       </div>
 
@@ -287,6 +532,13 @@ export default function StrategicMap() {
           onToggleOutdoors={setShowOutdoors}
           onToggleAlerts={setShowAlerts}
         />
+      </div>
+
+      {/* Results count */}
+      <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 shadow-lg pointer-events-auto">
+        <p className="text-xs text-muted-foreground">
+          {filteredPDVs.filter(p => p.lat && p.lng).length} PDVs • {filteredOutdoors.filter(o => o.lat && o.lng).length} Outdoors
+        </p>
       </div>
     </div>
   );
