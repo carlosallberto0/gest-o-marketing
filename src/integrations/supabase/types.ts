@@ -445,6 +445,47 @@ export type Database = {
           },
         ]
       }
+      import_lotes: {
+        Row: {
+          arquivo_nome: string
+          created_at: string
+          erros: Json | null
+          id: string
+          quantidade_outdoors: number | null
+          quantidade_postos: number | null
+          status: string
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo_nome: string
+          created_at?: string
+          erros?: Json | null
+          id?: string
+          quantidade_outdoors?: number | null
+          quantidade_postos?: number | null
+          status?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo_nome?: string
+          created_at?: string
+          erros?: Json | null
+          id?: string
+          quantidade_outdoors?: number | null
+          quantidade_postos?: number | null
+          status?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_lotes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           approved_at: string | null
@@ -885,8 +926,10 @@ export type Database = {
           code: string
           contract_id: string | null
           created_at: string
+          fonte_importacao: string | null
           height: number
           id: string
+          id_importacao: string | null
           last_evaluation: string | null
           lat: number | null
           lng: number | null
@@ -896,6 +939,7 @@ export type Database = {
           pdv_id: string
           photo_url: string | null
           status: Database["public"]["Enums"]["outdoor_status"]
+          status_importacao: string | null
           supplier_id: string | null
           updated_at: string
           validation_radius_meters: number | null
@@ -906,8 +950,10 @@ export type Database = {
           code: string
           contract_id?: string | null
           created_at?: string
+          fonte_importacao?: string | null
           height: number
           id?: string
+          id_importacao?: string | null
           last_evaluation?: string | null
           lat?: number | null
           lng?: number | null
@@ -917,6 +963,7 @@ export type Database = {
           pdv_id: string
           photo_url?: string | null
           status?: Database["public"]["Enums"]["outdoor_status"]
+          status_importacao?: string | null
           supplier_id?: string | null
           updated_at?: string
           validation_radius_meters?: number | null
@@ -927,8 +974,10 @@ export type Database = {
           code?: string
           contract_id?: string | null
           created_at?: string
+          fonte_importacao?: string | null
           height?: number
           id?: string
+          id_importacao?: string | null
           last_evaluation?: string | null
           lat?: number | null
           lng?: number | null
@@ -938,6 +987,7 @@ export type Database = {
           pdv_id?: string
           photo_url?: string | null
           status?: Database["public"]["Enums"]["outdoor_status"]
+          status_importacao?: string | null
           supplier_id?: string | null
           updated_at?: string
           validation_radius_meters?: number | null
@@ -974,7 +1024,9 @@ export type Database = {
           city: string
           code: string
           created_at: string
+          fonte_importacao: string | null
           id: string
+          id_importacao: string | null
           lat: number | null
           lng: number | null
           manager_id: string | null
@@ -982,6 +1034,7 @@ export type Database = {
           photo_url: string | null
           state: string
           status: string
+          status_importacao: string | null
           type: Database["public"]["Enums"]["pdv_type"]
           updated_at: string
         }
@@ -991,7 +1044,9 @@ export type Database = {
           city: string
           code: string
           created_at?: string
+          fonte_importacao?: string | null
           id?: string
+          id_importacao?: string | null
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
@@ -999,6 +1054,7 @@ export type Database = {
           photo_url?: string | null
           state: string
           status?: string
+          status_importacao?: string | null
           type: Database["public"]["Enums"]["pdv_type"]
           updated_at?: string
         }
@@ -1008,7 +1064,9 @@ export type Database = {
           city?: string
           code?: string
           created_at?: string
+          fonte_importacao?: string | null
           id?: string
+          id_importacao?: string | null
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
@@ -1016,6 +1074,7 @@ export type Database = {
           photo_url?: string | null
           state?: string
           status?: string
+          status_importacao?: string | null
           type?: Database["public"]["Enums"]["pdv_type"]
           updated_at?: string
         }
