@@ -2,18 +2,16 @@ import { MapOutdoor } from '@/hooks/useStrategicMapData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wrench, Radio, AlertTriangle, Calendar, Ruler } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface OutdoorPopupProps {
   outdoor: MapOutdoor;
   onClose: () => void;
+  onNavigate: (path: string) => void;
 }
 
-export function OutdoorPopup({ outdoor, onClose }: OutdoorPopupProps) {
-  const navigate = useNavigate();
-
+export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps) {
   const getStatusBadge = () => {
     switch (outdoor.status) {
       case 'operational':
@@ -27,12 +25,12 @@ export function OutdoorPopup({ outdoor, onClose }: OutdoorPopupProps) {
 
   const handleRequestMaintenance = () => {
     onClose();
-    navigate(`/maintenance-requests?outdoor=${outdoor.id}`);
+    onNavigate(`/maintenance-requests?outdoor=${outdoor.id}`);
   };
 
   const handleViewDetails = () => {
     onClose();
-    navigate(`/outdoor/${outdoor.id}`);
+    onNavigate(`/outdoor/${outdoor.id}`);
   };
 
   const hasContractAlert = outdoor.daysUntilContractEnd !== null && outdoor.daysUntilContractEnd <= 30 && outdoor.daysUntilContractEnd > 0;

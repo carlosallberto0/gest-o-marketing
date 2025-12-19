@@ -2,18 +2,16 @@ import { MapPDV } from '@/hooks/useStrategicMapData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ClipboardCheck, Package, MapPin, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface PDVPopupProps {
   pdv: MapPDV;
   onClose: () => void;
+  onNavigate: (path: string) => void;
 }
 
-export function PDVPopup({ pdv, onClose }: PDVPopupProps) {
-  const navigate = useNavigate();
-
+export function PDVPopup({ pdv, onClose, onNavigate }: PDVPopupProps) {
   const getStatusBadge = () => {
     switch (pdv.evaluationStatus) {
       case 'ok':
@@ -27,12 +25,12 @@ export function PDVPopup({ pdv, onClose }: PDVPopupProps) {
 
   const handleViewEvaluations = () => {
     onClose();
-    navigate(`/pdv/${pdv.id}`);
+    onNavigate(`/pdv/${pdv.id}`);
   };
 
   const handleRequestMaterial = () => {
     onClose();
-    navigate(`/material-requests?pdv=${pdv.id}`);
+    onNavigate(`/material-requests?pdv=${pdv.id}`);
   };
 
   return (
