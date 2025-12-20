@@ -90,35 +90,38 @@ export default function ModuleSelection() {
             </p>
           </div>
 
-          {/* Module Cards */}
-          <div className={`grid gap-6 ${availableModules.length === 1 ? 'max-w-md mx-auto' : 'md:grid-cols-2'}`}>
+      {/* Module Cards */}
+          <div className={`grid gap-4 ${availableModules.length === 1 ? 'max-w-sm mx-auto' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
             {availableModules.map((module, index) => (
               <Card 
                 key={module.id}
-                className="group cursor-pointer border-2 border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 animate-fade-in"
+                className="group cursor-pointer border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => handleModuleSelect(module.id, module.path)}
               >
-                <CardHeader className="pb-4">
-                  <div className={`w-14 h-14 rounded-xl ${module.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <module.icon className="h-7 w-7 text-white" />
+                <CardHeader className="pb-3 p-4 sm:p-5">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg ${module.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                    <module.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
-                  <CardTitle className="text-2xl">{module.title}</CardTitle>
-                  <CardDescription className="text-base">{module.description}</CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">{module.title}</CardTitle>
+                  <CardDescription className="text-sm line-clamp-2">{module.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Funcionalidades</p>
-                    <ul className="grid grid-cols-2 gap-1">
-                      {module.features.map((feature) => (
-                        <li key={feature} className="text-sm text-foreground/80 flex items-center gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-primary" />
-                          {feature}
+                <CardContent className="pt-0 p-4 sm:p-5">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Funcionalidades</p>
+                    <ul className="grid grid-cols-1 gap-0.5">
+                      {module.features.slice(0, 4).map((feature) => (
+                        <li key={feature} className="text-xs text-foreground/80 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
+                          <span className="truncate">{feature}</span>
                         </li>
                       ))}
+                      {module.features.length > 4 && (
+                        <li className="text-xs text-muted-foreground">+{module.features.length - 4} mais</li>
+                      )}
                     </ul>
                   </div>
-                  <Button className="w-full mt-6 group-hover:bg-primary group-hover:text-primary-foreground" variant="outline">
+                  <Button className="w-full mt-4 h-9 text-sm group-hover:bg-primary group-hover:text-primary-foreground" variant="outline">
                     Acessar Módulo
                   </Button>
                 </CardContent>
