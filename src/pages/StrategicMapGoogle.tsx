@@ -24,10 +24,7 @@ const containerStyle = {
   height: '100%',
 };
 
-const mapStyles = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-];
+// Removed custom mapStyles to use default Google Maps layout with POIs and transit
 
 const clusterOptions = {
   imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
@@ -405,9 +402,8 @@ function StrategicMapContent() {
             setSelectedOutdoor(null);
           }}
           options={{
-            styles: mapStyles,
             mapTypeControl: true,
-            streetViewControl: false,
+            streetViewControl: true,
             fullscreenControl: true,
             zoomControl: true,
             mapTypeControlOptions: {
