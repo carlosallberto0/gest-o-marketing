@@ -73,7 +73,7 @@ export default function OutdoorDetail() {
   };
 
   const handleDelete = async () => {
-    if (!outdoor || deleteConfirmText !== 'EXCLUIR') return;
+    if (!outdoor || deleteConfirmText.toUpperCase() !== 'EXCLUIR') return;
     setIsDeleting(true);
     try {
       const { error } = await supabase.from('outdoors').delete().eq('id', outdoor.id);
@@ -283,7 +283,7 @@ export default function OutdoorDetail() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleteConfirmText !== 'EXCLUIR' || isDeleting}
+              disabled={deleteConfirmText.toUpperCase() !== 'EXCLUIR' || isDeleting}
               className="bg-destructive text-destructive-foreground"
             >
               {isDeleting ? 'Excluindo...' : 'Excluir'}
