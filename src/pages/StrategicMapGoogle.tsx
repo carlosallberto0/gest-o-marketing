@@ -33,42 +33,116 @@ const clusterOptions = {
   maxZoom: 14,
 };
 
-// Marker icons
-const getMarkerIcon = (type: 'posto' | 'conveniencia' | 'both' | 'outdoor', status?: string) => {
+// Design system colors converted to HEX for SVG use
+const MARKER_COLORS = {
+  primary: '#5b73e8',      // hsl(230, 76%, 63%) - Em dia
+  success: '#34c38f',      // hsl(158, 58%, 49%) - Operacional  
+  warning: '#f1b44c',      // hsl(39, 85%, 62%) - Pendente
+  destructive: '#f46a6a',  // hsl(0, 86%, 69%) - Crítico/Não operacional
+};
+
+// Get marker size based on zoom level
+const getMarkerSize = (zoom: number): { width: number; height: number; iconScale: number } => {
+  if (zoom <= 8) return { width: 28, height: 34, iconScale: 0.7 };
+  if (zoom <= 11) return { width: 34, height: 42, iconScale: 0.85 };
+  if (zoom <= 14) return { width: 42, height: 52, iconScale: 1 };
+  return { width: 50, height: 62, iconScale: 1.15 };
+};
+
+// Marker icons with improved legibility
+const getMarkerIcon = (
+  type: 'posto' | 'conveniencia' | 'both' | 'outdoor', 
+  status?: string,
+  zoom: number = 12
+) => {
   const baseUrl = 'data:image/svg+xml;charset=UTF-8,';
+  const size = getMarkerSize(zoom);
+  
+  // Determine color based on status
+  const getColor = () => {
+    if (type === 'outdoor') {
+      if (status === 'operational') return MARKER_COLORS.success;
+      if (status === 'non_operational') return MARKER_COLORS.destructive;
+      return MARKER_COLORS.warning;
+    }
+    // PDV status
+    if (status === 'critical') return MARKER_COLORS.destructive;
+    if (status === 'pending') return MARKER_COLORS.warning;
+    return MARKER_COLORS.primary;
+  };
+  
+  const color = getColor();
+  const w = size.width;
+  const h = size.height;
   
   if (type === 'outdoor') {
-    const color = status === 'operational' ? '%2322c55e' : status === 'non_operational' ? '%23ef4444' : '%23f59e0b';
-    // Flag icon for outdoors
+    // Flag icon with pin shape for better map visibility
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5">
-        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-        <line x1="4" y1="22" x2="4" y2="15"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs>
+          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <!-- Pin shape -->
+        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
+              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+        <!-- Flag icon inside -->
+        <g transform="translate(${w*0.28}, ${h*0.15}) scale(${size.iconScale * 0.6})">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" 
+                fill="white" stroke="white" stroke-width="0.5"/>
+          <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2"/>
+        </g>
       </svg>
     `);
   }
   
   // PDV markers
   const isPosto = type === 'posto' || type === 'both';
-  const statusColor = status === 'critical' ? '%23ef4444' : status === 'pending' ? '%23f59e0b' : '%233b82f6';
   
   if (isPosto) {
+    // Fuel pump icon
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 24 24" fill="${statusColor}" stroke="white" stroke-width="1.5">
-        <path d="M3 22V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/>
-        <path d="M6 10h6"/>
-        <path d="M6 14h6"/>
-        <path d="M15 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs>
+          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <!-- Pin shape -->
+        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
+              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+        <!-- Fuel icon inside -->
+        <g transform="translate(${w*0.25}, ${h*0.12}) scale(${size.iconScale * 0.65})">
+          <path d="M3 22V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M6 10h6M6 14h6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M15 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4" 
+                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </g>
       </svg>
     `);
   } else {
+    // Store/convenience icon
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 24 24" fill="${statusColor}" stroke="white" stroke-width="1.5">
-        <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
-        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-        <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
-        <path d="M2 7h20"/>
-        <path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs>
+          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <!-- Pin shape -->
+        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
+              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+        <!-- Store icon inside -->
+        <g transform="translate(${w*0.25}, ${h*0.12}) scale(${size.iconScale * 0.65})">
+          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" 
+                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" 
+                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" 
+                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M2 7h20" fill="none" stroke="white" stroke-width="2"/>
+        </g>
       </svg>
     `);
   }
@@ -92,6 +166,9 @@ function StrategicMapContent() {
     updateFilters, 
     updateLayers 
   } = useMapPersistence();
+
+  // Current zoom level for responsive markers
+  const [currentZoom, setCurrentZoom] = useState(persistedState.zoom);
 
   // Layer visibility
   const [showPDVs, setShowPDVs] = useState(persistedState.layers.showPDVs);
@@ -231,6 +308,7 @@ function StrategicMapContent() {
       if (center && zoom) {
         updateCenter([center.lng(), center.lat()]);
         updateZoom(zoom);
+        setCurrentZoom(zoom);
       }
     }
   }, [updateCenter, updateZoom]);
@@ -422,14 +500,14 @@ function StrategicMapContent() {
                       key={pdv.id}
                       position={{ lat: pdv.lat!, lng: pdv.lng! }}
                       clusterer={clusterer}
-                      icon={{
-                        url: getMarkerIcon(
-                          pdv.type,
-                          pdv.evaluationStatus
-                        ),
-                        scaledSize: new google.maps.Size(32, 40),
-                        anchor: new google.maps.Point(16, 40),
-                      }}
+                      icon={(() => {
+                        const size = getMarkerSize(currentZoom);
+                        return {
+                          url: getMarkerIcon(pdv.type, pdv.evaluationStatus, currentZoom),
+                          scaledSize: new google.maps.Size(size.width, size.height),
+                          anchor: new google.maps.Point(size.width / 2, size.height),
+                        };
+                      })()}
                       draggable={adminMode && isSuperAdmin}
                       onClick={() => {
                         setSelectedOutdoor(null);
@@ -464,11 +542,14 @@ function StrategicMapContent() {
             <Marker
               key={outdoor.id}
               position={{ lat: outdoor.lat!, lng: outdoor.lng! }}
-              icon={{
-                url: getMarkerIcon('outdoor', outdoor.status),
-                scaledSize: new google.maps.Size(28, 28),
-                anchor: new google.maps.Point(14, 14),
-              }}
+              icon={(() => {
+                const size = getMarkerSize(currentZoom);
+                return {
+                  url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
+                  scaledSize: new google.maps.Size(size.width, size.height),
+                  anchor: new google.maps.Point(size.width / 2, size.height),
+                };
+              })()}
               onClick={() => {
                 setSelectedPDV(null);
                 setSelectedOutdoor(outdoor);

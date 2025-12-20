@@ -1,60 +1,95 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fuel, Store, Flag } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Fuel, Store, Flag, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 export function MapLegend() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <Card className="w-64 shadow-lg">
-      <CardHeader className="py-3 px-4">
-        <CardTitle className="text-sm font-medium">Legenda</CardTitle>
-      </CardHeader>
-      <CardContent className="py-2 px-4 space-y-4">
-        {/* PDV Icons */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">PDVs</h4>
-          <div className="flex items-center gap-2">
-            <Fuel className="h-4 w-4 text-blue-500" />
-            <span className="text-sm">Posto de Combustível</span>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="bg-card/95 backdrop-blur-sm border-border shadow-lg hover:bg-card"
+        >
+          <Info className="h-4 w-4 mr-2" />
+          Legenda
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 ml-2" />
+          ) : (
+            <ChevronUp className="h-4 w-4 ml-2" />
+          )}
+        </Button>
+      </CollapsibleTrigger>
+      
+      <CollapsibleContent className="mt-2">
+        <div className="bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4 space-y-4 animate-fade-in">
+          {/* PDV Types */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Tipos de PDV
+            </h4>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                <Fuel className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="text-sm text-foreground">Posto de Combustível</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                <Store className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="text-sm text-foreground">Conveniência</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Store className="h-4 w-4 text-blue-500" />
-            <span className="text-sm">Conveniência</span>
-          </div>
-        </div>
 
-        {/* PDV Status Colors */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status PDV</h4>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-blue-500" />
-            <span className="text-sm">Avaliação em dia</span>
+          {/* PDV Status Colors */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Status PDV
+            </h4>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-primary shadow-sm" />
+              <span className="text-sm text-foreground">Avaliação em dia</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-warning shadow-sm" />
+              <span className="text-sm text-foreground">Avaliação pendente</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-destructive shadow-sm" />
+              <span className="text-sm text-foreground">Score crítico (&lt;60%)</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-yellow-500" />
-            <span className="text-sm">Avaliação pendente</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-sm">Score crítico (&lt;60%)</span>
-          </div>
-        </div>
 
-        {/* Outdoor Icons */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outdoors</h4>
-          <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-green-500" />
-            <span className="text-sm">Operacional</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm">Pendente avaliação</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-red-500" />
-            <span className="text-sm">Não operacional</span>
+          {/* Outdoor Status */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Status Outdoor
+            </h4>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center">
+                <Flag className="h-3.5 w-3.5 text-success-foreground" />
+              </div>
+              <span className="text-sm text-foreground">Operacional</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-warning flex items-center justify-center">
+                <Flag className="h-3.5 w-3.5 text-warning-foreground" />
+              </div>
+              <span className="text-sm text-foreground">Pendente avaliação</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-destructive flex items-center justify-center">
+                <Flag className="h-3.5 w-3.5 text-destructive-foreground" />
+              </div>
+              <span className="text-sm text-foreground">Não operacional</span>
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
