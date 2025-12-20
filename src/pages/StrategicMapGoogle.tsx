@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow, MarkerClusterer } from '@react-google-maps/api';
+import { GoogleMap, Marker, InfoWindow, MarkerClusterer } from '@react-google-maps/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { GoogleMapsProvider, useGoogleMaps } from '@/contexts/GoogleMapsContext';
 import { useMapPDVs, useMapOutdoors, useMapKPIs, MapPDV, MapOutdoor } from '@/hooks/useStrategicMapData';
 import { MapKPIPanel } from '@/components/map/MapKPIPanel';
 import { MapLayerControls } from '@/components/map/MapLayerControls';
@@ -15,7 +15,7 @@ import { QuickPDVDialog } from '@/components/map/QuickPDVDialog';
 import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Fuel, Store } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -76,20 +76,15 @@ const getMarkerIcon = (type: 'posto' | 'conveniencia' | 'both' | 'outdoor', stat
   }
 };
 
-export default function StrategicMapGoogle() {
+function StrategicMapContent() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const mapRef = useRef<google.maps.Map | null>(null);
+  const { isLoaded, loadError } = useGoogleMaps();
 
-  const { data: apiKey, isLoading: keyLoading, error: keyError } = useGoogleMapsKey();
   const { data: pdvs, isLoading: pdvsLoading, refetch: refetchPDVs } = useMapPDVs();
   const { data: outdoors, isLoading: outdoorsLoading, refetch: refetchOutdoors } = useMapOutdoors();
   const kpis = useMapKPIs();
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey || '',
-    id: 'google-map-script',
-  });
 
   // Map persistence hook
   const { 
@@ -372,7 +367,7 @@ export default function StrategicMapGoogle() {
   }, [contextMenu, navigate, handleTogglePDVStatus]);
 
   // Loading state
-  if (keyLoading || !isLoaded) {
+  if (!isLoaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -382,7 +377,7 @@ export default function StrategicMapGoogle() {
   }
 
   // Error state
-  if (keyError || loadError) {
+  if (loadError) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-destructive">Erro ao carregar o mapa</p>
@@ -626,5 +621,14 @@ export default function StrategicMapGoogle() {
         onSuccess={handleImportSuccess}
       />
     </div>
+  );
+}
+
+// Main component wrapped with provider
+export default function StrategicMapGoogle() {
+  return (
+    <GoogleMapsProvider>
+      <StrategicMapContent />
+    </GoogleMapsProvider>
   );
 }

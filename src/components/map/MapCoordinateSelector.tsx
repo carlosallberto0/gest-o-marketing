@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { GoogleMapsProvider, useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface MapCoordinateSelectorProps {
   open: boolean;
@@ -20,19 +20,14 @@ const containerStyle = {
   height: '100%',
 };
 
-export function MapCoordinateSelector({ 
+function MapCoordinateSelectorContent({ 
   open, 
   onOpenChange, 
   initialLat, 
   initialLng,
   onConfirm 
 }: MapCoordinateSelectorProps) {
-  const { data: apiKey, isLoading: keyLoading, error: keyError } = useGoogleMapsKey();
-  
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey || '',
-    id: 'google-map-script',
-  });
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const [selectedLat, setSelectedLat] = useState<number | null>(initialLat ?? null);
   const [selectedLng, setSelectedLng] = useState<number | null>(initialLng ?? null);
@@ -97,8 +92,6 @@ export function MapCoordinateSelector({
     }
   };
 
-  const isMapReady = isLoaded && apiKey && !keyError && !loadError;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
@@ -111,7 +104,7 @@ export function MapCoordinateSelector({
         
         <div className="flex-1 relative rounded-lg overflow-hidden border border-border">
           {/* Loading state */}
-          {(keyLoading || !isLoaded) && (
+          {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
@@ -119,7 +112,7 @@ export function MapCoordinateSelector({
           )}
           
           {/* Error state */}
-          {(keyError || loadError) && (
+          {loadError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-4 z-10">
               <AlertCircle className="h-10 w-10 text-destructive" />
               <p className="text-destructive text-center px-4">
@@ -136,7 +129,7 @@ export function MapCoordinateSelector({
           )}
           
           {/* Google Map */}
-          {isMapReady && (
+          {isLoaded && !loadError && (
             <GoogleMap
               mapContainerStyle={containerStyle}
               center={center}
@@ -160,7 +153,7 @@ export function MapCoordinateSelector({
           )}
           
           {/* Instructions overlay */}
-          {isMapReady && (
+          {isLoaded && !loadError && (
             <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 text-sm z-10">
               <p className="text-muted-foreground">Clique no mapa para selecionar a localização</p>
             </div>
@@ -205,5 +198,18 @@ export function MapCoordinateSelector({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function MapCoordinateSelector(props: MapCoordinateSelectorProps) {
+  // Only render the provider when dialog is open to avoid loader conflicts
+  if (!props.open) {
+    return null;
+  }
+  
+  return (
+    <GoogleMapsProvider>
+      <MapCoordinateSelectorContent {...props} />
+    </GoogleMapsProvider>
   );
 }
