@@ -26,8 +26,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-react';
-import { useBulkImport, ImportRecord } from '@/hooks/useBulkImport';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, X, FileDown } from 'lucide-react';
+import { useBulkImport, ImportRecord, generateCSVTemplate } from '@/hooks/useBulkImport';
 import { toast } from 'sonner';
 
 interface BulkImportDialogProps {
@@ -60,6 +61,18 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
     setSummary 
   } = useBulkImport();
 
+  const handleDownloadTemplate = () => {
+    const template = generateCSVTemplate();
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_importacao.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template baixado!');
+  };
+
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
@@ -74,9 +87,9 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
   }, []);
 
   const handleFile = async (selectedFile: File) => {
-    // Validate file size (10MB limit)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Limite: 10MB');
+    // Validate file size (4MB limit as requested)
+    if (selectedFile.size > 4 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Limite: 4MB');
       return;
     }
 
@@ -93,8 +106,13 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
       const parsed = await parseFile(selectedFile);
       setRecords(parsed.records);
       
-      const errors = validateRecords(parsed.records);
+      const { errors } = validateRecords(parsed.records);
       setValidationErrors(errors);
+      
+      if (parsed.records.length === 0) {
+        toast.error('Nenhum registro válido encontrado no arquivo');
+        return;
+      }
       
       setStep('preview');
     } catch (error: any) {
@@ -141,26 +159,48 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
         </DialogHeader>
 
         {step === 'upload' && (
-          <div
-            className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => document.getElementById('file-input')?.click()}
-          >
-            <input
-              id="file-input"
-              type="file"
-              accept=".csv,.json"
-              className="hidden"
-              onChange={handleFileInput}
-            />
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium mb-2">
-              Arraste um arquivo ou clique para selecionar
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Formatos aceitos: CSV, JSON (máx. 10MB)
-            </p>
+          <div className="space-y-4">
+            {/* Download Template Button */}
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Baixar Template CSV
+              </Button>
+            </div>
+
+            <div
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => document.getElementById('file-input')?.click()}
+            >
+              <input
+                id="file-input"
+                type="file"
+                accept=".csv,.json"
+                className="hidden"
+                onChange={handleFileInput}
+              />
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-lg font-medium mb-2">
+                Arraste um arquivo ou clique para selecionar
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Formatos aceitos: CSV, JSON (máx. 4MB)
+              </p>
+            </div>
+
+            {/* Format Instructions */}
+            <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
+              <p className="font-medium">Campos obrigatórios:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li><strong>tipo</strong>: "posto" ou "outdoor"</li>
+                <li><strong>nome</strong>: Nome do posto ou outdoor</li>
+                <li><strong>latitude</strong>: Coordenada (ex: -23.5505)</li>
+                <li><strong>longitude</strong>: Coordenada (ex: -46.6333)</li>
+                <li><strong>posto_referencia</strong>: Obrigatório para outdoors (nome do posto associado)</li>
+              </ul>
+            </div>
           </div>
         )}
 
@@ -173,7 +213,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                 <div>
                   <p className="font-medium">{file?.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {(file?.size || 0 / 1024).toFixed(1)} KB
+                    {((file?.size || 0) / 1024).toFixed(1)} KB
                   </p>
                 </div>
               </div>
@@ -203,14 +243,18 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                     {validationErrors.length} avisos de validação
                   </span>
                 </div>
-                <ul className="text-sm text-muted-foreground space-y-1 max-h-32 overflow-y-auto">
-                  {validationErrors.slice(0, 5).map((error, idx) => (
-                    <li key={idx}>• {error}</li>
-                  ))}
-                  {validationErrors.length > 5 && (
-                    <li>... e mais {validationErrors.length - 5} avisos</li>
-                  )}
-                </ul>
+                <ScrollArea className="max-h-32">
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {validationErrors.slice(0, 10).map((error, idx) => (
+                      <li key={idx}>• {error}</li>
+                    ))}
+                    {validationErrors.length > 10 && (
+                      <li className="text-destructive font-medium">
+                        ... e mais {validationErrors.length - 10} avisos
+                      </li>
+                    )}
+                  </ul>
+                </ScrollArea>
               </div>
             )}
 
@@ -233,11 +277,13 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                           {record.tipo}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{record.nome}</TableCell>
+                      <TableCell className="font-medium max-w-[200px] truncate">
+                        {record.nome}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
                         {record.posto_referencia || '-'}
                       </TableCell>
                     </TableRow>
@@ -306,7 +352,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                 Cancelar
               </Button>
               <Button onClick={handleImport} disabled={records.length === 0}>
-                Iniciar Importação
+                Iniciar Importação ({records.length} registros)
               </Button>
             </div>
           </div>
@@ -366,16 +412,23 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                     onClick={() => exportErrorLog(summary.erros)}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Baixar Log
+                    Baixar Log de Erros
                   </Button>
                 </div>
-                <ul className="text-sm space-y-1 max-h-32 overflow-y-auto">
-                  {summary.erros.slice(0, 5).map((error, idx) => (
-                    <li key={idx} className="text-muted-foreground">
-                      • {error.tipo}: {error.nome} - {error.erro}
-                    </li>
-                  ))}
-                </ul>
+                <ScrollArea className="max-h-32">
+                  <ul className="text-sm space-y-1">
+                    {summary.erros.slice(0, 5).map((error, idx) => (
+                      <li key={idx} className="text-muted-foreground">
+                        • Linha {error.linha}: {error.tipo} "{error.nome}" - {error.erro}
+                      </li>
+                    ))}
+                    {summary.erros.length > 5 && (
+                      <li className="text-destructive">
+                        ... e mais {summary.erros.length - 5} erros
+                      </li>
+                    )}
+                  </ul>
+                </ScrollArea>
               </div>
             )}
 

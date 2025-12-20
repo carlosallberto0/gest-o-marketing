@@ -114,6 +114,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Menu items for Media module - organized by workflow
   const mediaItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Fuel, label: 'Cadastro', path: '/pdvs', roles: ['super_admin', 'admin'] },
     // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
@@ -130,7 +131,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Admin items - system administration
   const adminItems: MenuItem[] = [
     { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin', 'admin'] },
-    { icon: Fuel, label: 'Gestão de PDVs', path: '/pdvs', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin', 'admin'] },
     { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },

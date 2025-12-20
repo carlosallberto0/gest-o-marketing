@@ -11,12 +11,18 @@ export interface ImportRecord {
   fonte_url?: string;
   posto_referencia?: string;
   status_sugerido?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string;
+  largura?: number;
+  altura?: number;
 }
 
 export interface ImportResult {
   sucesso: boolean;
   tipo: string;
   nome: string;
+  linha: number;
   erro?: string;
 }
 
@@ -36,6 +42,97 @@ interface ParsedData {
   };
 }
 
+// Generate CSV template
+export function generateCSVTemplate(): string {
+  const headers = [
+    'tipo',
+    'nome',
+    'latitude',
+    'longitude',
+    'posto_referencia',
+    'endereco',
+    'cidade',
+    'estado',
+    'largura',
+    'altura',
+    'status_sugerido'
+  ];
+  
+  const examplePosto = [
+    'posto',
+    'Posto Shell Centro',
+    '-23.5505',
+    '-46.6333',
+    '',
+    'Av. Paulista, 1000',
+    'São Paulo',
+    'SP',
+    '',
+    '',
+    'pre_cadastrado'
+  ];
+  
+  const exampleOutdoor = [
+    'outdoor',
+    'Outdoor Entrada Principal',
+    '-23.5510',
+    '-46.6340',
+    'Posto Shell Centro',
+    'Av. Paulista, 1000',
+    '',
+    '',
+    '3',
+    '2',
+    'pre_cadastrado'
+  ];
+  
+  return [
+    headers.join(','),
+    examplePosto.join(','),
+    exampleOutdoor.join(',')
+  ].join('\n');
+}
+
+// Robust CSV parser that handles quoted values with commas
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote
+        current += '"';
+        i++;
+      } else {
+        // Toggle quote mode
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
+// Remove BOM and normalize line endings
+function normalizeContent(content: string): string {
+  // Remove UTF-8 BOM
+  if (content.charCodeAt(0) === 0xFEFF) {
+    content = content.slice(1);
+  }
+  // Normalize line endings
+  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
 export function useBulkImport() {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,30 +140,62 @@ export function useBulkImport() {
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
   const parseCSV = useCallback((content: string): ParsedData => {
-    const lines = content.trim().split('\n');
-    const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+    const normalizedContent = normalizeContent(content);
+    const lines = normalizedContent.split('\n').filter(line => line.trim() !== '');
+    
+    if (lines.length < 2) {
+      throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
+    }
+    
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+    
+    // Validate required headers
+    const requiredHeaders = ['tipo', 'nome', 'latitude', 'longitude'];
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+    if (missingHeaders.length > 0) {
+      throw new Error(`Colunas obrigatórias ausentes: ${missingHeaders.join(', ')}`);
+    }
     
     const records: ImportRecord[] = [];
     
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const line = lines[i].trim();
+      if (!line || line.startsWith('#')) continue; // Skip empty lines and comments
+      
+      const values = parseCSVLine(line);
       const record: any = {};
       
       headers.forEach((header, idx) => {
-        record[header] = values[idx];
+        record[header] = values[idx] || '';
       });
       
-      if (record.tipo && record.nome && record.latitude && record.longitude) {
-        records.push({
-          tipo: record.tipo.toLowerCase() as 'posto' | 'outdoor',
-          nome: record.nome,
-          latitude: parseFloat(record.latitude),
-          longitude: parseFloat(record.longitude),
-          fonte_url: record.fonte_url || record.url,
-          posto_referencia: record.posto_referencia,
-          status_sugerido: record.status_sugerido || 'pre_cadastrado'
-        });
+      // Validate and parse
+      const tipo = record.tipo?.toLowerCase().trim();
+      if (!tipo || (tipo !== 'posto' && tipo !== 'outdoor')) {
+        continue; // Skip invalid types
       }
+      
+      const lat = parseFloat(record.latitude);
+      const lng = parseFloat(record.longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        continue; // Skip records with invalid coordinates
+      }
+      
+      records.push({
+        tipo: tipo as 'posto' | 'outdoor',
+        nome: record.nome?.trim() || '',
+        latitude: lat,
+        longitude: lng,
+        fonte_url: record.fonte_url?.trim() || record.url?.trim(),
+        posto_referencia: record.posto_referencia?.trim(),
+        status_sugerido: record.status_sugerido?.trim() || 'pre_cadastrado',
+        endereco: record.endereco?.trim(),
+        cidade: record.cidade?.trim(),
+        estado: record.estado?.trim(),
+        largura: record.largura ? parseFloat(record.largura) : undefined,
+        altura: record.altura ? parseFloat(record.altura) : undefined,
+      });
     }
     
     const postos = records.filter(r => r.tipo === 'posto');
@@ -94,7 +223,10 @@ export function useBulkImport() {
           latitude: registro.latitude,
           longitude: registro.longitude,
           fonte_url: registro.fonte_url,
-          status_sugerido: registro.status_sugerido || 'pre_cadastrado'
+          status_sugerido: registro.status_sugerido || 'pre_cadastrado',
+          endereco: registro.endereco,
+          cidade: registro.cidade,
+          estado: registro.estado,
         });
         
         // Handle nested outdoors
@@ -106,7 +238,9 @@ export function useBulkImport() {
               latitude: outdoor.latitude,
               longitude: outdoor.longitude,
               posto_referencia: registro.nome,
-              status_sugerido: outdoor.status_sugerido || 'pre_cadastrado'
+              status_sugerido: outdoor.status_sugerido || 'pre_cadastrado',
+              largura: outdoor.largura,
+              altura: outdoor.altura,
             });
           }
         }
@@ -121,7 +255,12 @@ export function useBulkImport() {
           longitude: item.longitude,
           fonte_url: item.fonte_url,
           posto_referencia: item.posto_referencia,
-          status_sugerido: item.status_sugerido || 'pre_cadastrado'
+          status_sugerido: item.status_sugerido || 'pre_cadastrado',
+          endereco: item.endereco,
+          cidade: item.cidade,
+          estado: item.estado,
+          largura: item.largura,
+          altura: item.altura,
         });
       }
     }
@@ -151,25 +290,44 @@ export function useBulkImport() {
     throw new Error('Formato de arquivo não suportado. Use CSV ou JSON.');
   }, [parseCSV, parseJSON]);
 
-  const validateRecords = useCallback((records: ImportRecord[]): string[] => {
+  const validateRecords = useCallback((records: ImportRecord[]): { errors: string[]; lineErrors: Map<number, string[]> } => {
     const errors: string[] = [];
+    const lineErrors = new Map<number, string[]>();
     
     records.forEach((record, idx) => {
-      if (!record.nome) {
-        errors.push(`Linha ${idx + 1}: Nome é obrigatório`);
+      const lineNum = idx + 2; // +2 because of header and 0-indexing
+      const recordErrors: string[] = [];
+      
+      // Validate tipo
+      if (!record.tipo || !['posto', 'outdoor'].includes(record.tipo)) {
+        recordErrors.push(`TIPO inválido (deve ser "posto" ou "outdoor")`);
       }
+      
+      // Validate nome
+      if (!record.nome || record.nome.length < 2) {
+        recordErrors.push(`NOME é obrigatório (mínimo 2 caracteres)`);
+      }
+      
+      // Validate coordinates
       if (isNaN(record.latitude) || record.latitude < -90 || record.latitude > 90) {
-        errors.push(`Linha ${idx + 1}: Latitude inválida (${record.latitude})`);
+        recordErrors.push(`LATITUDE inválida (deve estar entre -90 e 90)`);
       }
       if (isNaN(record.longitude) || record.longitude < -180 || record.longitude > 180) {
-        errors.push(`Linha ${idx + 1}: Longitude inválida (${record.longitude})`);
+        recordErrors.push(`LONGITUDE inválida (deve estar entre -180 e 180)`);
       }
+      
+      // Validate outdoor reference
       if (record.tipo === 'outdoor' && !record.posto_referencia) {
-        errors.push(`Linha ${idx + 1}: Outdoor "${record.nome}" não tem posto de referência`);
+        recordErrors.push(`REFERÊNCIA obrigatória para outdoor`);
+      }
+      
+      if (recordErrors.length > 0) {
+        lineErrors.set(lineNum, recordErrors);
+        errors.push(`Linha ${lineNum}: ${recordErrors.join('; ')}`);
       }
     });
     
-    return errors;
+    return { errors, lineErrors };
   }, []);
 
   const processImport = useCallback(async (
@@ -208,23 +366,26 @@ export function useBulkImport() {
       .single();
 
     try {
-      // Process postos first
-      for (const posto of postos) {
+      // Process postos first - batch for efficiency
+      for (let i = 0; i < postos.length; i++) {
+        const posto = postos[i];
+        const lineNum = records.indexOf(posto) + 2;
+        
         try {
           // Check if posto already exists
           let existingPosto = null;
-          if (options.updateExisting) {
+          if (options.updateExisting || options.ignoreDuplicates) {
             const { data } = await supabase
               .from('pdvs')
               .select('id')
-              .ilike('name', `%${posto.nome}%`)
+              .ilike('name', posto.nome)
               .maybeSingle();
             existingPosto = data;
           }
           
           if (existingPosto && options.ignoreDuplicates) {
-            postoCache[posto.nome] = existingPosto.id;
-            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome });
+            postoCache[posto.nome.toLowerCase()] = existingPosto.id;
+            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome, linha: lineNum });
           } else if (existingPosto && options.updateExisting) {
             // Update existing
             await supabase
@@ -232,15 +393,18 @@ export function useBulkImport() {
               .update({
                 lat: posto.latitude,
                 lng: posto.longitude,
+                address: posto.endereco || undefined,
+                city: posto.cidade || undefined,
+                state: posto.estado || undefined,
                 fonte_importacao: 'csv_json_massivo',
                 status_importacao: options.defaultStatus
               })
               .eq('id', existingPosto.id);
             
-            postoCache[posto.nome] = existingPosto.id;
+            postoCache[posto.nome.toLowerCase()] = existingPosto.id;
             postosCreated++;
-            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome });
-          } else {
+            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome, linha: lineNum });
+          } else if (!existingPosto) {
             // Create new
             const code = `PDV-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
             const { data: newPdv, error } = await supabase
@@ -248,9 +412,9 @@ export function useBulkImport() {
               .insert({
                 name: posto.nome,
                 code,
-                address: posto.fonte_url || 'Endereço a confirmar',
-                city: 'A confirmar',
-                state: 'SP',
+                address: posto.endereco || 'Endereço a confirmar',
+                city: posto.cidade || 'A confirmar',
+                state: posto.estado || 'SP',
                 type: 'posto',
                 lat: posto.latitude,
                 lng: posto.longitude,
@@ -264,15 +428,18 @@ export function useBulkImport() {
             
             if (error) throw error;
             
-            postoCache[posto.nome] = newPdv.id;
+            postoCache[posto.nome.toLowerCase()] = newPdv.id;
             postosCreated++;
-            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome });
+            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome, linha: lineNum });
+          } else {
+            results.push({ sucesso: true, tipo: 'posto', nome: posto.nome, linha: lineNum });
           }
         } catch (error: any) {
           results.push({ 
             sucesso: false, 
             tipo: 'posto', 
-            nome: posto.nome, 
+            nome: posto.nome,
+            linha: lineNum,
             erro: error.message 
           });
         }
@@ -282,13 +449,16 @@ export function useBulkImport() {
       }
 
       // Now process outdoors
-      for (const outdoor of outdoors) {
+      for (let i = 0; i < outdoors.length; i++) {
+        const outdoor = outdoors[i];
+        const lineNum = records.indexOf(outdoor) + 2;
+        
         try {
           // Find the referenced posto
-          let postoId = postoCache[outdoor.posto_referencia || ''];
+          let postoId = postoCache[outdoor.posto_referencia?.toLowerCase() || ''];
           
           if (!postoId && outdoor.posto_referencia) {
-            // Try to find by partial match
+            // Try to find by exact or partial match
             const { data } = await supabase
               .from('pdvs')
               .select('id')
@@ -297,12 +467,12 @@ export function useBulkImport() {
             
             if (data) {
               postoId = data.id;
-              postoCache[outdoor.posto_referencia] = data.id;
+              postoCache[outdoor.posto_referencia.toLowerCase()] = data.id;
             }
           }
           
           if (!postoId) {
-            throw new Error(`Posto de referência não encontrado: ${outdoor.posto_referencia}`);
+            throw new Error(`Posto de referência não encontrado: "${outdoor.posto_referencia}"`);
           }
           
           // Check for existing outdoor
@@ -311,11 +481,11 @@ export function useBulkImport() {
               .from('outdoors')
               .select('id')
               .eq('pdv_id', postoId)
-              .ilike('location', `%${outdoor.nome}%`)
+              .ilike('location', outdoor.nome)
               .maybeSingle();
             
             if (existing) {
-              results.push({ sucesso: true, tipo: 'outdoor', nome: outdoor.nome });
+              results.push({ sucesso: true, tipo: 'outdoor', nome: outdoor.nome, linha: lineNum });
               processed++;
               setProgress(Math.round((processed / total) * 100));
               continue;
@@ -331,8 +501,8 @@ export function useBulkImport() {
               pdv_id: postoId,
               lat: outdoor.latitude,
               lng: outdoor.longitude,
-              width: 3,
-              height: 2,
+              width: outdoor.largura || 3,
+              height: outdoor.altura || 2,
               status: 'pending_evaluation',
               fonte_importacao: 'csv_json_massivo',
               id_importacao: `${outdoor.nome}-${outdoor.latitude}-${outdoor.longitude}`,
@@ -342,12 +512,13 @@ export function useBulkImport() {
           if (error) throw error;
           
           outdoorsCreated++;
-          results.push({ sucesso: true, tipo: 'outdoor', nome: outdoor.nome });
+          results.push({ sucesso: true, tipo: 'outdoor', nome: outdoor.nome, linha: lineNum });
         } catch (error: any) {
           results.push({ 
             sucesso: false, 
             tipo: 'outdoor', 
-            nome: outdoor.nome, 
+            nome: outdoor.nome,
+            linha: lineNum,
             erro: error.message 
           });
         }
@@ -386,12 +557,12 @@ export function useBulkImport() {
   }, [user]);
 
   const exportErrorLog = useCallback((errors: ImportResult[]) => {
-    const csv = ['tipo,nome,erro'];
+    const csv = ['linha,tipo,nome,erro'];
     errors.forEach(e => {
-      csv.push(`${e.tipo},"${e.nome}","${e.erro || ''}"`);
+      csv.push(`${e.linha},"${e.tipo}","${e.nome}","${e.erro || ''}"`);
     });
     
-    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -405,6 +576,7 @@ export function useBulkImport() {
     validateRecords,
     processImport,
     exportErrorLog,
+    generateCSVTemplate,
     isProcessing,
     progress,
     summary,
