@@ -140,6 +140,7 @@ function MapCoordinateSelectorContent({
                 streetViewControl: false,
                 mapTypeControl: false,
                 fullscreenControl: false,
+                gestureHandling: 'greedy',
               }}
             >
               {selectedLat && selectedLng && (
