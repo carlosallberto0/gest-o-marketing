@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const STORAGE_KEY = 'strategic-map-state';
+const DEBOUNCE_MS = 500; // Debounce saves to localStorage
 
 interface MapPersistenceState {
   center: [number, number];
@@ -47,13 +48,28 @@ export function useMapPersistence() {
     return defaultState;
   });
 
-  // Save state to localStorage whenever it changes
+  // Debounce ref for saving
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced save to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (error) {
-      console.error('Error saving map state:', error);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.error('Error saving map state:', error);
+      }
+    }, DEBOUNCE_MS);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [state]);
 
   const updateCenter = useCallback((center: [number, number]) => {

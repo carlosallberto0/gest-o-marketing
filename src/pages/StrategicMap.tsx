@@ -20,12 +20,51 @@ import { createRoot } from 'react-dom/client';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Performance constants
+const DEBOUNCE_MS = 150;
+const THROTTLE_MS = 100;
+const MAX_VISIBLE_MARKERS = 1000;
+
 // Cluster colors by point count
 const CLUSTER_COLORS = {
   small: '#51bbd6',  // < 10
   medium: '#f1f075', // 10-50
   large: '#f28cb1',  // > 50
 };
+
+// Debounce utility
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timeoutId: NodeJS.Timeout;
+  return ((...args: unknown[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
+// Throttle utility
+function throttle<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let lastCall = 0;
+  let timeoutId: NodeJS.Timeout | null = null;
+  return ((...args: unknown[]) => {
+    const now = Date.now();
+    const remaining = ms - (now - lastCall);
+    
+    if (remaining <= 0) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      lastCall = now;
+      fn(...args);
+    } else if (!timeoutId) {
+      timeoutId = setTimeout(() => {
+        lastCall = Date.now();
+        timeoutId = null;
+        fn(...args);
+      }, remaining);
+    }
+  }) as T;
+}
 
 export default function StrategicMap() {
   const navigate = useNavigate();
@@ -301,15 +340,17 @@ export default function StrategicMap() {
       setMapLoaded(true);
     });
 
-    // Persist map position on move end
-    map.current.on('moveend', () => {
+    // Debounced persist map position on move end
+    const debouncedUpdatePosition = debounce(() => {
       if (map.current) {
         const center = map.current.getCenter();
         const zoom = map.current.getZoom();
         updateCenter([center.lng, center.lat]);
         updateZoom(zoom);
       }
-    });
+    }, DEBOUNCE_MS);
+
+    map.current.on('moveend', debouncedUpdatePosition);
 
     // Right-click handler for context menu (Super Admin only)
     map.current.on('contextmenu', (e) => {
