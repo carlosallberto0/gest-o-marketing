@@ -3,10 +3,25 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useContractByOutdoor } from '@/hooks/useContracts';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
+import { EditOutdoorDialog } from '@/components/dialogs/EditOutdoorDialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -16,17 +31,67 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Edit,
+  Power,
+  Trash2
 } from 'lucide-react';
 
 export default function OutdoorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: outdoors = [], isLoading } = useOutdoors();
+  const { profile } = useAuth();
+  const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: contract, isLoading: loadingContract } = useContractByOutdoor(id || null);
   const [showContractDialog, setShowContractDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   
   const outdoor = outdoors.find(o => o.id === id);
+  const isSuperAdmin = profile?.role === 'super_admin';
+
+  const handleToggleStatus = async () => {
+    if (!outdoor) return;
+    setIsTogglingStatus(true);
+    try {
+      const newStatus = outdoor.status === 'operational' ? 'non_operational' : 'operational';
+      const { error } = await supabase
+        .from('outdoors')
+        .update({ status: newStatus, non_operational_reason: null })
+        .eq('id', outdoor.id);
+      if (error) throw error;
+      toast.success(`Outdoor ${newStatus === 'operational' ? 'ativado' : 'inativado'}!`);
+      refetch();
+    } catch (error: any) {
+      toast.error('Erro ao alterar status');
+    } finally {
+      setIsTogglingStatus(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!outdoor || deleteConfirmText !== 'EXCLUIR') return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('outdoors').delete().eq('id', outdoor.id);
+      if (error) throw error;
+      await supabase.from('audit_logs').insert({
+        action: 'DELETE',
+        entity_type: 'outdoor',
+        entity_id: outdoor.id,
+        old_data: outdoor as any,
+      });
+      toast.success('Outdoor excluído!');
+      navigate('/outdoors');
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -69,6 +134,33 @@ export default function OutdoorDetail() {
           <Badge className={getStatusColor(outdoor.status)}>
             {getStatusLabel(outdoor.status)}
           </Badge>
+          
+          {/* Super Admin Actions */}
+          {isSuperAdmin && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+                <Edit className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleStatus}
+                disabled={isTogglingStatus}
+              >
+                <Power className="h-4 w-4 mr-1" />
+                {outdoor.status === 'operational' ? 'Inativar' : 'Ativar'}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
@@ -166,6 +258,39 @@ export default function OutdoorDetail() {
         onOpenChange={setShowContractDialog}
         contract={contract}
       />
+
+      <EditOutdoorDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        outdoor={outdoor}
+        onSuccess={() => refetch()}
+      />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Outdoor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Digite <strong>EXCLUIR</strong> para confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Digite EXCLUIR"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteConfirmText !== 'EXCLUIR' || isDeleting}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
