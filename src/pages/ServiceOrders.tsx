@@ -38,15 +38,18 @@ import {
   Play,
   Trash2,
   Wrench,
-  Download
+  Download,
+  Shield
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
+import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
 import { generateServiceOrderPDF } from '@/lib/pdfGenerator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Pendente Admin', color: 'bg-yellow-500', icon: Clock },
@@ -71,10 +74,17 @@ export default function ServiceOrders() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [adminActionDialog, setAdminActionDialog] = useState<{
+    open: boolean;
+    order: any | null;
+  }>({ open: false, order: null });
   
-  const { data: orders = [], isLoading } = useServiceOrders();
+  const { profile } = useAuth();
+  const { data: orders = [], isLoading, refetch } = useServiceOrders();
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
+
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -328,6 +338,17 @@ export default function ServiceOrders() {
                                 <Download className="h-4 w-4 mr-2" />
                                 Exportar PDF
                               </DropdownMenuItem>
+                              {isSuperAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => setAdminActionDialog({ open: true, order })}
+                                  >
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Ações Administrativas
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDelete(order.id)}
@@ -350,6 +371,16 @@ export default function ServiceOrders() {
       </div>
 
       <NewServiceOrderDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
+
+      {/* Admin Actions Dialog */}
+      {adminActionDialog.order && (
+        <ServiceOrderAdminActions
+          open={adminActionDialog.open}
+          onOpenChange={(open) => setAdminActionDialog({ open, order: open ? adminActionDialog.order : null })}
+          order={adminActionDialog.order}
+          onSuccess={() => refetch()}
+        />
+      )}
     </AppLayout>
   );
 }
