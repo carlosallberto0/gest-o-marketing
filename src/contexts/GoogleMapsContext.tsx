@@ -1,6 +1,6 @@
-import { createContext, useContext, ReactNode } from 'react';
-import { useJsApiLoader } from '@react-google-maps/api';
+import { createContext, useContext, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { loadGoogleMapsScript } from '@/lib/googleMapsScript';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -23,17 +23,28 @@ interface GoogleMapsProviderProps {
   children: ReactNode;
 }
 
-function GoogleMapsLoaderInner({ 
-  apiKey, 
-  children 
-}: { 
-  apiKey: string; 
-  children: ReactNode;
-}) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey,
-    id: 'google-map-script',
-  });
+function GoogleMapsLoaderInner({ apiKey, children }: { apiKey: string; children: ReactNode }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<Error | undefined>(undefined);
+
+  // memo: never allow apiKey to change after first set (prevents loader option mismatch)
+  const stableKey = useMemo(() => apiKey, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadGoogleMapsScript(stableKey)
+      .then(() => {
+        if (!cancelled) setIsLoaded(true);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err : new Error('Erro ao carregar Google Maps'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stableKey]);
 
   return (
     <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
@@ -45,7 +56,6 @@ function GoogleMapsLoaderInner({
 export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
   const { data: apiKey, isLoading: keyLoading, error: keyError } = useGoogleMapsKey();
 
-  // Show loading while fetching API key
   if (keyLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -55,7 +65,6 @@ export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
     );
   }
 
-  // Show error if key fetch failed
   if (keyError || !apiKey) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
@@ -68,10 +77,6 @@ export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
     );
   }
 
-  // Only render loader after we have the API key
-  return (
-    <GoogleMapsLoaderInner apiKey={apiKey}>
-      {children}
-    </GoogleMapsLoaderInner>
-  );
+  return <GoogleMapsLoaderInner apiKey={apiKey}>{children}</GoogleMapsLoaderInner>;
 }
+
