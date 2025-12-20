@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useMapboxToken } from '@/hooks/useStrategicMapData';
 
 interface MapCoordinateSelectorProps {
@@ -26,15 +26,22 @@ export function MapCoordinateSelector({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const initAttempt = useRef(0);
   
-  const { data: token, isLoading: tokenLoading } = useMapboxToken();
+  const { data: token, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
   const [selectedLat, setSelectedLat] = useState<number | null>(initialLat ?? null);
   const [selectedLng, setSelectedLng] = useState<number | null>(initialLng ?? null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
+  // Reset states when dialog closes
   useEffect(() => {
     if (!open) {
       setMapLoaded(false);
+      setMapError(null);
+      setIsInitializing(false);
+      initAttempt.current = 0;
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -43,72 +50,122 @@ export function MapCoordinateSelector({
     }
   }, [open]);
 
+  // Reset coordinates when dialog opens with new initial values
   useEffect(() => {
-    if (!mapContainer.current || !token || !open || map.current) return;
+    if (open) {
+      setSelectedLat(initialLat ?? null);
+      setSelectedLng(initialLng ?? null);
+    }
+  }, [open, initialLat, initialLng]);
 
-    mapboxgl.accessToken = token;
-    
-    // Default center (Brazil)
-    const center: [number, number] = initialLng && initialLat 
-      ? [initialLng, initialLat] 
-      : [-49.0, -15.5];
-    const zoom = initialLng && initialLat ? 14 : 4;
+  const initializeMap = useCallback(() => {
+    if (!mapContainer.current || !token) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center,
-      zoom,
-    });
+    // Clean up existing map
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    marker.current = null;
+    setMapError(null);
+    setIsInitializing(true);
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-    
-    map.current.on('load', () => {
-      setMapLoaded(true);
-      
-      // Add initial marker if coordinates exist
-      if (initialLat && initialLng && map.current) {
-        marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-          .setLngLat([initialLng, initialLat])
-          .addTo(map.current);
-          
-        marker.current.on('dragend', () => {
-          const lngLat = marker.current?.getLngLat();
-          if (lngLat) {
-            setSelectedLat(parseFloat(lngLat.lat.toFixed(6)));
-            setSelectedLng(parseFloat(lngLat.lng.toFixed(6)));
-          }
-        });
+    // Check container dimensions
+    const rect = mapContainer.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      if (initAttempt.current < 3) {
+        initAttempt.current++;
+        setTimeout(initializeMap, 200);
+        return;
       }
-    });
+      setMapError('Não foi possível inicializar o mapa. Tente novamente.');
+      setIsInitializing(false);
+      return;
+    }
 
-    // Click handler to place/move marker
-    map.current.on('click', (e) => {
-      const { lng, lat } = e.lngLat;
-      setSelectedLat(parseFloat(lat.toFixed(6)));
-      setSelectedLng(parseFloat(lng.toFixed(6)));
+    try {
+      mapboxgl.accessToken = token;
       
-      if (marker.current) {
-        marker.current.setLngLat([lng, lat]);
-      } else if (map.current) {
-        marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-          .setLngLat([lng, lat])
-          .addTo(map.current);
-          
-        marker.current.on('dragend', () => {
-          const lngLat = marker.current?.getLngLat();
-          if (lngLat) {
-            setSelectedLat(parseFloat(lngLat.lat.toFixed(6)));
-            setSelectedLng(parseFloat(lngLat.lng.toFixed(6)));
-          }
-        });
-      }
-    });
+      // Default center (Brazil)
+      const center: [number, number] = initialLng && initialLat 
+        ? [initialLng, initialLat] 
+        : [-49.0, -15.5];
+      const zoom = initialLng && initialLat ? 14 : 4;
 
-    return () => {
-      // Cleanup handled in the first useEffect
-    };
-  }, [token, open, initialLat, initialLng]);
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center,
+        zoom,
+      });
+
+      map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      
+      map.current.on('load', () => {
+        setMapLoaded(true);
+        setIsInitializing(false);
+        
+        // Add initial marker if coordinates exist
+        if (initialLat && initialLng && map.current) {
+          marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
+            .setLngLat([initialLng, initialLat])
+            .addTo(map.current);
+            
+          marker.current.on('dragend', () => {
+            const lngLat = marker.current?.getLngLat();
+            if (lngLat) {
+              setSelectedLat(parseFloat(lngLat.lat.toFixed(6)));
+              setSelectedLng(parseFloat(lngLat.lng.toFixed(6)));
+            }
+          });
+        }
+      });
+
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        setMapError('Erro ao carregar o mapa.');
+        setIsInitializing(false);
+      });
+
+      // Click handler to place/move marker
+      map.current.on('click', (e) => {
+        const { lng, lat } = e.lngLat;
+        setSelectedLat(parseFloat(lat.toFixed(6)));
+        setSelectedLng(parseFloat(lng.toFixed(6)));
+        
+        if (marker.current) {
+          marker.current.setLngLat([lng, lat]);
+        } else if (map.current) {
+          marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(map.current);
+            
+          marker.current.on('dragend', () => {
+            const lngLat = marker.current?.getLngLat();
+            if (lngLat) {
+              setSelectedLat(parseFloat(lngLat.lat.toFixed(6)));
+              setSelectedLng(parseFloat(lngLat.lng.toFixed(6)));
+            }
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Map initialization error:', err);
+      setMapError('Erro ao inicializar o mapa.');
+      setIsInitializing(false);
+    }
+  }, [token, initialLat, initialLng]);
+
+  // Initialize map with delay to ensure container has dimensions
+  useEffect(() => {
+    if (!open || !token || map.current) return;
+
+    const timer = setTimeout(() => {
+      initializeMap();
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [open, token, initializeMap]);
 
   // Update marker when manual input changes
   useEffect(() => {
@@ -167,18 +224,43 @@ export function MapCoordinateSelector({
         </DialogHeader>
         
         <div className="flex-1 relative rounded-lg overflow-hidden border border-border">
-          {tokenLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          {/* Map container always rendered but hidden during loading */}
+          <div ref={mapContainer} className="absolute inset-0" />
+          
+          {/* Loading overlay */}
+          {(tokenLoading || isInitializing) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
             </div>
-          ) : (
-            <div ref={mapContainer} className="absolute inset-0" />
+          )}
+          
+          {/* Error overlay */}
+          {(tokenError || mapError) && !tokenLoading && !isInitializing && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-4 z-10">
+              <AlertCircle className="h-10 w-10 text-destructive" />
+              <p className="text-destructive text-center px-4">
+                {mapError || 'Erro ao carregar token do mapa'}
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  initAttempt.current = 0;
+                  initializeMap();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar novamente
+              </Button>
+            </div>
           )}
           
           {/* Instructions overlay */}
-          <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 text-sm">
-            <p className="text-muted-foreground">Clique no mapa para selecionar a localização</p>
-          </div>
+          {mapLoaded && !mapError && (
+            <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 text-sm z-10">
+              <p className="text-muted-foreground">Clique no mapa para selecionar a localização</p>
+            </div>
+          )}
         </div>
 
         {/* Manual coordinate input */}
