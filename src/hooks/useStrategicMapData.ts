@@ -18,6 +18,7 @@ export interface MapPDV {
   lastScore: number | null;
   evaluationStatus: 'ok' | 'pending' | 'critical';
   outdoorCount: number;
+  status_importacao: string | null;
 }
 
 export interface MapOutdoor {
@@ -80,9 +81,9 @@ export function useMapPDVs() {
           lng,
           status,
           manager_id,
+          status_importacao,
           manager:profiles!pdvs_manager_id_fkey(name)
-        `)
-        .eq('status', 'active');
+        `);
 
       if (pdvError) throw pdvError;
 
@@ -148,6 +149,7 @@ export function useMapPDVs() {
           lastScore: evalData?.score || null,
           evaluationStatus,
           outdoorCount: outdoorCountMap.get(pdv.id) || 0,
+          status_importacao: pdv.status_importacao || null,
         };
       }) || [];
 

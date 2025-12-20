@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Building2 } from 'lucide-react';
+import { Search, MapPin, Building2, FileCheck } from 'lucide-react';
 import { MapPDV } from '@/hooks/useStrategicMapData';
 
 interface MapSearchFiltersProps {
@@ -12,7 +12,16 @@ interface MapSearchFiltersProps {
   onStateChange: (value: string) => void;
   selectedCity: string;
   onCityChange: (value: string) => void;
+  selectedImportStatus: string;
+  onImportStatusChange: (value: string) => void;
 }
+
+const IMPORT_STATUS_OPTIONS = [
+  { value: 'all', label: 'Todos os status' },
+  { value: 'pre_cadastrado', label: 'Pré-cadastrado' },
+  { value: 'ativo', label: 'Ativo' },
+  { value: 'em_revisao', label: 'Em Revisão' },
+];
 
 export function MapSearchFilters({
   pdvs,
@@ -22,6 +31,8 @@ export function MapSearchFilters({
   onStateChange,
   selectedCity,
   onCityChange,
+  selectedImportStatus,
+  onImportStatusChange,
 }: MapSearchFiltersProps) {
   // Extract unique states and cities
   const states = useMemo(() => {
@@ -88,6 +99,24 @@ export function MapSearchFilters({
             <SelectItem value="all">Todas as cidades</SelectItem>
             {cities.map(city => (
               <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Import Status Filter */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileCheck className="h-3 w-3" />
+          Status de Importação
+        </label>
+        <Select value={selectedImportStatus} onValueChange={onImportStatusChange}>
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue placeholder="Todos os status" />
+          </SelectTrigger>
+          <SelectContent>
+            {IMPORT_STATUS_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

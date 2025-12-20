@@ -10,8 +10,9 @@ import { MapSearchFilters } from '@/components/map/MapSearchFilters';
 import { PDVPopup } from '@/components/map/PDVPopup';
 import { OutdoorPopup } from '@/components/map/OutdoorPopup';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
+import { BulkEditDialog } from '@/components/map/BulkEditDialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 
 // Cluster colors by point count
@@ -42,7 +43,9 @@ export default function StrategicMap() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedState, setSelectedState] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
+  const [selectedImportStatus, setSelectedImportStatus] = useState('all');
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
   // Filter data based on user role
   const roleFilteredPDVs = useMemo(() => {
@@ -80,10 +83,17 @@ export default function StrategicMap() {
       if (selectedCity !== 'all' && pdv.city !== selectedCity) {
         return false;
       }
+
+      // Import status filter
+      if (selectedImportStatus !== 'all') {
+        if (pdv.status_importacao !== selectedImportStatus) {
+          return false;
+        }
+      }
       
       return true;
     });
-  }, [roleFilteredPDVs, searchTerm, selectedState, selectedCity]);
+  }, [roleFilteredPDVs, searchTerm, selectedState, selectedCity, selectedImportStatus]);
 
   const filteredOutdoors = useMemo(() => {
     const roleFiltered = outdoors?.filter(outdoor => {
@@ -157,6 +167,7 @@ export default function StrategicMap() {
           code: pdv.code,
           status: pdv.evaluationStatus,
           isAlert: pdv.evaluationStatus === 'pending' || pdv.evaluationStatus === 'critical',
+          isPreRegistered: pdv.status_importacao === 'pre_cadastrado',
         },
         geometry: {
           type: 'Point' as const,
@@ -304,16 +315,31 @@ export default function StrategicMap() {
         filter: ['!', ['has', 'point_count']],
         paint: {
           'circle-color': [
-            'match',
-            ['get', 'status'],
-            'ok', '#10b981',
-            'pending', '#f59e0b',
-            'critical', '#ef4444',
-            '#888',
+            'case',
+            ['get', 'isPreRegistered'],
+            '#9ca3af', // Gray for pre-registered
+            [
+              'match',
+              ['get', 'status'],
+              'ok', '#10b981',
+              'pending', '#f59e0b',
+              'critical', '#ef4444',
+              '#888',
+            ],
           ],
           'circle-radius': 10,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
+          'circle-stroke-width': [
+            'case',
+            ['get', 'isPreRegistered'],
+            3, // Thicker border for pre-registered
+            2,
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['get', 'isPreRegistered'],
+            '#6b7280', // Darker gray border for pre-registered
+            '#fff',
+          ],
         },
       });
 
@@ -509,14 +535,24 @@ export default function StrategicMap() {
 
         <div className="flex items-center gap-2 pointer-events-auto">
           {isAdmin && (
-            <Button
-              variant="outline"
-              className="bg-background/95 backdrop-blur-sm shadow-lg"
-              onClick={() => setShowImportDialog(true)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Importar
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                className="bg-background/95 backdrop-blur-sm shadow-lg"
+                onClick={() => setShowBulkEditDialog(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar em Lote
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-background/95 backdrop-blur-sm shadow-lg"
+                onClick={() => setShowImportDialog(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+            </>
           )}
           <Button
             variant="outline"
@@ -539,6 +575,8 @@ export default function StrategicMap() {
           onStateChange={setSelectedState}
           selectedCity={selectedCity}
           onCityChange={setSelectedCity}
+          selectedImportStatus={selectedImportStatus}
+          onImportStatusChange={setSelectedImportStatus}
         />
         <MapKPIPanel kpis={kpis} />
       </div>
@@ -566,6 +604,14 @@ export default function StrategicMap() {
       <BulkImportDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
+        onSuccess={handleImportSuccess}
+      />
+
+      {/* Bulk Edit Dialog */}
+      <BulkEditDialog
+        open={showBulkEditDialog}
+        onOpenChange={setShowBulkEditDialog}
+        pdvs={roleFilteredPDVs}
         onSuccess={handleImportSuccess}
       />
     </div>
