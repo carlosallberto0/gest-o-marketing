@@ -162,7 +162,7 @@ export function useMapOutdoors() {
   return useQuery({
     queryKey: ['map-outdoors'],
     queryFn: async () => {
-      // Get outdoors with PDV info
+      // Get outdoors with PDV info including PDV coordinates for fallback
       const { data: outdoors, error: outError } = await supabase
         .from('outdoors')
         .select(`
@@ -177,7 +177,7 @@ export function useMapOutdoors() {
           photo_url,
           pdv_id,
           last_evaluation,
-          pdv:pdvs!outdoors_pdv_id_fkey(name)
+          pdv:pdvs!outdoors_pdv_id_fkey(name, lat, lng)
         `);
 
       if (outError) throw outError;
@@ -211,12 +211,16 @@ export function useMapOutdoors() {
           daysSinceEvaluation = Math.ceil((today.getTime() - lastEvalDate.getTime()) / (1000 * 60 * 60 * 24));
         }
 
+        // Use outdoor coordinates, or fallback to PDV coordinates if outdoor has none
+        const finalLat = outdoor.lat ?? outdoor.pdv?.lat ?? null;
+        const finalLng = outdoor.lng ?? outdoor.pdv?.lng ?? null;
+
         return {
           id: outdoor.id,
           code: outdoor.code,
           location: outdoor.location,
-          lat: outdoor.lat,
-          lng: outdoor.lng,
+          lat: finalLat,
+          lng: finalLng,
           width: outdoor.width,
           height: outdoor.height,
           status: outdoor.status as 'operational' | 'non_operational' | 'pending_evaluation',

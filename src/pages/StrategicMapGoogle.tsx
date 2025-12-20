@@ -38,11 +38,11 @@ const getMarkerIcon = (type: 'posto' | 'conveniencia' | 'both' | 'outdoor', stat
   
   if (type === 'outdoor') {
     const color = status === 'operational' ? '%2322c55e' : status === 'non_operational' ? '%23ef4444' : '%23f59e0b';
+    // Flag icon for outdoors
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5">
-        <rect x="3" y="3" width="18" height="12" rx="2"/>
-        <line x1="12" y1="15" x2="12" y2="21"/>
-        <line x1="8" y1="21" x2="16" y2="21"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+        <line x1="4" y1="22" x2="4" y2="15"/>
       </svg>
     `);
   }
