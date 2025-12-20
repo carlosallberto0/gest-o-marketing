@@ -76,7 +76,7 @@ export function useUpdateSystemSetting() {
       const { data, error } = await supabase
         .from('system_settings')
         .update({ 
-          value,
+          value: value as unknown as Json,
           updated_at: new Date().toISOString(),
           updated_by: user.id,
         })
