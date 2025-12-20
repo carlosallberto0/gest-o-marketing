@@ -390,60 +390,9 @@ function StrategicMapContent() {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col relative">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-lg font-semibold">Mapa Estratégico</h1>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {isSuperAdmin && (
-              <>
-                <Button
-                  variant={adminMode ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setAdminMode(!adminMode)}
-                >
-                  <Move className="h-4 w-4 mr-2" />
-                  {adminMode ? 'Modo Admin ON' : 'Modo Admin'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowBulkEditDialog(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar em Lote
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importar
-                </Button>
-              </>
-            )}
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Search and filters */}
-        <MapSearchFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedState={selectedState}
-          onStateChange={setSelectedState}
-          selectedCity={selectedCity}
-          onCityChange={setSelectedCity}
-          selectedImportStatus={selectedImportStatus}
-          onImportStatusChange={setSelectedImportStatus}
-          pdvs={roleFilteredPDVs}
-        />
-      </div>
-
-      {/* Map container */}
-      <div className="flex-1 pt-32">
+    <div className="h-screen w-screen relative overflow-hidden">
+      {/* Full-screen Map */}
+      <div className="absolute inset-0">
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={defaultCenter}
@@ -572,8 +521,64 @@ function StrategicMapContent() {
         </GoogleMap>
       </div>
 
-      {/* Layer Controls */}
-      <div className="absolute bottom-4 left-4 z-10">
+      {/* Floating Header */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+        {/* Left: Back + Title */}
+        <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Map className="h-5 w-5 text-primary" />
+          <h1 className="font-semibold text-sm">Mapa Estratégico</h1>
+        </div>
+        
+        {/* Right: Admin Buttons */}
+        <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
+          {isSuperAdmin && (
+            <>
+              <Button
+                variant={adminMode ? 'default' : 'ghost'}
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setAdminMode(!adminMode)}
+              >
+                <Move className="h-3.5 w-3.5 mr-1.5" />
+                {adminMode ? 'Admin ON' : 'Modo Admin'}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowBulkEditDialog(true)}>
+                <Edit className="h-3.5 w-3.5 mr-1.5" />
+                Editar em Lote
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowImportDialog(true)}>
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                Importar
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Left Panel: Filters + KPIs */}
+      <div className="absolute top-20 left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+        <MapSearchFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedState={selectedState}
+          onStateChange={setSelectedState}
+          selectedCity={selectedCity}
+          onCityChange={setSelectedCity}
+          selectedImportStatus={selectedImportStatus}
+          onImportStatusChange={setSelectedImportStatus}
+          pdvs={roleFilteredPDVs}
+        />
+        <MapKPIPanel kpis={kpis} />
+      </div>
+
+      {/* Right Panel: Layer Controls */}
+      <div className="absolute top-20 right-4 z-10 w-52">
         <MapLayerControls
           showPDVs={showPDVs}
           showOutdoors={showOutdoors}
@@ -584,9 +589,13 @@ function StrategicMapContent() {
         />
       </div>
 
-      {/* KPI Panel */}
-      <div className="absolute bottom-4 right-4 z-10">
-        <MapKPIPanel kpis={kpis} />
+      {/* Bottom Left: Counter Badge */}
+      <div className="absolute bottom-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
+        <span className="text-primary">{filteredPDVs.length}</span>
+        <span className="text-muted-foreground"> PDVs</span>
+        <span className="mx-2 text-muted-foreground">•</span>
+        <span className="text-primary">{filteredOutdoors.length}</span>
+        <span className="text-muted-foreground"> Outdoors</span>
       </div>
 
       {/* Context Menu */}
