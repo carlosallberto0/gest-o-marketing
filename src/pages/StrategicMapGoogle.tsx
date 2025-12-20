@@ -49,7 +49,7 @@ const getMarkerSize = (zoom: number): { width: number; height: number; iconScale
   return { width: 50, height: 62, iconScale: 1.15 };
 };
 
-// Marker icons with improved legibility
+// Simple clean marker icons - circle with icon
 const getMarkerIcon = (
   type: 'posto' | 'conveniencia' | 'both' | 'outdoor', 
   status?: string,
@@ -72,76 +72,51 @@ const getMarkerIcon = (
   };
   
   const color = getColor();
-  const w = size.width;
-  const h = size.height;
+  const s = size.width; // Use width as the circle size
+  const r = s / 2;
+  const strokeW = Math.max(2, s * 0.08);
+  const iconSize = s * 0.5;
+  const iconOffset = (s - iconSize) / 2;
   
   if (type === 'outdoor') {
-    // Flag icon with pin shape for better map visibility
+    // Flag icon - simple Lucide style
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-        <defs>
-          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-          </filter>
-        </defs>
-        <!-- Pin shape -->
-        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
-              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
-        <!-- Flag icon inside -->
-        <g transform="translate(${w*0.28}, ${h*0.15}) scale(${size.iconScale * 0.6})">
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" 
-                fill="white" stroke="white" stroke-width="0.5"/>
-          <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
+        <g transform="translate(${iconOffset}, ${iconOffset})" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 ${iconSize * 0.625}s1-${iconSize * 0.0417} 4-${iconSize * 0.0417} 5 ${iconSize * 0.0833} 8 ${iconSize * 0.0833} 4-${iconSize * 0.0417} 4-${iconSize * 0.0417}V${iconSize * 0.125}s-1 ${iconSize * 0.0417}-4 ${iconSize * 0.0417}-5-${iconSize * 0.0833}-8-${iconSize * 0.0833}-4 ${iconSize * 0.0417}-4 ${iconSize * 0.0417}z" transform="scale(${iconSize / 24})"/>
+          <line x1="${iconSize * 0.167}" y1="${iconSize}" x2="${iconSize * 0.167}" y2="${iconSize * 0.625}" transform="scale(1)"/>
         </g>
       </svg>
     `);
   }
   
-  // PDV markers
+  // PDV markers  
   const isPosto = type === 'posto' || type === 'both';
   
   if (isPosto) {
-    // Fuel pump icon
+    // Fuel pump icon - simple Lucide style
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-        <defs>
-          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-          </filter>
-        </defs>
-        <!-- Pin shape -->
-        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
-              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
-        <!-- Fuel icon inside -->
-        <g transform="translate(${w*0.25}, ${h*0.12}) scale(${size.iconScale * 0.65})">
-          <path d="M3 22V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M6 10h6M6 14h6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M15 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4" 
-                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
+        <g transform="translate(${iconOffset + iconSize * 0.08}, ${iconOffset + iconSize * 0.04})" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="${iconSize * 0.45}" height="${iconSize * 0.7}" rx="1" transform="scale(${iconSize / 24})"/>
+          <path d="M3 ${iconSize * 0.33}h${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
+          <path d="M3 ${iconSize * 0.5}h${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
+          <path d="M${iconSize * 0.54} ${iconSize * 0.46}h${iconSize * 0.125}a${iconSize * 0.08} ${iconSize * 0.08} 0 0 1 ${iconSize * 0.08} ${iconSize * 0.08}v${iconSize * 0.17}" transform="scale(${iconSize / 24})"/>
         </g>
       </svg>
     `);
   } else {
-    // Store/convenience icon
+    // Store/convenience icon - simple Lucide style
     return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-        <defs>
-          <filter id="shadow" x="-20%" y="-10%" width="140%" height="150%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-          </filter>
-        </defs>
-        <!-- Pin shape -->
-        <path d="M${w/2} ${h-4}L${w*0.3} ${h*0.55}A${w*0.4} ${w*0.4} 0 1 1 ${w*0.7} ${h*0.55}Z" 
-              fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
-        <!-- Store icon inside -->
-        <g transform="translate(${w*0.25}, ${h*0.12}) scale(${size.iconScale * 0.65})">
-          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" 
-                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" 
-                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" 
-                fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M2 7h20" fill="none" stroke="white" stroke-width="2"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
+        <g transform="translate(${iconOffset}, ${iconOffset})" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l${iconSize * 0.375}-${iconSize * 0.25}h${iconSize * 0.5}l${iconSize * 0.375} ${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
+          <rect x="${iconSize * 0.167}" y="${iconSize * 0.417}" width="${iconSize * 0.667}" height="${iconSize * 0.458}" rx="0" transform="scale(${iconSize / 24})"/>
+          <path d="M${iconSize * 0.375} ${iconSize * 0.875}v-${iconSize * 0.167}" transform="scale(${iconSize / 24})"/>
+          <path d="M${iconSize * 0.625} ${iconSize * 0.875}v-${iconSize * 0.167}" transform="scale(${iconSize / 24})"/>
         </g>
       </svg>
     `);
@@ -603,7 +578,7 @@ function StrategicMapContent() {
       <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
         {/* Left: Back + Title */}
         <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/modules')} title="Voltar aos Módulos">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Map className="h-5 w-5 text-primary" />
