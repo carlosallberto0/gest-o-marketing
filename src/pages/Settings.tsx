@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { 
   Settings as SettingsIcon, 
   Palette, 
@@ -16,12 +18,23 @@ import {
   Sun,
   Check,
   Loader2,
-  Bell
+  Bell,
+  CalendarClock,
+  History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  useSystemSettings, 
+  useUpdateSystemSetting,
+  EvaluationFrequency,
+  NotificationSettings as NotificationSettingsType,
+} from '@/hooks/useSystemSettings';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const colorPalettes = [
   { 
@@ -64,11 +77,41 @@ const colorPalettes = [
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
+  const { profile } = useAuth();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState('default');
   const [systemName, setSystemName] = useState('SR Off Trade Marketing');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const isSuperAdmin = profile?.role === 'super_admin';
+  
+  // System settings hooks
+  const { data: systemSettings, isLoading: settingsLoading } = useSystemSettings();
+  const updateSetting = useUpdateSystemSetting();
+
+  // Evaluation settings state
+  const [evalFrequency, setEvalFrequency] = useState<EvaluationFrequency>({ pdv_days: 30, outdoor_days: 7 });
+  const [notifSettings, setNotifSettings] = useState<NotificationSettingsType>({ 
+    alert_managers: true, 
+    days_before: 3, 
+    enabled: true 
+  });
+
+  // Load system settings
+  useEffect(() => {
+    if (systemSettings) {
+      const freqSetting = systemSettings.find(s => s.key === 'evaluation_frequency');
+      const notifSetting = systemSettings.find(s => s.key === 'notification_settings');
+      
+      if (freqSetting?.value && typeof freqSetting.value === 'object') {
+        setEvalFrequency(freqSetting.value as unknown as EvaluationFrequency);
+      }
+      if (notifSetting?.value && typeof notifSetting.value === 'object') {
+        setNotifSettings(notifSetting.value as unknown as NotificationSettingsType);
+      }
+    }
+  }, [systemSettings]);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -163,6 +206,15 @@ export default function Settings() {
     toast.success('Configurações salvas com sucesso!');
   };
 
+  const handleSaveEvaluationSettings = async () => {
+    try {
+      await updateSetting.mutateAsync({ key: 'evaluation_frequency', value: evalFrequency as unknown as Record<string, number> });
+      await updateSetting.mutateAsync({ key: 'notification_settings', value: notifSettings as unknown as Record<string, boolean | number> });
+    } catch (error) {
+      console.error('Error saving evaluation settings:', error);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
@@ -182,7 +234,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className={cn("grid w-full max-w-2xl", isSuperAdmin ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -195,6 +247,12 @@ export default function Settings() {
               <Bell className="h-4 w-4 mr-2" />
               Notificações
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="evaluations">
+                <CalendarClock className="h-4 w-4 mr-2" />
+                Avaliações
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Branding Tab */}
@@ -380,6 +438,211 @@ export default function Settings() {
           <TabsContent value="notifications" className="space-y-6">
             <NotificationSettings />
           </TabsContent>
+
+          {/* Evaluations Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="evaluations" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarClock className="h-5 w-5" />
+                    Periodicidade de Avaliações
+                  </CardTitle>
+                  <CardDescription>
+                    Configure a frequência com que PDVs e Outdoors devem ser avaliados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  {settingsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* PDV Evaluation Frequency */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-base">Avaliação de PDVs (Merchandising)</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Frequência para avaliação completa dos pontos de venda
+                            </p>
+                          </div>
+                          <span className="text-2xl font-bold text-primary">
+                            {evalFrequency.pdv_days} dias
+                          </span>
+                        </div>
+                        <Slider
+                          value={[evalFrequency.pdv_days]}
+                          onValueChange={([value]) => setEvalFrequency(prev => ({ ...prev, pdv_days: value }))}
+                          min={7}
+                          max={90}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>7 dias</span>
+                          <span>30 dias</span>
+                          <span>60 dias</span>
+                          <span>90 dias</span>
+                        </div>
+                      </div>
+
+                      {/* Outdoor Status Frequency */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-base">Status de Outdoors (Mídia Externa)</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Frequência para verificação do status dos outdoors
+                            </p>
+                          </div>
+                          <span className="text-2xl font-bold text-primary">
+                            {evalFrequency.outdoor_days} dias
+                          </span>
+                        </div>
+                        <Slider
+                          value={[evalFrequency.outdoor_days]}
+                          onValueChange={([value]) => setEvalFrequency(prev => ({ ...prev, outdoor_days: value }))}
+                          min={1}
+                          max={30}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Diário</span>
+                          <span>Semanal</span>
+                          <span>Quinzenal</span>
+                          <span>Mensal</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Notificações de Avaliação
+                  </CardTitle>
+                  <CardDescription>
+                    Configure alertas automáticos para gerentes sobre avaliações pendentes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Notificações Ativas</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ativar envio automático de notificações
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifSettings.enabled}
+                      onCheckedChange={(checked) => setNotifSettings(prev => ({ ...prev, enabled: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Alertar Gerentes</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Enviar notificações para gerentes dos PDVs
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifSettings.alert_managers}
+                      onCheckedChange={(checked) => setNotifSettings(prev => ({ ...prev, alert_managers: checked }))}
+                      disabled={!notifSettings.enabled}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Dias de Antecedência</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Quantos dias antes do vencimento enviar o alerta
+                        </p>
+                      </div>
+                      <span className="text-xl font-bold text-primary">
+                        {notifSettings.days_before} dias
+                      </span>
+                    </div>
+                    <Slider
+                      value={[notifSettings.days_before]}
+                      onValueChange={([value]) => setNotifSettings(prev => ({ ...prev, days_before: value }))}
+                      min={1}
+                      max={14}
+                      step={1}
+                      disabled={!notifSettings.enabled}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Settings History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Histórico de Alterações
+                  </CardTitle>
+                  <CardDescription>
+                    Últimas modificações nas configurações de avaliação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {systemSettings && systemSettings.length > 0 ? (
+                    <div className="space-y-3">
+                      {systemSettings.map((setting) => (
+                        <div key={setting.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div>
+                            <p className="font-medium text-sm">
+                              {setting.key === 'evaluation_frequency' && 'Frequência de Avaliações'}
+                              {setting.key === 'notification_settings' && 'Configurações de Notificação'}
+                              {setting.key === 'evaluation_config' && 'Configuração Geral'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {setting.description}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              Atualizado em
+                            </p>
+                            <p className="text-sm">
+                              {format(new Date(setting.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhuma alteração registrada
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSaveEvaluationSettings}
+                  disabled={updateSetting.isPending}
+                >
+                  {updateSetting.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Salvar Configurações de Avaliação
+                </Button>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>

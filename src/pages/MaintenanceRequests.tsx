@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import {
@@ -19,6 +21,7 @@ import {
   useRejectMaintenanceRequest,
   MaintenanceRequest,
 } from '@/hooks/useMaintenanceRequests';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Plus, 
   Search, 
@@ -30,10 +33,14 @@ import {
   MapPin,
   User,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Trash2,
+  Edit,
+  Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending_review: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
@@ -44,7 +51,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 
 export default function MaintenanceRequests() {
   const { profile } = useAuth();
-  const { data: allRequests, isLoading } = useMaintenanceRequests();
+  const { data: allRequests, isLoading, refetch } = useMaintenanceRequests();
   const { data: pendingRequests } = usePendingMaintenanceRequests();
   const { data: outdoors } = useOutdoors();
   const createRequest = useCreateMaintenanceRequest();
@@ -54,6 +61,13 @@ export default function MaintenanceRequests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Advanced filters
+  const [dateFilter, setDateFilter] = useState<'all' | '7days' | '30days' | '90days'>('all');
+  const [outdoorFilter, setOutdoorFilter] = useState('all');
 
   const [formData, setFormData] = useState({
     outdoor_id: '',
@@ -61,17 +75,49 @@ export default function MaintenanceRequests() {
     observations: '',
   });
 
+  const isSuperAdmin = profile?.role === 'super_admin';
   const isDirector = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director';
+
+  // Get unique outdoors from requests for filter
+  const uniqueOutdoors = useMemo(() => {
+    const outdoorMap = new Map<string, { id: string; code: string; pdvName: string }>();
+    allRequests?.forEach(req => {
+      if (req.outdoor) {
+        outdoorMap.set(req.outdoor_id, {
+          id: req.outdoor_id,
+          code: req.outdoor.code,
+          pdvName: req.outdoor.pdv?.name || '',
+        });
+      }
+    });
+    return Array.from(outdoorMap.values());
+  }, [allRequests]);
 
   const filterRequests = (requests: MaintenanceRequest[] | undefined, status?: string) => {
     if (!requests) return [];
     return requests.filter(req => {
+      // Search filter
       const matchesSearch = 
         req.outdoor?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.outdoor?.pdv?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.reason.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Status filter
       const matchesStatus = !status || req.status === status;
-      return matchesSearch && matchesStatus;
+      
+      // Date filter
+      let matchesDate = true;
+      if (dateFilter !== 'all') {
+        const days = dateFilter === '7days' ? 7 : dateFilter === '30days' ? 30 : 90;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        matchesDate = new Date(req.created_at) >= cutoffDate;
+      }
+      
+      // Outdoor filter
+      const matchesOutdoor = outdoorFilter === 'all' || req.outdoor_id === outdoorFilter;
+      
+      return matchesSearch && matchesStatus && matchesDate && matchesOutdoor;
     });
   };
 
@@ -93,6 +139,48 @@ export default function MaintenanceRequests() {
   const handleReject = async (id: string) => {
     await rejectRequest.mutateAsync(id);
     setSelectedRequest(null);
+  };
+
+  const handleSelectAll = (requests: MaintenanceRequest[]) => {
+    if (selectedIds.size === requests.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(requests.map(r => r.id)));
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('maintenance_requests')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      
+      toast.success(`${selectedIds.size} solicitação(ões) excluída(s)`);
+      setSelectedIds(new Set());
+      refetch();
+    } catch (error) {
+      console.error('Error deleting requests:', error);
+      toast.error('Erro ao excluir solicitações');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   // Show all operational and non-operational outdoors for maintenance requests
@@ -117,18 +205,25 @@ export default function MaintenanceRequests() {
     );
   }
 
-  const RequestCard = ({ request }: { request: MaintenanceRequest }) => {
+  const RequestCard = ({ request, showCheckbox }: { request: MaintenanceRequest; showCheckbox?: boolean }) => {
     const status = statusConfig[request.status] || statusConfig.pending_review;
     const StatusIcon = status.icon;
 
     return (
       <Card 
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => setSelectedRequest(request)}
+        onClick={() => !showCheckbox && setSelectedRequest(request)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
+              {showCheckbox && isSuperAdmin && (
+                <Checkbox
+                  checked={selectedIds.has(request.id)}
+                  onCheckedChange={() => handleSelectOne(request.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
               <Badge className={`${status.color} text-white`}>
                 <StatusIcon className="h-3 w-3 mr-1" />
                 {status.label}
@@ -139,7 +234,7 @@ export default function MaintenanceRequests() {
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" onClick={() => setSelectedRequest(request)}>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               <span className="font-medium">{request.outdoor?.code}</span>
@@ -163,6 +258,8 @@ export default function MaintenanceRequests() {
       </Card>
     );
   };
+
+  const currentFilteredRequests = filterRequests(allRequests);
 
   return (
     <AppLayout>
@@ -273,16 +370,74 @@ export default function MaintenanceRequests() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por outdoor, PDV ou motivo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por outdoor, PDV ou motivo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {isSuperAdmin && (
+            <>
+              <Select value={dateFilter} onValueChange={(v: typeof dateFilter) => setDateFilter(v)}>
+                <SelectTrigger className="w-[150px]">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo período</SelectItem>
+                  <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90days">Últimos 90 dias</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={outdoorFilter} onValueChange={setOutdoorFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Outdoor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os outdoors</SelectItem>
+                  {uniqueOutdoors.map(outdoor => (
+                    <SelectItem key={outdoor.id} value={outdoor.id}>
+                      {outdoor.code} - {outdoor.pdvName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
+
+        {/* Floating Action Bar for batch operations */}
+        {isSuperAdmin && selectedIds.size > 0 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-background border border-border shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 z-50">
+            <span className="text-sm font-medium">
+              {selectedIds.size} selecionada(s)
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir Selecionadas
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Limpar Seleção
+            </Button>
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="all">
@@ -294,11 +449,20 @@ export default function MaintenanceRequests() {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
+            {isSuperAdmin && currentFilteredRequests.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <Checkbox
+                  checked={selectedIds.size === currentFilteredRequests.length && currentFilteredRequests.length > 0}
+                  onCheckedChange={() => handleSelectAll(currentFilteredRequests)}
+                />
+                <span className="text-sm text-muted-foreground">Selecionar todas</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterRequests(allRequests).map(request => (
-                <RequestCard key={request.id} request={request} />
+              {currentFilteredRequests.map(request => (
+                <RequestCard key={request.id} request={request} showCheckbox={isSuperAdmin} />
               ))}
-              {filterRequests(allRequests).length === 0 && (
+              {currentFilteredRequests.length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-8">
                   Nenhuma solicitação encontrada
                 </p>
@@ -309,7 +473,7 @@ export default function MaintenanceRequests() {
           <TabsContent value="pending_review" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filterRequests(allRequests, 'pending_review').map(request => (
-                <RequestCard key={request.id} request={request} />
+                <RequestCard key={request.id} request={request} showCheckbox={isSuperAdmin} />
               ))}
               {filterRequests(allRequests, 'pending_review').length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-8">
@@ -322,7 +486,7 @@ export default function MaintenanceRequests() {
           <TabsContent value="approved" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filterRequests(allRequests, 'approved').map(request => (
-                <RequestCard key={request.id} request={request} />
+                <RequestCard key={request.id} request={request} showCheckbox={isSuperAdmin} />
               ))}
               {filterRequests(allRequests, 'approved').length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-8">
@@ -335,7 +499,7 @@ export default function MaintenanceRequests() {
           <TabsContent value="consolidated" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filterRequests(allRequests, 'consolidated').map(request => (
-                <RequestCard key={request.id} request={request} />
+                <RequestCard key={request.id} request={request} showCheckbox={isSuperAdmin} />
               ))}
               {filterRequests(allRequests, 'consolidated').length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-8">
@@ -427,6 +591,30 @@ export default function MaintenanceRequests() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir {selectedIds.size} solicitação(ões) de manutenção.
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBatchDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
