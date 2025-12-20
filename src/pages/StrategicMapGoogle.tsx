@@ -25,7 +25,39 @@ const containerStyle = {
   height: '100%',
 };
 
-// Removed custom mapStyles to use default Google Maps layout with POIs and transit
+// Clean/light map style - similar to Mapbox light theme
+const mapStyles: google.maps.MapTypeStyle[] = [
+  // General geometry - light gray background
+  { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  // Text labels - dark gray for readability
+  { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+  // Administrative areas
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#c0c0c0" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#a0a0a0" }, { weight: 1.5 }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#b0b0b0" }, { weight: 1 }] },
+  { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
+  // Landscape
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#f0f0f0" }] },
+  // Points of interest - hide to keep map clean
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e5e5e5" }, { visibility: "simplified" }] },
+  // Roads - white/light gray
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#e0e0e0" }] },
+  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  // Transit - hide
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  // Water - soft blue
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9d4e2" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+];
 
 const clusterOptions = {
   imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
@@ -456,10 +488,12 @@ function StrategicMapContent() {
             setSelectedOutdoor(null);
           }}
           options={{
+            styles: mapStyles,
             mapTypeControl: true,
             streetViewControl: true,
             fullscreenControl: true,
             zoomControl: true,
+            gestureHandling: 'greedy',
             mapTypeControlOptions: {
               position: google.maps.ControlPosition.TOP_RIGHT,
             },
