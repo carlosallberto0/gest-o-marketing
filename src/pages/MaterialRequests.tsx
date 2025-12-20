@@ -12,7 +12,10 @@ import {
   XCircle,
   Truck,
   Loader2,
-  MessageSquare
+  MessageSquare,
+  Edit,
+  PackageCheck,
+  Filter
 } from 'lucide-react';
 import {
   Select,
@@ -40,9 +43,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RequestMaterialDialog } from '@/components/dialogs/RequestMaterialDialog';
 import { useMaterialRequests, useUpdateMaterialRequest } from '@/hooks/useMaterialRequests';
+import { usePDVs } from '@/hooks/usePDVs';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const getStatusConfig = (status: string) => {
   const configs: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
@@ -66,6 +72,16 @@ const getStatusConfig = (status: string) => {
       icon: <Truck className="h-3 w-3" />,
       className: 'bg-primary/10 text-primary border-primary/20',
     },
+    separated: {
+      label: 'Separado',
+      icon: <PackageCheck className="h-3 w-3" />,
+      className: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    },
+    cancelled: {
+      label: 'Cancelado',
+      icon: <XCircle className="h-3 w-3" />,
+      className: 'bg-muted text-muted-foreground border-muted',
+    },
   };
   return configs[status] || configs.pending;
 };
@@ -73,18 +89,22 @@ const getStatusConfig = (status: string) => {
 export default function MaterialRequests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [pdvFilter, setPdvFilter] = useState<string>('all');
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [actionDialog, setActionDialog] = useState<{
     open: boolean;
     request: any;
-    action: 'approve' | 'reject' | 'deliver' | null;
+    action: 'approve' | 'reject' | 'deliver' | 'separate' | 'cancel' | 'edit' | null;
   }>({ open: false, request: null, action: null });
   const [adminNotes, setAdminNotes] = useState('');
+  const [editQuantity, setEditQuantity] = useState<number>(0);
 
   const { profile } = useAuth();
-  const { data: requests = [], isLoading } = useMaterialRequests();
+  const { data: requests = [], isLoading, refetch } = useMaterialRequests();
+  const { data: allPDVs = [] } = usePDVs();
   const updateRequest = useUpdateMaterialRequest();
 
+  const isSuperAdmin = profile?.role === 'super_admin';
   const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
 
   const filteredRequests = requests.filter(request => {
@@ -93,7 +113,8 @@ export default function MaterialRequests() {
       request.pdv?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requester?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPDV = pdvFilter === 'all' || request.pdv_id === pdvFilter;
+    return matchesSearch && matchesStatus && matchesPDV;
   });
 
   const stats = {
@@ -106,25 +127,75 @@ export default function MaterialRequests() {
   const handleAction = async () => {
     if (!actionDialog.request || !actionDialog.action) return;
 
-    const statusMap = {
-      approve: 'approved' as const,
-      reject: 'rejected' as const,
-      deliver: 'delivered' as const,
-    };
+    try {
+      if (actionDialog.action === 'edit') {
+        // Handle edit action
+        const { error } = await supabase
+          .from('material_requests')
+          .update({ 
+            quantity: editQuantity,
+            admin_notes: adminNotes || undefined,
+          })
+          .eq('id', actionDialog.request.id);
 
-    await updateRequest.mutateAsync({
-      id: actionDialog.request.id,
-      status: statusMap[actionDialog.action],
-      admin_notes: adminNotes || undefined,
-    });
+        if (error) throw error;
+        toast.success('Solicitação atualizada!');
+        refetch();
+      } else if (actionDialog.action === 'separate') {
+        // Handle separate action
+        const { error } = await supabase
+          .from('material_requests')
+          .update({ 
+            status: 'approved',
+            admin_notes: `[SEPARADO] ${adminNotes || 'Material separado para entrega'}`,
+          })
+          .eq('id', actionDialog.request.id);
+
+        if (error) throw error;
+        toast.success('Material marcado como separado!');
+        refetch();
+      } else if (actionDialog.action === 'cancel') {
+        // Handle cancel action
+        const { error } = await supabase
+          .from('material_requests')
+          .update({ 
+            status: 'rejected',
+            admin_notes: `[CANCELADO] ${adminNotes || 'Solicitação cancelada pelo administrador'}`,
+          })
+          .eq('id', actionDialog.request.id);
+
+        if (error) throw error;
+        toast.success('Solicitação cancelada!');
+        refetch();
+      } else {
+        const statusMap = {
+          approve: 'approved' as const,
+          reject: 'rejected' as const,
+          deliver: 'delivered' as const,
+        };
+
+        await updateRequest.mutateAsync({
+          id: actionDialog.request.id,
+          status: statusMap[actionDialog.action],
+          admin_notes: adminNotes || undefined,
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erro ao processar ação');
+    }
 
     setActionDialog({ open: false, request: null, action: null });
     setAdminNotes('');
+    setEditQuantity(0);
   };
 
-  const openActionDialog = (request: any, action: 'approve' | 'reject' | 'deliver') => {
+  const openActionDialog = (request: any, action: 'approve' | 'reject' | 'deliver' | 'separate' | 'cancel' | 'edit') => {
     setActionDialog({ open: true, request, action });
     setAdminNotes('');
+    if (action === 'edit') {
+      setEditQuantity(request.quantity);
+    }
   };
 
   if (isLoading) {
@@ -197,6 +268,20 @@ export default function MaterialRequests() {
               <SelectItem value="delivered">Entregues</SelectItem>
             </SelectContent>
           </Select>
+          {isSuperAdmin && (
+            <Select value={pdvFilter} onValueChange={setPdvFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filtrar PDV" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os PDVs</SelectItem>
+                {allPDVs.map(pdv => (
+                  <SelectItem key={pdv.id} value={pdv.id}>{pdv.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Requests Table */}

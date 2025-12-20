@@ -11,9 +11,14 @@ import { PDVPopup } from '@/components/map/PDVPopup';
 import { OutdoorPopup } from '@/components/map/OutdoorPopup';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { BulkEditDialog } from '@/components/map/BulkEditDialog';
+import { QuickPDVDialog } from '@/components/map/QuickPDVDialog';
+import { InlineContextMenu } from '@/components/map/MapContextMenu';
+import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Cluster colors by point count
 const CLUSTER_COLORS = {
@@ -28,24 +33,62 @@ export default function StrategicMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const pdvMarkersRef = useRef<globalThis.Map<string, mapboxgl.Marker>>(new globalThis.Map());
 
   const { data: token, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
   const { data: pdvs, isLoading: pdvsLoading, refetch: refetchPDVs } = useMapPDVs();
   const { data: outdoors, isLoading: outdoorsLoading, refetch: refetchOutdoors } = useMapOutdoors();
   const kpis = useMapKPIs();
 
-  const [showPDVs, setShowPDVs] = useState(true);
-  const [showOutdoors, setShowOutdoors] = useState(true);
-  const [showAlerts, setShowAlerts] = useState(true);
+  // Map persistence hook
+  const { 
+    state: persistedState, 
+    updateCenter, 
+    updateZoom, 
+    updateFilters, 
+    updateLayers 
+  } = useMapPersistence();
+
+  // Initialize state from persisted values
+  const [showPDVs, setShowPDVs] = useState(persistedState.layers.showPDVs);
+  const [showOutdoors, setShowOutdoors] = useState(persistedState.layers.showOutdoors);
+  const [showAlerts, setShowAlerts] = useState(persistedState.layers.showAlerts);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Search and filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedState, setSelectedState] = useState('all');
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [selectedImportStatus, setSelectedImportStatus] = useState('all');
+  // Search and filter state - initialized from persistence
+  const [searchTerm, setSearchTerm] = useState(persistedState.filters.searchTerm);
+  const [selectedState, setSelectedState] = useState(persistedState.filters.selectedState);
+  const [selectedCity, setSelectedCity] = useState(persistedState.filters.selectedCity);
+  const [selectedImportStatus, setSelectedImportStatus] = useState(persistedState.filters.selectedImportStatus);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+
+  // Admin mode state
+  const [adminMode, setAdminMode] = useState(false);
+  const [quickPDVDialog, setQuickPDVDialog] = useState<{ open: boolean; lat: number; lng: number }>({ 
+    open: false, lat: 0, lng: 0 
+  });
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    type: 'pdv' | 'outdoor' | 'empty';
+    item?: MapPDV | MapOutdoor;
+    position?: { lat: number; lng: number };
+  } | null>(null);
+
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
+
+  // Persist filters when they change
+  useEffect(() => {
+    updateFilters({ searchTerm, selectedState, selectedCity, selectedImportStatus });
+  }, [searchTerm, selectedState, selectedCity, selectedImportStatus, updateFilters]);
+
+  // Persist layer visibility when they change
+  useEffect(() => {
+    updateLayers({ showPDVs, showOutdoors, showAlerts });
+  }, [showPDVs, showOutdoors, showAlerts, updateLayers]);
 
   // Filter data based on user role
   const roleFilteredPDVs = useMemo(() => {
@@ -63,7 +106,6 @@ export default function StrategicMap() {
   // Apply search and location filters
   const filteredPDVs = useMemo(() => {
     return roleFilteredPDVs.filter(pdv => {
-      // Search filter
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const matchesSearch = 
@@ -74,17 +116,14 @@ export default function StrategicMap() {
         if (!matchesSearch) return false;
       }
       
-      // State filter
       if (selectedState !== 'all' && pdv.state !== selectedState) {
         return false;
       }
       
-      // City filter
       if (selectedCity !== 'all' && pdv.city !== selectedCity) {
         return false;
       }
 
-      // Import status filter
       if (selectedImportStatus !== 'all') {
         if (pdv.status_importacao !== selectedImportStatus) {
           return false;
@@ -106,7 +145,6 @@ export default function StrategicMap() {
       return true;
     }) || [];
 
-    // Apply search filter to outdoors
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       return roleFiltered.filter(outdoor =>
@@ -116,7 +154,6 @@ export default function StrategicMap() {
       );
     }
 
-    // Filter by PDVs in filtered list
     const pdvIds = new Set(filteredPDVs.map(p => p.id));
     return roleFiltered.filter(o => pdvIds.has(o.pdv_id));
   }, [outdoors, profile, searchTerm, filteredPDVs]);
@@ -153,6 +190,41 @@ export default function StrategicMap() {
       .setDOMContent(container)
       .addTo(map.current!);
   }, [closePopup, navigate]);
+
+  // Handle PDV coordinate update (drag end in admin mode)
+  const handlePDVCoordinateUpdate = useCallback(async (pdvId: string, lat: number, lng: number) => {
+    try {
+      const { error } = await supabase
+        .from('pdvs')
+        .update({ lat, lng })
+        .eq('id', pdvId);
+
+      if (error) throw error;
+      toast.success('Coordenadas atualizadas!');
+      refetchPDVs();
+    } catch (error) {
+      console.error('Error updating coordinates:', error);
+      toast.error('Erro ao atualizar coordenadas');
+    }
+  }, [refetchPDVs]);
+
+  // Handle PDV status toggle
+  const handleTogglePDVStatus = useCallback(async (pdv: MapPDV) => {
+    try {
+      const newStatus = pdv.status === 'active' ? 'inactive' : 'active';
+      const { error } = await supabase
+        .from('pdvs')
+        .update({ status: newStatus })
+        .eq('id', pdv.id);
+
+      if (error) throw error;
+      toast.success(`PDV ${newStatus === 'active' ? 'ativado' : 'inativado'}!`);
+      refetchPDVs();
+    } catch (error) {
+      console.error('Error toggling PDV status:', error);
+      toast.error('Erro ao alterar status');
+    }
+  }, [refetchPDVs]);
 
   // Create GeoJSON for PDVs
   const pdvGeoJSON = useMemo(() => ({
@@ -203,11 +275,11 @@ export default function StrategicMap() {
 
     mapboxgl.accessToken = token;
     
-    // Default center (Brazil)
-    let center: [number, number] = [-49.0, -15.5];
-    let zoom = 4;
+    // Use persisted center and zoom, or defaults
+    let center: [number, number] = persistedState.center;
+    let zoom = persistedState.zoom;
 
-    // If manager, center on their PDV
+    // If manager, center on their PDV (override persisted)
     if (profile?.role === 'manager' && profile?.pdv_id && roleFilteredPDVs?.length) {
       const userPDV = roleFilteredPDVs.find(p => p.id === profile.pdv_id);
       if (userPDV?.lat && userPDV?.lng) {
@@ -229,11 +301,71 @@ export default function StrategicMap() {
       setMapLoaded(true);
     });
 
+    // Persist map position on move end
+    map.current.on('moveend', () => {
+      if (map.current) {
+        const center = map.current.getCenter();
+        const zoom = map.current.getZoom();
+        updateCenter([center.lng, center.lat]);
+        updateZoom(zoom);
+      }
+    });
+
+    // Right-click handler for context menu (Super Admin only)
+    map.current.on('contextmenu', (e) => {
+      if (!isSuperAdmin) return;
+      
+      e.preventDefault();
+      
+      // Check if clicked on a PDV or outdoor marker
+      const features = map.current!.queryRenderedFeatures(e.point, {
+        layers: ['pdv-unclustered', 'outdoor-markers']
+      });
+
+      if (features.length > 0) {
+        const feature = features[0];
+        const isOutdoor = feature.layer?.id === 'outdoor-markers';
+        
+        if (isOutdoor) {
+          const outdoor = filteredOutdoors.find(o => o.id === feature.properties?.id);
+          if (outdoor) {
+            setContextMenu({
+              show: true,
+              x: e.point.x,
+              y: e.point.y,
+              type: 'outdoor',
+              item: outdoor,
+            });
+          }
+        } else {
+          const pdv = filteredPDVs.find(p => p.id === feature.properties?.id);
+          if (pdv) {
+            setContextMenu({
+              show: true,
+              x: e.point.x,
+              y: e.point.y,
+              type: 'pdv',
+              item: pdv,
+            });
+          }
+        }
+      } else {
+        // Clicked on empty space
+        setContextMenu({
+          show: true,
+          x: e.point.x,
+          y: e.point.y,
+          type: 'empty',
+          position: { lat: e.lngLat.lat, lng: e.lngLat.lng },
+        });
+      }
+    });
+
     return () => {
       map.current?.remove();
       map.current = null;
     };
-  }, [token, profile, roleFilteredPDVs]);
+  }, [token, profile, roleFilteredPDVs, persistedState.center, persistedState.zoom, updateCenter, updateZoom, isSuperAdmin, filteredPDVs, filteredOutdoors]);
 
   // Setup clustering layers
   useEffect(() => {
@@ -251,139 +383,164 @@ export default function StrategicMap() {
       }
     });
 
+    // Clear draggable markers
+    pdvMarkersRef.current.forEach(marker => marker.remove());
+    pdvMarkersRef.current.clear();
+
     if (showPDVs && pdvGeoJSON.features.length > 0) {
-      // Add PDV source with clustering
-      map.current.addSource('pdvs', {
-        type: 'geojson',
-        data: pdvGeoJSON,
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
-      });
+      if (adminMode && isSuperAdmin) {
+        // In admin mode, use draggable markers instead of layers
+        filteredPDVs.filter(pdv => pdv.lat && pdv.lng).forEach(pdv => {
+          const el = document.createElement('div');
+          el.className = 'admin-marker';
+          el.style.cssText = `
+            width: 24px;
+            height: 24px;
+            background: #3b82f6;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: move;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          `;
 
-      // Cluster circles
-      map.current.addLayer({
-        id: 'pdv-clusters',
-        type: 'circle',
-        source: 'pdvs',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': [
-            'step',
-            ['get', 'point_count'],
-            CLUSTER_COLORS.small,
-            10,
-            CLUSTER_COLORS.medium,
-            50,
-            CLUSTER_COLORS.large,
-          ],
-          'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            20,
-            10,
-            25,
-            50,
-            35,
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-        },
-      });
+          const marker = new mapboxgl.Marker({ element: el, draggable: true })
+            .setLngLat([pdv.lng!, pdv.lat!])
+            .addTo(map.current!);
 
-      // Cluster count label
-      map.current.addLayer({
-        id: 'pdv-cluster-count',
-        type: 'symbol',
-        source: 'pdvs',
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': ['get', 'point_count_abbreviated'],
-          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-          'text-size': 12,
-        },
-        paint: {
-          'text-color': '#333',
-        },
-      });
+          marker.on('dragend', () => {
+            const lngLat = marker.getLngLat();
+            handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
+          });
 
-      // Individual PDV markers
-      map.current.addLayer({
-        id: 'pdv-unclustered',
-        type: 'circle',
-        source: 'pdvs',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': [
-            'case',
-            ['get', 'isPreRegistered'],
-            '#9ca3af', // Gray for pre-registered
-            [
-              'match',
-              ['get', 'status'],
-              'ok', '#10b981',
-              'pending', '#f59e0b',
-              'critical', '#ef4444',
-              '#888',
+          pdvMarkersRef.current.set(pdv.id, marker);
+        });
+      } else {
+        // Normal mode - use layers
+        map.current.addSource('pdvs', {
+          type: 'geojson',
+          data: pdvGeoJSON,
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 50,
+        });
+
+        map.current.addLayer({
+          id: 'pdv-clusters',
+          type: 'circle',
+          source: 'pdvs',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': [
+              'step',
+              ['get', 'point_count'],
+              CLUSTER_COLORS.small,
+              10,
+              CLUSTER_COLORS.medium,
+              50,
+              CLUSTER_COLORS.large,
             ],
-          ],
-          'circle-radius': 10,
-          'circle-stroke-width': [
-            'case',
-            ['get', 'isPreRegistered'],
-            3, // Thicker border for pre-registered
-            2,
-          ],
-          'circle-stroke-color': [
-            'case',
-            ['get', 'isPreRegistered'],
-            '#6b7280', // Darker gray border for pre-registered
-            '#fff',
-          ],
-        },
-      });
+            'circle-radius': [
+              'step',
+              ['get', 'point_count'],
+              20,
+              10,
+              25,
+              50,
+              35,
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff',
+          },
+        });
 
-      // Click on cluster to zoom
-      map.current.on('click', 'pdv-clusters', (e) => {
-        const features = map.current!.queryRenderedFeatures(e.point, { layers: ['pdv-clusters'] });
-        const clusterId = features[0].properties?.cluster_id;
-        const source = map.current!.getSource('pdvs') as mapboxgl.GeoJSONSource;
-        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err) return;
-          map.current!.easeTo({
-            center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
-            zoom: zoom!,
+        map.current.addLayer({
+          id: 'pdv-cluster-count',
+          type: 'symbol',
+          source: 'pdvs',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 12,
+          },
+          paint: {
+            'text-color': '#333',
+          },
+        });
+
+        map.current.addLayer({
+          id: 'pdv-unclustered',
+          type: 'circle',
+          source: 'pdvs',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': [
+              'case',
+              ['get', 'isPreRegistered'],
+              '#9ca3af',
+              [
+                'match',
+                ['get', 'status'],
+                'ok', '#10b981',
+                'pending', '#f59e0b',
+                'critical', '#ef4444',
+                '#888',
+              ],
+            ],
+            'circle-radius': 10,
+            'circle-stroke-width': [
+              'case',
+              ['get', 'isPreRegistered'],
+              3,
+              2,
+            ],
+            'circle-stroke-color': [
+              'case',
+              ['get', 'isPreRegistered'],
+              '#6b7280',
+              '#fff',
+            ],
+          },
+        });
+
+        map.current.on('click', 'pdv-clusters', (e) => {
+          const features = map.current!.queryRenderedFeatures(e.point, { layers: ['pdv-clusters'] });
+          const clusterId = features[0].properties?.cluster_id;
+          const source = map.current!.getSource('pdvs') as mapboxgl.GeoJSONSource;
+          source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.current!.easeTo({
+              center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
+              zoom: zoom!,
+            });
           });
         });
-      });
 
-      // Click on individual PDV
-      map.current.on('click', 'pdv-unclustered', (e) => {
-        const feature = e.features?.[0];
-        if (feature) {
-          const pdv = filteredPDVs.find(p => p.id === feature.properties?.id);
-          if (pdv && pdv.lat && pdv.lng) {
-            showPDVPopup(pdv, [pdv.lng, pdv.lat]);
+        map.current.on('click', 'pdv-unclustered', (e) => {
+          const feature = e.features?.[0];
+          if (feature) {
+            const pdv = filteredPDVs.find(p => p.id === feature.properties?.id);
+            if (pdv && pdv.lat && pdv.lng) {
+              showPDVPopup(pdv, [pdv.lng, pdv.lat]);
+            }
           }
-        }
-      });
+        });
 
-      // Cursor styles
-      map.current.on('mouseenter', 'pdv-clusters', () => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      });
-      map.current.on('mouseleave', 'pdv-clusters', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-      });
-      map.current.on('mouseenter', 'pdv-unclustered', () => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      });
-      map.current.on('mouseleave', 'pdv-unclustered', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-      });
+        map.current.on('mouseenter', 'pdv-clusters', () => {
+          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        });
+        map.current.on('mouseleave', 'pdv-clusters', () => {
+          if (map.current) map.current.getCanvas().style.cursor = '';
+        });
+        map.current.on('mouseenter', 'pdv-unclustered', () => {
+          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        });
+        map.current.on('mouseleave', 'pdv-unclustered', () => {
+          if (map.current) map.current.getCanvas().style.cursor = '';
+        });
+      }
     }
 
-    // Add outdoor markers (smaller, no clustering)
     if (showOutdoors && outdoorGeoJSON.features.length > 0) {
       map.current.addSource('outdoors', {
         type: 'geojson',
@@ -426,11 +583,11 @@ export default function StrategicMap() {
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     }
-  }, [mapLoaded, pdvGeoJSON, outdoorGeoJSON, showPDVs, showOutdoors, showAlerts, filteredPDVs, filteredOutdoors, showPDVPopup, showOutdoorPopup]);
+  }, [mapLoaded, pdvGeoJSON, outdoorGeoJSON, showPDVs, showOutdoors, showAlerts, filteredPDVs, filteredOutdoors, showPDVPopup, showOutdoorPopup, adminMode, isSuperAdmin, handlePDVCoordinateUpdate]);
 
   // Update source data when filters change
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || adminMode) return;
 
     const pdvSource = map.current.getSource('pdvs') as mapboxgl.GeoJSONSource;
     if (pdvSource) {
@@ -441,7 +598,7 @@ export default function StrategicMap() {
     if (outdoorSource) {
       outdoorSource.setData(outdoorGeoJSON);
     }
-  }, [pdvGeoJSON, outdoorGeoJSON, mapLoaded]);
+  }, [pdvGeoJSON, outdoorGeoJSON, mapLoaded, adminMode]);
 
   // Fly to filtered location when filters change
   useEffect(() => {
@@ -456,7 +613,6 @@ export default function StrategicMap() {
         zoom: 12,
       });
     } else {
-      // Fit bounds to all filtered PDVs
       const bounds = new mapboxgl.LngLatBounds();
       pdvsWithCoords.forEach(pdv => {
         bounds.extend([pdv.lng!, pdv.lat!]);
@@ -475,7 +631,56 @@ export default function StrategicMap() {
     refetchOutdoors();
   };
 
-  const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
+  // Context menu action handlers
+  const getContextMenuItems = () => {
+    if (!contextMenu) return [];
+
+    if (contextMenu.type === 'pdv') {
+      const pdv = contextMenu.item as MapPDV;
+      return [
+        {
+          label: 'Editar Posto',
+          icon: <Edit className="h-4 w-4" />,
+          onClick: () => navigate(`/pdv/${pdv.id}`),
+        },
+        {
+          label: pdv.status === 'active' ? 'Inativar' : 'Ativar',
+          icon: <Power className="h-4 w-4" />,
+          onClick: () => handleTogglePDVStatus(pdv),
+          destructive: pdv.status === 'active',
+        },
+      ];
+    }
+
+    if (contextMenu.type === 'outdoor') {
+      const outdoor = contextMenu.item as MapOutdoor;
+      return [
+        {
+          label: 'Ver Outdoor',
+          icon: <Edit className="h-4 w-4" />,
+          onClick: () => navigate(`/outdoor/${outdoor.id}`),
+        },
+      ];
+    }
+
+    if (contextMenu.type === 'empty' && contextMenu.position) {
+      return [
+        {
+          label: 'Adicionar Novo Posto Aqui',
+          icon: <Map className="h-4 w-4" />,
+          onClick: () => {
+            setQuickPDVDialog({
+              open: true,
+              lat: contextMenu.position!.lat,
+              lng: contextMenu.position!.lng,
+            });
+          },
+        },
+      ];
+    }
+
+    return [];
+  };
 
   if (tokenLoading || pdvsLoading || outdoorsLoading) {
     return (
@@ -503,7 +708,6 @@ export default function StrategicMap() {
 
   return (
     <div className="h-screen w-full relative">
-      {/* Add pulse animation */}
       <style>{`
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
@@ -534,6 +738,16 @@ export default function StrategicMap() {
         </div>
 
         <div className="flex items-center gap-2 pointer-events-auto">
+          {isSuperAdmin && (
+            <Button
+              variant={adminMode ? "default" : "outline"}
+              className={`shadow-lg ${adminMode ? '' : 'bg-background/95 backdrop-blur-sm'}`}
+              onClick={() => setAdminMode(!adminMode)}
+            >
+              <Move className="h-4 w-4 mr-2" />
+              {adminMode ? 'Sair do Modo Admin' : 'Modo Administração'}
+            </Button>
+          )}
           {isAdmin && (
             <>
               <Button
@@ -564,6 +778,14 @@ export default function StrategicMap() {
           </Button>
         </div>
       </div>
+
+      {/* Admin Mode Indicator */}
+      {adminMode && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg flex items-center gap-2 pointer-events-none">
+          <Move className="h-4 w-4" />
+          <span className="text-sm font-medium">Modo Administração - Arraste os marcadores para ajustar coordenadas</span>
+        </div>
+      )}
 
       {/* Left Panel - KPIs and Search */}
       <div className="absolute top-20 left-4 w-64 space-y-3 pointer-events-auto">
@@ -600,6 +822,16 @@ export default function StrategicMap() {
         </p>
       </div>
 
+      {/* Context Menu */}
+      {contextMenu?.show && (
+        <InlineContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={getContextMenuItems()}
+        />
+      )}
+
       {/* Bulk Import Dialog */}
       <BulkImportDialog
         open={showImportDialog}
@@ -612,6 +844,15 @@ export default function StrategicMap() {
         open={showBulkEditDialog}
         onOpenChange={setShowBulkEditDialog}
         pdvs={roleFilteredPDVs}
+        onSuccess={handleImportSuccess}
+      />
+
+      {/* Quick PDV Dialog */}
+      <QuickPDVDialog
+        open={quickPDVDialog.open}
+        onOpenChange={(open) => setQuickPDVDialog({ ...quickPDVDialog, open })}
+        initialLat={quickPDVDialog.lat}
+        initialLng={quickPDVDialog.lng}
         onSuccess={handleImportSuccess}
       />
     </div>
