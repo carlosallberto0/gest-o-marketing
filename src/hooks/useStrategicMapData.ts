@@ -12,6 +12,7 @@ export interface MapPDV {
   lat: number | null;
   lng: number | null;
   status: string;
+  type: 'posto' | 'conveniencia' | 'both';
   manager_id: string | null;
   managerName: string | null;
   lastEvaluationDate: string | null;
@@ -80,6 +81,7 @@ export function useMapPDVs() {
           lat,
           lng,
           status,
+          type,
           manager_id,
           status_importacao,
           manager:profiles!pdvs_manager_id_fkey(name)
@@ -143,6 +145,7 @@ export function useMapPDVs() {
           lat: pdv.lat,
           lng: pdv.lng,
           status: pdv.status,
+          type: (pdv.type || 'posto') as 'posto' | 'conveniencia' | 'both',
           manager_id: pdv.manager_id,
           managerName: pdv.manager?.name || null,
           lastEvaluationDate: evalData?.date || null,

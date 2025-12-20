@@ -14,6 +14,7 @@ import { BulkEditDialog } from '@/components/map/BulkEditDialog';
 import { QuickPDVDialog } from '@/components/map/QuickPDVDialog';
 import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
+import { MapLegend } from '@/components/map/MapLegend';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -423,7 +424,7 @@ function StrategicMapContent() {
                       clusterer={clusterer}
                       icon={{
                         url: getMarkerIcon(
-                          (pdv as any).type || 'posto',
+                          pdv.type,
                           pdv.evaluationStatus
                         ),
                         scaledSize: new google.maps.Size(32, 40),
@@ -585,13 +586,16 @@ function StrategicMapContent() {
         />
       </div>
 
-      {/* Bottom Left: Counter Badge */}
-      <div className="absolute bottom-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
-        <span className="text-primary">{filteredPDVs.length}</span>
-        <span className="text-muted-foreground"> PDVs</span>
-        <span className="mx-2 text-muted-foreground">•</span>
-        <span className="text-primary">{filteredOutdoors.length}</span>
-        <span className="text-muted-foreground"> Outdoors</span>
+      {/* Bottom Left: Counter Badge + Legend */}
+      <div className="absolute bottom-4 left-4 z-10 space-y-3">
+        <MapLegend />
+        <div className="bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
+          <span className="text-primary">{filteredPDVs.length}</span>
+          <span className="text-muted-foreground"> PDVs</span>
+          <span className="mx-2 text-muted-foreground">•</span>
+          <span className="text-primary">{filteredOutdoors.length}</span>
+          <span className="text-muted-foreground"> Outdoors</span>
+        </div>
       </div>
 
       {/* Context Menu */}
