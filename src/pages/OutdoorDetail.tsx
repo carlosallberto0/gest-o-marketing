@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
@@ -55,14 +55,6 @@ export default function OutdoorDetail() {
   const outdoor = outdoors.find(o => o.id === id);
   const isSuperAdmin = profile?.role === 'super_admin';
 
-  const handleOpenLocation = (e: MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = toGoogleMapsUrl(outdoor?.location);
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
   const handleToggleStatus = async () => {
     if (!outdoor) return;
     setIsTogglingStatus(true);
@@ -195,16 +187,17 @@ export default function OutdoorDetail() {
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
-                    <a 
-                      href={toGoogleMapsUrl(outdoor.location) || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={handleOpenLocation}
-                      className="flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const url = toGoogleMapsUrl(outdoor.location);
+                        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer text-left"
                     >
                       Ver no Google Maps
                       <ExternalLink className="h-3 w-3" />
-                    </a>
+                    </button>
                   </div>
                 </div>
                 

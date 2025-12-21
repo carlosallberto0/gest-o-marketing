@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
@@ -39,14 +39,6 @@ export default function Outdoors() {
   const { data: outdoors = [], isLoading } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
 
-  const openLocation = (e: MouseEvent<HTMLAnchorElement>, location?: string | null) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = toGoogleMapsUrl(location);
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
 
   const filteredOutdoors = outdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,17 +168,18 @@ export default function Outdoors() {
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  <a 
-                    href={toGoogleMapsUrl(outdoor.location) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => openLocation(e, outdoor.location)}
-                    className="flex items-center gap-2 text-primary hover:underline cursor-pointer"
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const url = toGoogleMapsUrl(outdoor.location);
+                      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="flex items-center gap-2 text-primary hover:underline cursor-pointer text-left"
                   >
                     <MapPin className="h-4 w-4" />
                     <span>Ver no Google Maps</span>
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Maximize className="h-4 w-4" />
                     <span>{outdoor.width}m x {outdoor.height}m ({outdoor.area}m²)</span>

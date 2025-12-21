@@ -209,17 +209,19 @@ export default function MediaDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <a 
-                    href={outdoor.location}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1 text-sm text-primary hover:underline mb-2"
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const url = outdoor.location?.startsWith('http') ? outdoor.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outdoor.location || '')}`;
+                      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="flex items-center gap-1 text-sm text-primary hover:underline mb-2 text-left"
                   >
                     <MapPin className="h-3 w-3" />
                     <span>Ver no Google Maps</span>
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>{outdoor.width}m x {outdoor.height}m</span>
                     <span>{outdoor.area}m²</span>
