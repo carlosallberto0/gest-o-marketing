@@ -1100,6 +1100,7 @@ export type Database = {
           pode_aprovar_os: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           status: string
+          temp_password: string | null
           updated_at: string
         }
         Insert: {
@@ -1113,6 +1114,7 @@ export type Database = {
           pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
+          temp_password?: string | null
           updated_at?: string
         }
         Update: {
@@ -1126,6 +1128,7 @@ export type Database = {
           pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
+          temp_password?: string | null
           updated_at?: string
         }
         Relationships: [

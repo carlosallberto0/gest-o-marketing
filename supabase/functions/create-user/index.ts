@@ -88,14 +88,14 @@ serve(async (req) => {
 
     console.log('Auth user created:', authData.user?.id);
 
-    // The profile should be created automatically by the trigger,
-    // but let's update it with additional info
+    // Update profile with additional info including temp_password
     if (authData.user) {
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({
           cpf: cpf || null,
           pdv_id: pdvId && pdvId !== 'none' ? pdvId : null,
+          temp_password: tempPassword,
         })
         .eq('id', authData.user.id);
 

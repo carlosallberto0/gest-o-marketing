@@ -15,6 +15,7 @@ export interface Profile {
   pdv_name?: string | null;
   status: string;
   pode_aprovar_os?: boolean;
+  temp_password: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +45,7 @@ export function useProfiles() {
         pdv_name: profile.pdvs?.name || null,
         status: profile.status,
         pode_aprovar_os: profile.pode_aprovar_os ?? false,
+        temp_password: profile.temp_password || null,
         created_at: profile.created_at,
         updated_at: profile.updated_at,
       }));
@@ -166,6 +168,40 @@ export function useReactivateProfile() {
     onError: (error) => {
       console.error('Error reactivating profile:', error);
       toast.error('Erro ao reativar usuário');
+    },
+  });
+}
+
+export function useResetPassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: { userId },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Erro ao resetar senha');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao resetar senha');
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast.success('Senha resetada com sucesso!', {
+        description: `Nova senha: ${data.newPassword}`,
+        duration: 10000,
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error resetting password:', error);
+      toast.error(error.message || 'Erro ao resetar senha');
     },
   });
 }
