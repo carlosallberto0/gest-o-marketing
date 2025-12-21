@@ -5,22 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import {
   useMaintenanceRequests,
   usePendingMaintenanceRequests,
-  useCreateMaintenanceRequest,
   useApproveMaintenanceRequest,
   useRejectMaintenanceRequest,
   MaintenanceRequest,
 } from '@/hooks/useMaintenanceRequests';
+import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Plus, 
@@ -35,8 +33,8 @@ import {
   Calendar,
   AlertTriangle,
   Trash2,
-  Edit,
-  Filter
+  Filter,
+  Image
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,12 +52,11 @@ export default function MaintenanceRequests() {
   const { data: allRequests, isLoading, refetch } = useMaintenanceRequests();
   const { data: pendingRequests } = usePendingMaintenanceRequests();
   const { data: outdoors } = useOutdoors();
-  const createRequest = useCreateMaintenanceRequest();
   const approveRequest = useApproveMaintenanceRequest();
   const rejectRequest = useRejectMaintenanceRequest();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -68,12 +65,6 @@ export default function MaintenanceRequests() {
   // Advanced filters
   const [dateFilter, setDateFilter] = useState<'all' | '7days' | '30days' | '90days'>('all');
   const [outdoorFilter, setOutdoorFilter] = useState('all');
-
-  const [formData, setFormData] = useState({
-    outdoor_id: '',
-    reason: '',
-    observations: '',
-  });
 
   const isSuperAdmin = profile?.role === 'super_admin';
   const isDirector = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director';
@@ -119,16 +110,6 @@ export default function MaintenanceRequests() {
       
       return matchesSearch && matchesStatus && matchesDate && matchesOutdoor;
     });
-  };
-
-  const handleCreate = async () => {
-    await createRequest.mutateAsync({
-      outdoor_id: formData.outdoor_id,
-      reason: formData.reason,
-      observations: formData.observations || undefined,
-    });
-    setIsCreateDialogOpen(false);
-    setFormData({ outdoor_id: '', reason: '', observations: '' });
   };
 
   const handleApprove = async (id: string) => {
@@ -269,70 +250,20 @@ export default function MaintenanceRequests() {
             <h1 className="text-2xl font-bold text-foreground">Solicitações de Manutenção</h1>
             <p className="text-muted-foreground">Gerencie as solicitações de manutenção de outdoors</p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Solicitação
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Nova Solicitação de Manutenção</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Outdoor *</Label>
-                  <Select 
-                    value={formData.outdoor_id} 
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, outdoor_id: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o outdoor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {outdoorsAvailableForMaintenance.map(outdoor => (
-                        <SelectItem key={outdoor.id} value={outdoor.id}>
-                          {outdoor.pdvName} – {outdoor.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Motivo da Manutenção *</Label>
-                  <Textarea
-                    value={formData.reason}
-                    onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                    placeholder="Descreva o motivo da solicitação..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Observações</Label>
-                  <Textarea
-                    value={formData.observations}
-                    onChange={(e) => setFormData(prev => ({ ...prev, observations: e.target.value }))}
-                    placeholder="Observações adicionais..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-                <Button 
-                  onClick={handleCreate} 
-                  disabled={createRequest.isPending || !formData.outdoor_id || !formData.reason}
-                >
-                  {createRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Criar Solicitação
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setIsReviewDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Revisão Mensal de Outdoor
+          </Button>
         </div>
+
+        {/* Monthly Review Dialog */}
+        <MonthlyOutdoorReviewDialog 
+          open={isReviewDialogOpen} 
+          onOpenChange={(open) => {
+            setIsReviewDialogOpen(open);
+            if (!open) refetch();
+          }} 
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -512,7 +443,7 @@ export default function MaintenanceRequests() {
 
         {/* Detail Dialog */}
         <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Detalhes da Solicitação</DialogTitle>
             </DialogHeader>
@@ -544,6 +475,50 @@ export default function MaintenanceRequests() {
                     </p>
                   </div>
                 </div>
+
+                {/* Comparativo de Fotos */}
+                {(selectedRequest.outdoor?.photo_url || selectedRequest.current_photo_url) && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      Comparativo de Fotos
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Foto de Cadastro</p>
+                        <div className="aspect-video bg-muted rounded-lg overflow-hidden border">
+                          {selectedRequest.outdoor?.photo_url ? (
+                            <img 
+                              src={selectedRequest.outdoor.photo_url} 
+                              alt="Foto de cadastro" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Foto da Avaliação</p>
+                        <div className="aspect-video bg-muted rounded-lg overflow-hidden border">
+                          {selectedRequest.current_photo_url ? (
+                            <img 
+                              src={selectedRequest.current_photo_url} 
+                              alt="Foto atual" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <p className="text-muted-foreground text-sm mb-1">Motivo</p>

@@ -10,6 +10,7 @@ export interface MaintenanceRequest {
   reason: string;
   observations: string | null;
   photos: string[];
+  current_photo_url: string | null;
   status: 'pending_review' | 'approved' | 'rejected' | 'consolidated';
   approved_by: string | null;
   approved_at: string | null;
@@ -107,6 +108,7 @@ export interface CreateMaintenanceRequestInput {
   reason: string;
   observations?: string;
   photos?: string[];
+  current_photo_url?: string;
 }
 
 export function useCreateMaintenanceRequest() {

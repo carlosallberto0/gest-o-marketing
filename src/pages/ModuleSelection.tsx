@@ -40,10 +40,10 @@ export default function ModuleSelection() {
     },
   ];
 
-  // Filter modules - Mapa is available for admin/super_admin/director, others filter by hasModule
+  // Filter modules - Mapa is available only for super_admin, others filter by hasModule
   const availableModules = modules.filter(m => {
     if (m.id === 'mapa') {
-      return profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'director' || profile?.role === 'manager';
+      return profile?.role === 'super_admin';
     }
     return hasModule(m.id as 'media' | 'merchandising');
   });

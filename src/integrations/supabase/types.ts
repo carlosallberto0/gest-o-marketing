@@ -491,6 +491,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          current_photo_url: string | null
           evaluation_id: string | null
           id: string
           observations: string | null
@@ -506,6 +507,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          current_photo_url?: string | null
           evaluation_id?: string | null
           id?: string
           observations?: string | null
@@ -521,6 +523,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          current_photo_url?: string | null
           evaluation_id?: string | null
           id?: string
           observations?: string | null
@@ -916,6 +919,54 @@ export type Database = {
             columns: ["outdoor_id"]
             isOneToOne: false
             referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outdoor_monthly_reviews: {
+        Row: {
+          created_at: string
+          current_photo_url: string | null
+          id: string
+          observations: string | null
+          outdoor_id: string
+          review_month: string
+          reviewer_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          current_photo_url?: string | null
+          id?: string
+          observations?: string | null
+          outdoor_id: string
+          review_month: string
+          reviewer_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          current_photo_url?: string | null
+          id?: string
+          observations?: string | null
+          outdoor_id?: string
+          review_month?: string
+          reviewer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_monthly_reviews_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outdoor_monthly_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
