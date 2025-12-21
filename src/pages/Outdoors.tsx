@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
+import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,15 @@ export default function Outdoors() {
 
   const { data: outdoors = [], isLoading } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
+
+  const openLocation = (e: MouseEvent<HTMLAnchorElement>, location?: string | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = toGoogleMapsUrl(location);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const filteredOutdoors = outdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,11 +177,11 @@ export default function Outdoors() {
                 
                 <div className="space-y-2 text-sm">
                   <a 
-                    href={outdoor.location}
+                    href={toGoogleMapsUrl(outdoor.location) || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-2 text-primary hover:underline"
+                    onClick={(e) => openLocation(e, outdoor.location)}
+                    className="flex items-center gap-2 text-primary hover:underline cursor-pointer"
                   >
                     <MapPin className="h-4 w-4" />
                     <span>Ver no Google Maps</span>

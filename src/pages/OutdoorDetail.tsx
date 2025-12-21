@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
+import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,14 @@ export default function OutdoorDetail() {
   const outdoor = outdoors.find(o => o.id === id);
   const isSuperAdmin = profile?.role === 'super_admin';
 
+  const handleOpenLocation = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = toGoogleMapsUrl(outdoor?.location);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
   const handleToggleStatus = async () => {
     if (!outdoor) return;
     setIsTogglingStatus(true);
@@ -187,10 +196,11 @@ export default function OutdoorDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
                     <a 
-                      href={outdoor.location}
+                      href={toGoogleMapsUrl(outdoor.location) || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-primary hover:underline font-medium"
+                      onClick={handleOpenLocation}
+                      className="flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
                     >
                       Ver no Google Maps
                       <ExternalLink className="h-3 w-3" />
