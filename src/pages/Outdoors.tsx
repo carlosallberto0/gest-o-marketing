@@ -14,7 +14,8 @@ import {
   Maximize,
   Filter,
   Eye,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -165,10 +166,17 @@ export default function Outdoors() {
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <a 
+                    href={outdoor.location}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-2 text-primary hover:underline"
+                  >
                     <MapPin className="h-4 w-4" />
-                    <span>{outdoor.location}</span>
-                  </div>
+                    <span>Ver no Google Maps</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Maximize className="h-4 w-4" />
                     <span>{outdoor.width}m x {outdoor.height}m ({outdoor.area}m²)</span>
