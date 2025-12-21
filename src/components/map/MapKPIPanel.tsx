@@ -1,5 +1,5 @@
 import { MapKPIs } from '@/hooks/useStrategicMapData';
-import { MapPin, Radio, AlertTriangle, Clock, FileWarning } from 'lucide-react';
+import { MapPin, Radio, AlertTriangle, Clock, FileWarning, Wrench, ClipboardCheck } from 'lucide-react';
 
 interface MapKPIPanelProps {
   kpis: MapKPIs;
@@ -51,6 +51,24 @@ export function MapKPIPanel({ kpis }: MapKPIPanelProps) {
           </div>
         </div>
 
+        {/* Manutenção */}
+        <div className="space-y-1 pt-2 border-t border-border">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Wrench className="h-3 w-3" />
+            <span>Manutenção</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-orange-500/10 text-orange-600 px-2 py-1 rounded text-center">
+              <div className="font-bold">{kpis.pendingMaintenanceRequests}</div>
+              <div className="text-[10px]">Pendentes</div>
+            </div>
+            <div className="bg-purple-500/10 text-purple-600 px-2 py-1 rounded text-center">
+              <div className="font-bold">{kpis.reviewedThisMonth}</div>
+              <div className="text-[10px]">Avaliados (mês)</div>
+            </div>
+          </div>
+        </div>
+
         {/* Alertas */}
         <div className="space-y-1 pt-2 border-t border-border">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -72,6 +90,15 @@ export function MapKPIPanel({ kpis }: MapKPIPanelProps) {
               </div>
               <span className="font-bold text-red-600">{kpis.pdvsWithPendingEvaluation}</span>
             </div>
+            {kpis.needsMaintenanceThisMonth > 0 && (
+              <div className="flex items-center justify-between text-xs bg-orange-500/10 px-2 py-1.5 rounded">
+                <div className="flex items-center gap-1.5 text-orange-600">
+                  <Wrench className="h-3 w-3" />
+                  <span>Precisam manutenção</span>
+                </div>
+                <span className="font-bold text-orange-600">{kpis.needsMaintenanceThisMonth}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
