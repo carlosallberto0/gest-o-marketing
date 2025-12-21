@@ -33,6 +33,14 @@ export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps
     onNavigate(`/outdoor/${outdoor.id}`);
   };
 
+  const handleOpenLocation = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outdoor.location) {
+      window.open(outdoor.location, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const hasContractAlert = outdoor.daysUntilContractEnd !== null && outdoor.daysUntilContractEnd <= 30 && outdoor.daysUntilContractEnd > 0;
   const hasInactiveAlert = outdoor.daysSinceEvaluation !== null && outdoor.daysSinceEvaluation > 15;
 
@@ -61,7 +69,8 @@ export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps
           href={outdoor.location}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 text-primary hover:underline"
+          onClick={handleOpenLocation}
+          className="flex items-center gap-2 text-primary hover:underline cursor-pointer"
         >
           <MapPin className="h-4 w-4" />
           <span>Ver no Google Maps</span>
