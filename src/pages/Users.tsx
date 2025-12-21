@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useProfiles, useDeleteProfile, useReactivateProfile, Profile } from '@/hooks/useProfiles';
+import { useProfiles, useDeleteProfile, useReactivateProfile, usePermanentDeleteProfile, Profile } from '@/hooks/useProfiles';
 import { getRoleLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,8 +96,9 @@ export default function Users() {
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useProfiles();
-  const { mutate: deleteProfile, isPending: isDeleting } = useDeleteProfile();
+  const { mutate: deactivateProfile } = useDeleteProfile();
   const { mutate: reactivateProfile, isPending: isReactivating } = useReactivateProfile();
+  const { mutate: permanentDeleteProfile, isPending: isPermanentDeleting } = usePermanentDeleteProfile();
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,9 +124,9 @@ export default function Users() {
     { value: 'supplier', label: 'Fornecedor' },
   ];
 
-  const handleDeleteUser = () => {
+  const handlePermanentDelete = () => {
     if (deleteUserId) {
-      deleteProfile(deleteUserId);
+      permanentDeleteProfile(deleteUserId);
       setDeleteUserId(null);
     }
   };
@@ -304,7 +305,7 @@ export default function Users() {
                         ) : (
                           <DropdownMenuItem
                             className="text-warning"
-                            onClick={() => deleteProfile(user.id)}
+                            onClick={() => deactivateProfile(user.id)}
                           >
                             <UserX className="h-4 w-4 mr-2" />
                             Desativar
@@ -349,11 +350,11 @@ export default function Users() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={handleDeleteUser}
-              disabled={isDeleting}
+              onClick={handlePermanentDelete}
+              disabled={isPermanentDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isPermanentDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

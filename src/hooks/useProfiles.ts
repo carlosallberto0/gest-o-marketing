@@ -98,7 +98,6 @@ export function useDeleteProfile() {
   return useMutation({
     mutationFn: async (profileId: string) => {
       // Update the profile status to inactive
-      // Full user deletion from auth.users requires admin privileges
       const { error } = await supabase
         .from('profiles')
         .update({ status: 'inactive' })
@@ -113,6 +112,37 @@ export function useDeleteProfile() {
     onError: (error) => {
       console.error('Error deleting profile:', error);
       toast.error('Erro ao desativar usuário');
+    },
+  });
+}
+
+export function usePermanentDeleteProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: profileId },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Erro ao excluir usuário');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao excluir usuário');
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast.success('Usuário excluído permanentemente!');
+    },
+    onError: (error: Error) => {
+      console.error('Error permanently deleting profile:', error);
+      toast.error(error.message || 'Erro ao excluir usuário permanentemente');
     },
   });
 }
