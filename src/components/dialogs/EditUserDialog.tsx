@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePDVs } from '@/hooks/usePDVs';
-import { useUpdateProfile, Profile, UserRole } from '@/hooks/useProfiles';
+import { useUpdateProfile, Profile, UserRole, useResetPassword } from '@/hooks/useProfiles';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -52,7 +53,8 @@ interface EditUserDialogProps {
 export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps) {
   const { data: pdvs = [] } = usePDVs();
   const updateProfile = useUpdateProfile();
-
+  const resetPassword = useResetPassword();
+  const [showPassword, setShowPassword] = useState(false);
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -167,6 +169,61 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                 </FormItem>
               )}
             />
+
+            {/* Seção de Senha Temporária */}
+            {user?.temp_password && (
+              <div className="rounded-md border p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                <FormLabel className="text-amber-700 dark:text-amber-400 mb-2 block">
+                  Senha Temporária
+                </FormLabel>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={showPassword ? user.temp_password : '••••••••••••'} 
+                    readOnly 
+                    className="font-mono bg-background"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(user.temp_password!);
+                      toast.success('Senha copiada!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Botão Resetar Senha */}
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                if (user) {
+                  resetPassword.mutate(user.id);
+                }
+              }}
+              disabled={resetPassword.isPending}
+            >
+              {resetPassword.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Resetar Senha
+            </Button>
 
             <FormField
               control={form.control}
