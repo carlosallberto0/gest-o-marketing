@@ -16,6 +16,7 @@ export interface OutdoorMonthlyReview {
   outdoor?: {
     id: string;
     code: string;
+    location: string;
     photo_url: string | null;
     pdv?: {
       id: string;
@@ -51,6 +52,7 @@ export function useCurrentMonthReviews() {
           outdoor:outdoors(
             id,
             code,
+            location,
             photo_url,
             pdv:pdvs(id, name, city, state)
           ),
@@ -77,6 +79,7 @@ export function useAllMonthlyReviews() {
           outdoor:outdoors(
             id,
             code,
+            location,
             photo_url,
             pdv:pdvs(id, name, city, state)
           ),

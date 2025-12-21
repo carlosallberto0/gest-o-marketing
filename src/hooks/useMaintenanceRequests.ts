@@ -32,6 +32,7 @@ export interface MaintenanceRequest {
     };
   };
   requester?: {
+    id: string;
     name: string;
     email: string;
   };
@@ -49,7 +50,7 @@ export function useMaintenanceRequests() {
         .select(`
           *,
           outdoor:outdoors(code, location, width, height, photo_url, pdv:pdvs(name, city, state)),
-          requester:profiles!maintenance_requests_requester_id_fkey(name, email),
+          requester:profiles!maintenance_requests_requester_id_fkey(id, name, email),
           approver:profiles!maintenance_requests_approved_by_fkey(name)
         `)
         .order('created_at', { ascending: false });
@@ -69,7 +70,7 @@ export function usePendingMaintenanceRequests() {
         .select(`
           *,
           outdoor:outdoors(code, location, width, height, photo_url, pdv:pdvs(name, city, state)),
-          requester:profiles!maintenance_requests_requester_id_fkey(name, email),
+          requester:profiles!maintenance_requests_requester_id_fkey(id, name, email),
           approver:profiles!maintenance_requests_approved_by_fkey(name)
         `)
         .eq('status', 'pending_review')
@@ -90,7 +91,7 @@ export function useApprovedMaintenanceRequests() {
         .select(`
           *,
           outdoor:outdoors(code, location, width, height, photo_url, pdv:pdvs(name, city, state)),
-          requester:profiles!maintenance_requests_requester_id_fkey(name, email),
+          requester:profiles!maintenance_requests_requester_id_fkey(id, name, email),
           approver:profiles!maintenance_requests_approved_by_fkey(name)
         `)
         .eq('status', 'approved')

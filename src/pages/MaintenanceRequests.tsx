@@ -63,7 +63,8 @@ export default function MaintenanceRequests() {
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Advanced filters
-  const [dateFilter, setDateFilter] = useState<'all' | '7days' | '30days' | '90days'>('all');
+  const [monthFilter, setMonthFilter] = useState('all');
+  const [requesterFilter, setRequesterFilter] = useState('all');
   const [outdoorFilter, setOutdoorFilter] = useState('all');
 
   const isSuperAdmin = profile?.role === 'super_admin';
@@ -84,6 +85,27 @@ export default function MaintenanceRequests() {
     return Array.from(outdoorMap.values());
   }, [allRequests]);
 
+  // Get unique months from requests for filter
+  const uniqueMonths = useMemo(() => {
+    const months = new Set<string>();
+    allRequests?.forEach(req => {
+      const month = format(new Date(req.created_at), 'yyyy-MM');
+      months.add(month);
+    });
+    return Array.from(months).sort().reverse();
+  }, [allRequests]);
+
+  // Get unique requesters from requests for filter
+  const uniqueRequesters = useMemo(() => {
+    const requesters = new Map<string, string>();
+    allRequests?.forEach(req => {
+      if (req.requester) {
+        requesters.set(req.requester.id, req.requester.name);
+      }
+    });
+    return Array.from(requesters.entries());
+  }, [allRequests]);
+
   const filterRequests = (requests: MaintenanceRequest[] | undefined, status?: string) => {
     if (!requests) return [];
     return requests.filter(req => {
@@ -96,19 +118,20 @@ export default function MaintenanceRequests() {
       // Status filter
       const matchesStatus = !status || req.status === status;
       
-      // Date filter
-      let matchesDate = true;
-      if (dateFilter !== 'all') {
-        const days = dateFilter === '7days' ? 7 : dateFilter === '30days' ? 30 : 90;
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - days);
-        matchesDate = new Date(req.created_at) >= cutoffDate;
+      // Month filter
+      let matchesMonth = true;
+      if (monthFilter !== 'all') {
+        const reqMonth = format(new Date(req.created_at), 'yyyy-MM');
+        matchesMonth = reqMonth === monthFilter;
       }
+      
+      // Requester filter
+      const matchesRequester = requesterFilter === 'all' || req.requester?.id === requesterFilter;
       
       // Outdoor filter
       const matchesOutdoor = outdoorFilter === 'all' || req.outdoor_id === outdoorFilter;
       
-      return matchesSearch && matchesStatus && matchesDate && matchesOutdoor;
+      return matchesSearch && matchesStatus && matchesMonth && matchesRequester && matchesOutdoor;
     });
   };
 
@@ -302,48 +325,63 @@ export default function MaintenanceRequests() {
         </div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por outdoor, PDV ou motivo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por outdoor, PDV ou motivo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-[180px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os meses</SelectItem>
+                {uniqueMonths.map(month => (
+                  <SelectItem key={month} value={month}>
+                    {format(new Date(month + '-01'), 'MMMM yyyy', { locale: ptBR })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={requesterFilter} onValueChange={setRequesterFilter}>
+              <SelectTrigger className="w-[200px]">
+                <User className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Solicitante" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os solicitantes</SelectItem>
+                {uniqueRequesters.map(([id, name]) => (
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={outdoorFilter} onValueChange={setOutdoorFilter}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Outdoor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os outdoors</SelectItem>
+                {uniqueOutdoors.map(outdoor => (
+                  <SelectItem key={outdoor.id} value={outdoor.id}>
+                    {outdoor.code} - {outdoor.pdvName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          {isSuperAdmin && (
-            <>
-              <Select value={dateFilter} onValueChange={(v: typeof dateFilter) => setDateFilter(v)}>
-                <SelectTrigger className="w-[150px]">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todo período</SelectItem>
-                  <SelectItem value="7days">Últimos 7 dias</SelectItem>
-                  <SelectItem value="30days">Últimos 30 dias</SelectItem>
-                  <SelectItem value="90days">Últimos 90 dias</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={outdoorFilter} onValueChange={setOutdoorFilter}>
-                <SelectTrigger className="w-[200px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Outdoor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os outdoors</SelectItem>
-                  {uniqueOutdoors.map(outdoor => (
-                    <SelectItem key={outdoor.id} value={outdoor.id}>
-                      {outdoor.code} - {outdoor.pdvName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
         </div>
 
         {/* Floating Action Bar for batch operations */}
