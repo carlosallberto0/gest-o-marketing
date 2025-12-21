@@ -34,7 +34,8 @@ import {
   ClipboardCheck,
   Edit,
   Power,
-  Trash2
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 
 export default function OutdoorDetail() {
@@ -185,7 +186,15 @@ export default function OutdoorDetail() {
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
-                    <p className="font-medium text-foreground">{outdoor.location}</p>
+                    <a 
+                      href={outdoor.location}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      Ver no Google Maps
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
                 </div>
                 

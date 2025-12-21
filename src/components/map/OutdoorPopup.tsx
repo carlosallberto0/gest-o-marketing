@@ -1,7 +1,7 @@
 import { MapOutdoor } from '@/hooks/useStrategicMapData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wrench, Radio, AlertTriangle, Calendar, Ruler } from 'lucide-react';
+import { Wrench, MapPin, AlertTriangle, Calendar, Ruler, ExternalLink } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -57,10 +57,16 @@ export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps
       )}
 
       <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2">
-          <Radio className="h-4 w-4 text-muted-foreground" />
-          <span className="text-foreground">{outdoor.location}</span>
-        </div>
+        <a 
+          href={outdoor.location}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-primary hover:underline"
+        >
+          <MapPin className="h-4 w-4" />
+          <span>Ver no Google Maps</span>
+          <ExternalLink className="h-3 w-3" />
+        </a>
 
         <div className="flex items-center gap-2">
           <Ruler className="h-4 w-4 text-muted-foreground" />
