@@ -65,94 +65,40 @@ const clusterOptions = {
   maxZoom: 14,
 };
 
-// Design system colors converted to HEX for SVG use
-const MARKER_COLORS = {
-  primary: '#5b73e8',      // hsl(230, 76%, 63%) - Em dia
-  success: '#34c38f',      // hsl(158, 58%, 49%) - Operacional  
-  warning: '#f1b44c',      // hsl(39, 85%, 62%) - Pendente
-  destructive: '#f46a6a',  // hsl(0, 86%, 69%) - Crítico/Não operacional
-};
-
-// Get marker size based on zoom level
-const getMarkerSize = (zoom: number): { width: number; height: number; iconScale: number } => {
-  if (zoom <= 8) return { width: 28, height: 34, iconScale: 0.7 };
-  if (zoom <= 11) return { width: 34, height: 42, iconScale: 0.85 };
-  if (zoom <= 14) return { width: 42, height: 52, iconScale: 1 };
-  return { width: 50, height: 62, iconScale: 1.15 };
-};
-
-// Simple clean marker icons - circle with icon
+// Simple circle marker - Mapbox style
 const getMarkerIcon = (
   type: 'posto' | 'conveniencia' | 'both' | 'outdoor', 
   status?: string,
   zoom: number = 12
 ) => {
   const baseUrl = 'data:image/svg+xml;charset=UTF-8,';
-  const size = getMarkerSize(zoom);
   
-  // Determine color based on status
+  // Responsive size based on zoom (small like Mapbox)
+  const size = zoom <= 10 ? 16 : zoom <= 13 ? 20 : 24;
+  const strokeWidth = 2;
+  const r = size / 2;
+  
+  // Determine color based on status - original Mapbox colors
   const getColor = () => {
     if (type === 'outdoor') {
-      if (status === 'operational') return MARKER_COLORS.success;
-      if (status === 'non_operational') return MARKER_COLORS.destructive;
-      return MARKER_COLORS.warning;
+      if (status === 'operational') return '#3b82f6';     // Blue
+      if (status === 'non_operational') return '#ef4444'; // Red
+      return '#f59e0b';                                    // Yellow/amber
     }
     // PDV status
-    if (status === 'critical') return MARKER_COLORS.destructive;
-    if (status === 'pending') return MARKER_COLORS.warning;
-    return MARKER_COLORS.primary;
+    if (status === 'critical') return '#ef4444';  // Red
+    if (status === 'pending') return '#f59e0b';   // Yellow/amber
+    return '#10b981';                              // Green (ok)
   };
   
   const color = getColor();
-  const s = size.width; // Use width as the circle size
-  const r = s / 2;
-  const strokeW = Math.max(2, s * 0.08);
-  const iconSize = s * 0.5;
-  const iconOffset = (s - iconSize) / 2;
   
-  if (type === 'outdoor') {
-    // Flag icon - simple Lucide style
-    return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
-        <g transform="translate(${iconOffset}, ${iconOffset})" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 ${iconSize * 0.625}s1-${iconSize * 0.0417} 4-${iconSize * 0.0417} 5 ${iconSize * 0.0833} 8 ${iconSize * 0.0833} 4-${iconSize * 0.0417} 4-${iconSize * 0.0417}V${iconSize * 0.125}s-1 ${iconSize * 0.0417}-4 ${iconSize * 0.0417}-5-${iconSize * 0.0833}-8-${iconSize * 0.0833}-4 ${iconSize * 0.0417}-4 ${iconSize * 0.0417}z" transform="scale(${iconSize / 24})"/>
-          <line x1="${iconSize * 0.167}" y1="${iconSize}" x2="${iconSize * 0.167}" y2="${iconSize * 0.625}" transform="scale(1)"/>
-        </g>
-      </svg>
-    `);
-  }
-  
-  // PDV markers  
-  const isPosto = type === 'posto' || type === 'both';
-  
-  if (isPosto) {
-    // Fuel pump icon - simple Lucide style
-    return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
-        <g transform="translate(${iconOffset + iconSize * 0.08}, ${iconOffset + iconSize * 0.04})" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="3" width="${iconSize * 0.45}" height="${iconSize * 0.7}" rx="1" transform="scale(${iconSize / 24})"/>
-          <path d="M3 ${iconSize * 0.33}h${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
-          <path d="M3 ${iconSize * 0.5}h${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
-          <path d="M${iconSize * 0.54} ${iconSize * 0.46}h${iconSize * 0.125}a${iconSize * 0.08} ${iconSize * 0.08} 0 0 1 ${iconSize * 0.08} ${iconSize * 0.08}v${iconSize * 0.17}" transform="scale(${iconSize / 24})"/>
-        </g>
-      </svg>
-    `);
-  } else {
-    // Store/convenience icon - simple Lucide style
-    return baseUrl + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-        <circle cx="${r}" cy="${r}" r="${r - strokeW/2}" fill="${color}" stroke="white" stroke-width="${strokeW}"/>
-        <g transform="translate(${iconOffset}, ${iconOffset})" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l${iconSize * 0.375}-${iconSize * 0.25}h${iconSize * 0.5}l${iconSize * 0.375} ${iconSize * 0.25}" transform="scale(${iconSize / 24})"/>
-          <rect x="${iconSize * 0.167}" y="${iconSize * 0.417}" width="${iconSize * 0.667}" height="${iconSize * 0.458}" rx="0" transform="scale(${iconSize / 24})"/>
-          <path d="M${iconSize * 0.375} ${iconSize * 0.875}v-${iconSize * 0.167}" transform="scale(${iconSize / 24})"/>
-          <path d="M${iconSize * 0.625} ${iconSize * 0.875}v-${iconSize * 0.167}" transform="scale(${iconSize / 24})"/>
-        </g>
-      </svg>
-    `);
-  }
+  // Simple colored circle SVG (identical to Mapbox style)
+  return baseUrl + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${r}" cy="${r}" r="${r - strokeWidth/2}" fill="${color}" stroke="white" stroke-width="${strokeWidth}"/>
+    </svg>
+  `);
 };
 
 function StrategicMapContent() {
@@ -509,14 +455,11 @@ function StrategicMapContent() {
                       key={pdv.id}
                       position={{ lat: pdv.lat!, lng: pdv.lng! }}
                       clusterer={clusterer}
-                      icon={(() => {
-                        const size = getMarkerSize(currentZoom);
-                        return {
-                          url: getMarkerIcon(pdv.type, pdv.evaluationStatus, currentZoom),
-                          scaledSize: new google.maps.Size(size.width, size.height),
-                          anchor: new google.maps.Point(size.width / 2, size.height),
-                        };
-                      })()}
+                      icon={{
+                        url: getMarkerIcon(pdv.type, pdv.evaluationStatus, currentZoom),
+                        scaledSize: new google.maps.Size(20, 20),
+                        anchor: new google.maps.Point(10, 10),
+                      }}
                       draggable={adminMode && isSuperAdmin}
                       onClick={() => {
                         setSelectedOutdoor(null);
@@ -551,14 +494,11 @@ function StrategicMapContent() {
             <Marker
               key={outdoor.id}
               position={{ lat: outdoor.lat!, lng: outdoor.lng! }}
-              icon={(() => {
-                const size = getMarkerSize(currentZoom);
-                return {
-                  url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
-                  scaledSize: new google.maps.Size(size.width, size.height),
-                  anchor: new google.maps.Point(size.width / 2, size.height),
-                };
-              })()}
+              icon={{
+                url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
+                scaledSize: new google.maps.Size(20, 20),
+                anchor: new google.maps.Point(10, 10),
+              }}
               onClick={() => {
                 setSelectedPDV(null);
                 setSelectedOutdoor(outdoor);
