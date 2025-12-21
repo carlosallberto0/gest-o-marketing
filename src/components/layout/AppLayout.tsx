@@ -119,6 +119,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin', 'director'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
     // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },

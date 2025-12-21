@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+interface NotificationData {
+  url?: string;
+}
+
 export function usePushNotifications() {
   const { user } = useAuth();
   const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -41,7 +45,7 @@ export function usePushNotifications() {
     }
   }, [isSupported]);
 
-  const showNotification = useCallback((title: string, options?: NotificationOptions) => {
+  const showNotification = useCallback((title: string, options?: NotificationOptions & { data?: NotificationData }) => {
     if (permission !== 'granted') return;
 
     try {
@@ -53,6 +57,10 @@ export function usePushNotifications() {
 
       notification.onclick = () => {
         window.focus();
+        // Navigate to the action URL if provided
+        if (options?.data?.url) {
+          window.location.href = options.data.url;
+        }
         notification.close();
       };
 
@@ -67,7 +75,8 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!user || permission !== 'granted') return;
 
-    const channel = supabase
+    // Subscribe to alerts table
+    const alertsChannel = supabase
       .channel('alerts-notifications')
       .on(
         'postgres_changes',
@@ -75,7 +84,7 @@ export function usePushNotifications() {
           event: 'INSERT',
           schema: 'public',
           table: 'alerts',
-          filter: user ? `user_id=eq.${user.id}` : undefined,
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           const alert = payload.new as any;
@@ -87,8 +96,8 @@ export function usePushNotifications() {
       )
       .subscribe();
 
-    // Also subscribe to global alerts (user_id is null)
-    const globalChannel = supabase
+    // Subscribe to global alerts (user_id is null)
+    const globalAlertsChannel = supabase
       .channel('alerts-global-notifications')
       .on(
         'postgres_changes',
@@ -108,9 +117,32 @@ export function usePushNotifications() {
       )
       .subscribe();
 
+    // Subscribe to notificacoes_sistema table (system notifications)
+    const notificacoesChannel = supabase
+      .channel('notificacoes-push')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notificacoes_sistema',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const notificacao = payload.new as any;
+          showNotification(notificacao.titulo, {
+            body: notificacao.mensagem,
+            tag: notificacao.id,
+            data: { url: notificacao.url_acao },
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
-      supabase.removeChannel(globalChannel);
+      supabase.removeChannel(alertsChannel);
+      supabase.removeChannel(globalAlertsChannel);
+      supabase.removeChannel(notificacoesChannel);
     };
   }, [user, permission, showNotification]);
 

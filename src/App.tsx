@@ -39,6 +39,7 @@ import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
 import StrategicMapGoogle from "./pages/StrategicMapGoogle";
+import OutdoorReviews from "./pages/OutdoorReviews";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -332,6 +333,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin']}>
             <GenerateServiceOrder />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/outdoor-reviews" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <OutdoorReviews />
           </RequireRole>
         </ProtectedRoute>
       } 
