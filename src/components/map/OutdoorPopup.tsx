@@ -67,17 +67,15 @@ export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps
       )}
 
       <div className="space-y-2 text-sm">
-        <a 
-          href={toGoogleMapsUrl(outdoor.location) || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button 
+          type="button"
           onClick={handleOpenLocation}
-          className="flex items-center gap-2 text-primary hover:underline cursor-pointer"
+          className="flex items-center gap-2 text-primary hover:underline cursor-pointer text-left"
         >
           <MapPin className="h-4 w-4" />
           <span>Ver no Google Maps</span>
           <ExternalLink className="h-3 w-3" />
-        </a>
+        </button>
 
         <div className="flex items-center gap-2">
           <Ruler className="h-4 w-4 text-muted-foreground" />
