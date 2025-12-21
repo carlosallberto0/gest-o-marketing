@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { notificarPorRole } from '@/hooks/useNotificacoes';
 
 export interface MaintenanceRequest {
   id: string;
@@ -132,9 +133,25 @@ export function useCreateMaintenanceRequest() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
       toast.success('Solicitação de manutenção criada!');
+      
+      // Notify super_admin about new maintenance request
+      try {
+        await notificarPorRole(
+          'super_admin',
+          'maintenance_request',
+          'media',
+          'Nova Solicitação de Manutenção',
+          `Gerente solicitou manutenção para outdoor. Motivo: ${variables.reason}`,
+          '/maintenance-requests',
+          data.id,
+          'maintenance_request'
+        );
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
     },
     onError: (error) => {
       console.error('Error creating maintenance request:', error);

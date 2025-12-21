@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, isBefore, parseISO } from 'date-fns';
+import { useMaintenanceStats } from '@/hooks/useMaintenanceStats';
 
 export interface MapPDV {
   id: string;
@@ -50,6 +51,9 @@ export interface MapKPIs {
   pendingEvaluationOutdoors: number;
   contractsExpiringSoon: number;
   outdoorsInactiveLong: number;
+  pendingMaintenanceRequests: number;
+  reviewedThisMonth: number;
+  needsMaintenanceThisMonth: number;
 }
 
 export function useMapboxToken() {
@@ -245,6 +249,7 @@ export function useMapOutdoors() {
 export function useMapKPIs() {
   const { data: pdvs } = useMapPDVs();
   const { data: outdoors } = useMapOutdoors();
+  const { data: maintenanceStats } = useMaintenanceStats();
 
   const kpis: MapKPIs = {
     totalPDVs: pdvs?.length || 0,
@@ -256,6 +261,9 @@ export function useMapKPIs() {
     pendingEvaluationOutdoors: outdoors?.filter(o => o.status === 'pending_evaluation').length || 0,
     contractsExpiringSoon: outdoors?.filter(o => o.daysUntilContractEnd !== null && o.daysUntilContractEnd <= 30 && o.daysUntilContractEnd > 0).length || 0,
     outdoorsInactiveLong: outdoors?.filter(o => o.daysSinceEvaluation !== null && o.daysSinceEvaluation > 15).length || 0,
+    pendingMaintenanceRequests: maintenanceStats?.pendingMaintenance || 0,
+    reviewedThisMonth: maintenanceStats?.reviewedThisMonth || 0,
+    needsMaintenanceThisMonth: maintenanceStats?.needsMaintenanceThisMonth || 0,
   };
 
   return kpis;

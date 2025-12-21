@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useOutdoors } from '@/hooks/useOutdoorData';
+import { useMonthlyReviewSummary } from '@/hooks/useOutdoorMonthlyReviews';
 import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,7 +15,9 @@ import {
   CheckCircle,
   Loader2,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  ClipboardCheck,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,11 +27,13 @@ import { Badge } from '@/components/ui/badge';
 export default function MediaDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
+  const { data: reviewSummary, isLoading: isLoadingReviews } = useMonthlyReviewSummary();
 
-  const isLoading = isLoadingStats || isLoadingOutdoors;
+  const isLoading = isLoadingStats || isLoadingOutdoors || isLoadingReviews;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -185,6 +190,45 @@ export default function MediaDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Monthly Review Summary - Only for super_admin */}
+        {isSuperAdmin && (
+          <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-foreground">Revisões Mensais</h3>
+                <p className="text-sm text-muted-foreground">Resumo das avaliações do mês atual</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/maintenance-requests')}>
+                Ver detalhes
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-muted/50 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <ClipboardCheck className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-2xl font-bold text-foreground">{reviewSummary?.total || 0}</p>
+                <p className="text-xs text-muted-foreground">Avaliados</p>
+              </div>
+              <div className="bg-success/10 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-2xl font-bold text-success">{reviewSummary?.approved || 0}</p>
+                <p className="text-xs text-muted-foreground">Aprovados</p>
+              </div>
+              <div className="bg-orange-500/10 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Wrench className="h-5 w-5 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">{reviewSummary?.needsMaintenance || 0}</p>
+                <p className="text-xs text-muted-foreground">Precisam Manutenção</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Outdoors */}
         <div>
