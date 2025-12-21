@@ -12,7 +12,9 @@ import {
   FileText,
   Truck,
   CheckCircle,
-  Loader2
+  Loader2,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -207,7 +209,17 @@ export default function MediaDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">{outdoor.location}</p>
+                  <a 
+                    href={outdoor.location}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 text-sm text-primary hover:underline mb-2"
+                  >
+                    <MapPin className="h-3 w-3" />
+                    <span>Ver no Google Maps</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>{outdoor.width}m x {outdoor.height}m</span>
                     <span>{outdoor.area}m²</span>
