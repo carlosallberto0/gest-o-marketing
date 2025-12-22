@@ -23,6 +23,8 @@ export interface MaintenancePackageItem {
   outdoor_id: string;
   evaluation_id: string | null;
   status: string;
+  data_revisao: string | null;
+  justificativa_diretoria: string | null;
   director_notes: string | null;
   created_at: string;
   outdoor?: {
@@ -199,13 +201,14 @@ export function useCreateMaintenancePackage() {
   });
 }
 
-// Approve/reject individual items
+// Approve/reject/hold individual items
 interface UpdateItemsInput {
   packageId: string;
   items: {
     itemId: string;
-    status: 'approved' | 'rejected';
+    status: 'approved' | 'rejected' | 'held';
     notes?: string;
+    reviewDate?: string;
   }[];
   packageNotes?: string;
 }
@@ -225,6 +228,8 @@ export function useUpdatePackageItems() {
           .update({
             status: item.status,
             director_notes: item.notes || null,
+            justificativa_diretoria: (item.status === 'rejected' || item.status === 'held') ? (item.notes || null) : null,
+            data_revisao: item.status === 'held' ? (item.reviewDate || null) : null,
           })
           .eq('id', item.itemId);
 
@@ -239,12 +244,15 @@ export function useUpdatePackageItems() {
 
       const allReviewed = allItems?.every(i => i.status !== 'pending');
       const hasApproved = allItems?.some(i => i.status === 'approved');
+      const hasHeld = allItems?.some(i => i.status === 'held');
       const allRejected = allItems?.every(i => i.status === 'rejected');
 
       let packageStatus = 'pending_director';
       if (allReviewed) {
         if (allRejected) {
           packageStatus = 'rejected';
+        } else if (hasHeld) {
+          packageStatus = 'partially_held'; // Notifies super admin for re-evaluation
         } else if (hasApproved) {
           packageStatus = 'approved';
         }
@@ -265,12 +273,18 @@ export function useUpdatePackageItems() {
 
       // Notify super_admin if all reviewed
       if (allReviewed) {
+        const statusLabel = 
+          packageStatus === 'approved' ? 'aprovado' : 
+          packageStatus === 'rejected' ? 'rejeitado' : 
+          packageStatus === 'partially_held' ? 'parcialmente segurado (aguardando reavaliação)' : 
+          'parcialmente aprovado';
+        
         await notificarPorRole(
           'super_admin',
           'aprovacao_manutencao',
           'media',
-          'Pacote de Manutenção Revisado',
-          `O pacote de manutenção foi ${packageStatus === 'approved' ? 'aprovado' : packageStatus === 'rejected' ? 'rejeitado' : 'parcialmente aprovado'} pela diretoria.`,
+          hasHeld ? 'Pacote de Manutenção Aguardando Reavaliação' : 'Pacote de Manutenção Revisado',
+          `O pacote de manutenção foi ${statusLabel} pela diretoria.${hasHeld ? ' Alguns itens foram segurados para reavaliação.' : ''}`,
           '/maintenance-requests',
           input.packageId,
           'maintenance_package'
@@ -287,7 +301,9 @@ export function useUpdatePackageItems() {
           ? 'Pacote aprovado com sucesso' 
           : data.packageStatus === 'rejected'
             ? 'Pacote rejeitado'
-            : 'Itens atualizados'
+            : data.packageStatus === 'partially_held'
+              ? 'Pacote com itens segurados - aguardando reavaliação'
+              : 'Itens atualizados'
       );
     },
     onError: (error: Error) => {
