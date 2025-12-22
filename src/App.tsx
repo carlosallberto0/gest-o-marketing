@@ -40,6 +40,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
 import StrategicMapGoogle from "./pages/StrategicMapGoogle";
 import OutdoorReviews from "./pages/OutdoorReviews";
+import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -69,6 +70,14 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route 
+      path="/pending-approval" 
+      element={
+        <ProtectedRoute>
+          <PendingApproval />
+        </ProtectedRoute>
+      } 
+    />
     <Route 
       path="/modules" 
       element={

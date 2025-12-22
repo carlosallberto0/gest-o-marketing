@@ -1,14 +1,22 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
-import { ClipboardCheck, Megaphone, Map, LogOut } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect } from 'react';
 
 export default function ModuleSelection() {
-  const { profile, hasModule, signOut } = useAuth();
+  const { profile, hasModule, signOut, loading } = useAuth();
   const { setActiveModule } = useModule();
   const navigate = useNavigate();
+
+  // Redirect pending users to pending approval page
+  useEffect(() => {
+    if (!loading && profile?.status === 'pending') {
+      navigate('/pending-approval');
+    }
+  }, [profile?.status, loading, navigate]);
 
   const modules = [
     {

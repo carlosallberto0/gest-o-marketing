@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Outdoor, OutdoorStatus } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OutdoorWithPDV {
   id: string;
@@ -25,16 +25,25 @@ interface OutdoorWithPDV {
 }
 
 export function useOutdoors() {
+  const { profile } = useAuth();
+
   return useQuery({
-    queryKey: ['outdoors'],
+    queryKey: ['outdoors', profile?.id, profile?.role, profile?.pdv_id],
     queryFn: async (): Promise<Outdoor[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('outdoors')
         .select(`
           *,
           pdvs(name)
         `)
         .order('code');
+
+      // If user is manager or collaborator with a PDV assigned, filter to only their PDV's outdoors
+      if (profile?.pdv_id && ['manager', 'collaborator'].includes(profile?.role || '')) {
+        query = query.eq('pdv_id', profile.pdv_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -57,6 +66,7 @@ export function useOutdoors() {
         validationRadiusMeters: out.validation_radius_meters || 50,
       }));
     },
+    enabled: !!profile,
   });
 }
 

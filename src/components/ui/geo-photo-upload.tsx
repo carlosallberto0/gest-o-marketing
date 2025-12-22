@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, Upload, MapPin, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Camera, X, Upload, MapPin, CheckCircle, AlertTriangle, Loader2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadPhoto } from '@/lib/storage';
 import { toast } from 'sonner';
@@ -49,10 +49,11 @@ export function GeoPhotoUpload({
   const [showGeolocationAlert, setShowGeolocationAlert] = useState(false);
   const [showGpsWarning, setShowGpsWarning] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const { getCurrentPosition } = useGeolocation();
 
-  const handleCaptureClick = async () => {
+  const getGpsPosition = async (): Promise<GeolocationPosition | null> => {
     setGpsStatus('getting');
     
     try {
@@ -63,25 +64,50 @@ export function GeoPhotoUpload({
       if (position.accuracy > 30) {
         setGpsStatus('ready');
         setShowGpsWarning(true);
-        return;
+        return null; // Will continue after warning is handled
       }
       
       setGpsStatus('ready');
-      fileInputRef.current?.click();
+      return position;
     } catch (error: any) {
       setGpsStatus('error');
       toast.error(error.message || 'Erro ao obter localização');
+      return null;
+    }
+  };
+
+  const handleCameraClick = async () => {
+    const position = await getGpsPosition();
+    if (position) {
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const handleGalleryClick = async () => {
+    const position = await getGpsPosition();
+    if (position) {
+      galleryInputRef.current?.click();
     }
   };
 
   const handleGpsRetry = async () => {
     setShowGpsWarning(false);
-    await handleCaptureClick();
+    // Re-trigger the flow
+    const position = await getGpsPosition();
+    if (position) {
+      // User needs to click again after retry
+      setGpsStatus('ready');
+    }
   };
 
-  const handleGpsContinue = () => {
+  const handleGpsContinueCamera = () => {
     setShowGpsWarning(false);
-    fileInputRef.current?.click();
+    cameraInputRef.current?.click();
+  };
+
+  const handleGpsContinueGallery = () => {
+    setShowGpsWarning(false);
+    galleryInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,8 +181,11 @@ export function GeoPhotoUpload({
       setGpsStatus('idle');
       setCurrentPosition(null);
       setPendingFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = '';
       }
     }
   };
@@ -166,11 +195,12 @@ export function GeoPhotoUpload({
     setPendingFile(null);
     setCurrentPosition(null);
     setGpsStatus('idle');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
     }
-    // Re-trigger capture flow
-    setTimeout(() => handleCaptureClick(), 100);
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = '';
+    }
   };
 
   const handleGeolocationContinue = async () => {
@@ -185,8 +215,11 @@ export function GeoPhotoUpload({
     setPendingFile(null);
     setCurrentPosition(null);
     setGpsStatus('idle');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+    }
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = '';
     }
   };
 
@@ -199,11 +232,20 @@ export function GeoPhotoUpload({
 
   return (
     <div className={cn("space-y-3", className)}>
+      {/* Hidden inputs for camera and gallery */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+        disabled={disabled}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         onChange={handleFileChange}
         className="hidden"
         disabled={disabled}
@@ -279,39 +321,46 @@ export function GeoPhotoUpload({
         </div>
       )}
 
-      {/* Add photo button */}
+      {/* Add photo buttons - separated camera and gallery */}
       {canAddMore && !disabled && (
-        <button
-          type="button"
-          onClick={handleCaptureClick}
-          disabled={isLoading || gpsStatus === 'getting'}
-          className={cn(
-            "w-full py-4 border-2 border-dashed border-border rounded-lg",
-            "flex flex-col items-center justify-center gap-2",
-            "text-muted-foreground hover:text-foreground hover:border-primary/50",
-            "transition-colors cursor-pointer",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : gpsStatus === 'getting' ? (
-            <>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCameraClick}
+            disabled={isLoading || gpsStatus === 'getting'}
+            className="h-auto py-4 flex-col gap-2"
+          >
+            {gpsStatus === 'getting' ? (
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm">Obtendo GPS...</span>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5" />
-                <MapPin className="h-4 w-4" />
-              </div>
-              <span className="text-sm">
-                Tirar foto com validação GPS ({value.length}/{maxPhotos})
-              </span>
-            </>
-          )}
-        </button>
+            ) : (
+              <Camera className="h-5 w-5" />
+            )}
+            <span className="text-xs">Tirar Foto</span>
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGalleryClick}
+            disabled={isLoading || gpsStatus === 'getting'}
+            className="h-auto py-4 flex-col gap-2"
+          >
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <ImageIcon className="h-5 w-5" />
+            )}
+            <span className="text-xs">Escolher do Rolo</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Photo counter */}
+      {canAddMore && !disabled && (
+        <p className="text-xs text-muted-foreground text-center">
+          {value.length}/{maxPhotos} fotos
+        </p>
       )}
 
       {/* Info about outdoor coordinates */}
@@ -342,7 +391,7 @@ export function GeoPhotoUpload({
         onOpenChange={setShowGpsWarning}
         accuracy={currentPosition?.accuracy || 0}
         onRetry={handleGpsRetry}
-        onContinue={handleGpsContinue}
+        onContinue={handleGpsContinueCamera}
       />
     </div>
   );

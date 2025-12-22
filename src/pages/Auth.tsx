@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Fuel, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Fuel, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
@@ -16,6 +17,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  role: z.string().min(1, 'Selecione um cargo'),
 });
 
 export default function Auth() {
@@ -27,6 +29,7 @@ export default function Auth() {
     name: '',
     email: '',
     password: '',
+    role: 'collaborator',
   });
 
   useEffect(() => {
@@ -82,6 +85,9 @@ export default function Auth() {
           return;
         }
 
+        // Determine modules based on role
+        const modules = formData.role === 'manager' ? ['media', 'merchandising'] : ['merchandising'];
+
         const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -89,8 +95,8 @@ export default function Auth() {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               name: formData.name,
-              role: 'collaborator',
-              modules: ['merchandising'],
+              role: formData.role,
+              modules: modules,
             },
           },
         });
@@ -158,21 +164,46 @@ export default function Auth() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Digite seu nome"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-10 h-10"
-                    required={!isLogin}
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Digite seu nome"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="pl-10 h-10"
+                      required={!isLogin}
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm font-medium">Qual o seu cargo?</Label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <Select 
+                      value={formData.role} 
+                      onValueChange={(value) => setFormData({ ...formData, role: value })}
+                    >
+                      <SelectTrigger className="pl-10 h-10">
+                        <SelectValue placeholder="Selecione seu cargo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="collaborator">Colaborador</SelectItem>
+                        <SelectItem value="manager">Gerente</SelectItem>
+                        <SelectItem value="director">Diretor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O administrador confirmará seu cargo após a aprovação
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">

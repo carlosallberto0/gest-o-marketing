@@ -28,6 +28,7 @@ export default function MediaDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const isSuperAdmin = profile?.role === 'super_admin';
+  const isManager = profile?.role === 'manager' || profile?.role === 'collaborator';
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
@@ -77,42 +78,44 @@ export default function MediaDashboard() {
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <ScoreCard 
-            title="Taxa Operacional" 
-            score={stats?.operationalRate || 0} 
-            subtitle={`${stats?.operationalOutdoors || 0}/${stats?.totalOutdoors || 0} outdoors`}
-            trend={-2}
-            icon={<CheckCircle className="h-5 w-5 text-white" />}
-          />
-          <ScoreCard 
-            title="Total Outdoors" 
-            score={stats?.totalOutdoors || 0} 
-            subtitle="Cadastrados"
-            icon={<Megaphone className="h-5 w-5 text-white" />}
-            className="[&>div>div:first-child>div:last-child]:hidden"
-          />
-          <ScoreCard 
-            title="Contratos" 
-            score={stats?.activeContracts || 0} 
-            subtitle="Ativos"
-            icon={<FileText className="h-5 w-5 text-white" />}
-            className="[&>div>div:first-child>div:last-child]:hidden"
-          />
-          <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-destructive">Pendentes</p>
-                <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
-                <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+        {/* Stats - Hidden for managers */}
+        {!isManager && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <ScoreCard 
+              title="Taxa Operacional" 
+              score={stats?.operationalRate || 0} 
+              subtitle={`${stats?.operationalOutdoors || 0}/${stats?.totalOutdoors || 0} outdoors`}
+              trend={-2}
+              icon={<CheckCircle className="h-5 w-5 text-white" />}
+            />
+            <ScoreCard 
+              title="Total Outdoors" 
+              score={stats?.totalOutdoors || 0} 
+              subtitle="Cadastrados"
+              icon={<Megaphone className="h-5 w-5 text-white" />}
+              className="[&>div>div:first-child>div:last-child]:hidden"
+            />
+            <ScoreCard 
+              title="Contratos" 
+              score={stats?.activeContracts || 0} 
+              subtitle="Ativos"
+              icon={<FileText className="h-5 w-5 text-white" />}
+              className="[&>div>div:first-child>div:last-child]:hidden"
+            />
+            <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-destructive">Pendentes</p>
+                  <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
+                  <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Status Overview */}
         <div className="grid lg:grid-cols-2 gap-6">
@@ -162,33 +165,35 @@ export default function MediaDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
-                <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
+          {/* Quick Actions - Hidden for managers */}
+          {!isManager && (
+            <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
+                  <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
+                  <Megaphone className="h-5 w-5" />
+                  <span className="text-xs">Ver Outdoors</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
+                  <FileText className="h-5 w-5" />
+                  <span className="text-xs">Contratos</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="text-xs">Nova Avaliação</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
+                  <Truck className="h-5 w-5" />
+                  <span className="text-xs">Ordens de Serviço</span>
+                </Button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
-                <Megaphone className="h-5 w-5" />
-                <span className="text-xs">Ver Outdoors</span>
-              </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
-                <FileText className="h-5 w-5" />
-                <span className="text-xs">Contratos</span>
-              </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
-                <CheckCircle className="h-5 w-5" />
-                <span className="text-xs">Nova Avaliação</span>
-              </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
-                <Truck className="h-5 w-5" />
-                <span className="text-xs">Ordens de Serviço</span>
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Monthly Review Summary - Only for super_admin */}
