@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Outdoor, OutdoorStatus } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { notificarPorRole } from '@/hooks/useNotificacoes';
 
 interface OutdoorWithPDV {
   id: string;
@@ -127,23 +128,50 @@ export function useCreateMediaEvaluation() {
         if (photoError) throw photoError;
       }
 
-      // Update outdoor status
-      const { error: outdoorError } = await supabase
-        .from('outdoors')
-        .update({
-          status: input.status,
-          non_operational_reason: input.status === 'non_operational' ? input.nonOperationalReason : null,
-          last_evaluation: new Date().toISOString(),
-        })
-        .eq('id', input.outdoorId);
+      // Update outdoor status using RPC (bypasses RLS for managers)
+      const { error: outdoorError } = await supabase.rpc('update_outdoor_after_evaluation', {
+        p_outdoor_id: input.outdoorId,
+        p_status: input.status,
+        p_non_operational_reason: input.nonOperationalReason || null,
+      });
 
       if (outdoorError) throw outdoorError;
+
+      // Send notification to super_admin and admin
+      const statusLabel = input.status === 'operational' ? 'Operacional' : 'Não Operacional';
+      try {
+        await notificarPorRole(
+          'super_admin',
+          'media_evaluation',
+          'media',
+          'Nova Avaliação de Outdoor',
+          `Outdoor avaliado como ${statusLabel}`,
+          `/outdoor/${input.outdoorId}`,
+          evaluation.id,
+          'media_evaluation'
+        );
+        await notificarPorRole(
+          'admin',
+          'media_evaluation',
+          'media',
+          'Nova Avaliação de Outdoor',
+          `Outdoor avaliado como ${statusLabel}`,
+          `/outdoor/${input.outdoorId}`,
+          evaluation.id,
+          'media_evaluation'
+        );
+      } catch (notifError) {
+        console.warn('Erro ao enviar notificação:', notifError);
+      }
 
       return evaluation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outdoors'] });
       queryClient.invalidateQueries({ queryKey: ['media-evaluations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['media-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['pdvs-with-stats'] });
     },
   });
 }
