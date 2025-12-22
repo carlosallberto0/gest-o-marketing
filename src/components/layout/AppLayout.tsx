@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertsPopover } from '@/components/alerts/AlertsPopover';
+
 import { NotificationsPopover } from '@/components/notifications/NotificationsPopover';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
@@ -225,7 +225,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Maximize2 className="h-5 w-5" />
           </Button>
           <NotificationsPopover />
-          <AlertsPopover />
           {/* User dropdown */}
           <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -257,7 +256,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center gap-1">
           <OfflineIndicator />
           <NotificationsPopover />
-          <AlertsPopover />
         </div>
       </header>
 
