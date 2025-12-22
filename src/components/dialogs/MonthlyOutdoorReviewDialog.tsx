@@ -33,9 +33,9 @@ export function MonthlyOutdoorReviewDialog({ open, onOpenChange }: MonthlyOutdoo
 
   const selectedOutdoor = outdoors?.find(o => o.id === selectedOutdoorId);
 
-  // Filter outdoors available for review (operational or non_operational)
+  // Filter outdoors available for review (all statuses)
   const availableOutdoors = outdoors?.filter(
-    o => o.status === 'operational' || o.status === 'non_operational'
+    o => o.status === 'operational' || o.status === 'non_operational' || o.status === 'pending_evaluation'
   ) || [];
 
   const resetForm = () => {

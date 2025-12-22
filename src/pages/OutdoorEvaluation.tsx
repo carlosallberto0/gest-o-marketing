@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { 
-  Megaphone, 
   MapPin, 
   Maximize,
   Calendar,
@@ -27,14 +26,37 @@ import {
   Clock,
   Ruler,
   Loader2,
-  AlertCircle,
   Building,
   ChevronRight,
-  Navigation
+  Navigation,
+  ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OutdoorStatus } from '@/types';
+
+// Helper para formatar localização
+const formatLocation = (location: string) => {
+  const isUrl = /^https?:\/\//.test(location) || /maps\.app\.goo\.gl/.test(location) || /goo\.gl/.test(location) || /google\.com\/maps/.test(location);
+  
+  if (isUrl) {
+    const url = location.startsWith('http') ? location : `https://${location}`;
+    return (
+      <a 
+        href={url} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-primary hover:underline flex items-center gap-1 truncate"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+        <span className="truncate">Ver no Mapa</span>
+      </a>
+    );
+  }
+  
+  return <span className="truncate">{location}</span>;
+};
 
 export default function OutdoorEvaluation() {
   const navigate = useNavigate();
@@ -205,22 +227,23 @@ export default function OutdoorEvaluation() {
                   className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
                   onClick={() => setSelectedOutdoor(out.id)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex gap-3 sm:gap-4">
                       {out.photoUrl && (
                         <img 
                           src={out.photoUrl} 
                           alt={out.code} 
-                          className="w-20 h-20 object-cover rounded-lg"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{out.code}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{out.code}</h3>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          {formatLocation(out.location)}
+                        </div>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {out.location}
-                        </p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Maximize className="h-3 w-3" /> {out.width}m x {out.height}m
+                          <Maximize className="h-3 w-3 flex-shrink-0" /> {out.width}m x {out.height}m
                         </p>
                         <Badge className={cn("mt-2", getStatusColor(out.status))}>
                           {getStatusLabel(out.status)}
@@ -256,21 +279,21 @@ export default function OutdoorEvaluation() {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm mt-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{outdoor.location}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mt-4">
+                <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
+                  {formatLocation(outdoor.location)}
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Maximize className="h-4 w-4" />
+                  <Maximize className="h-4 w-4 flex-shrink-0" />
                   <span>{outdoor.width}m x {outdoor.height}m</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Ruler className="h-4 w-4" />
+                  <Ruler className="h-4 w-4 flex-shrink-0" />
                   <span>{outdoor.area}m² de área</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="h-4 w-4 flex-shrink-0" />
                   <span>
                     {outdoor.lastEvaluation 
                       ? `Última: ${new Date(outdoor.lastEvaluation).toLocaleDateString('pt-BR')}`
