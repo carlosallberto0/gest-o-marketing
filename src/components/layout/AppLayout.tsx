@@ -51,6 +51,7 @@ const getRoleLabel = (role: string): string => {
     manager: 'Gerente',
     collaborator: 'Colaborador',
     supplier: 'Fornecedor',
+    coordenador_compras: 'Coordenador de Compras',
   };
   return labels[role] || role;
 };
@@ -62,7 +63,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [systemLogo, setSystemLogo] = useState<string | null>(null);
-  const [systemName, setSystemName] = useState('SR Off Trade');
+  const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load system settings

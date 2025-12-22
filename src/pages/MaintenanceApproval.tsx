@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   usePendingMaintenancePackages, 
@@ -27,8 +28,11 @@ import {
   Eye,
   ChevronRight,
   Wrench,
-  Building
+  Building,
+  PauseCircle
 } from 'lucide-react';
+
+type ItemStatus = 'approved' | 'rejected' | 'held' | null;
 
 export default function MaintenanceApproval() {
   const { user } = useAuth();
@@ -36,8 +40,9 @@ export default function MaintenanceApproval() {
   const updateItems = useUpdatePackageItems();
   
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Record<string, 'approved' | 'rejected' | null>>({});
+  const [selectedItems, setSelectedItems] = useState<Record<string, ItemStatus>>({});
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
+  const [itemReviewDates, setItemReviewDates] = useState<Record<string, string>>({});
   const [packageNotes, setPackageNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -47,6 +52,7 @@ export default function MaintenanceApproval() {
     setSelectedPackageId(packageId);
     setSelectedItems({});
     setItemNotes({});
+    setItemReviewDates({});
     setPackageNotes('');
   };
 
@@ -54,28 +60,36 @@ export default function MaintenanceApproval() {
     setSelectedPackageId(null);
     setSelectedItems({});
     setItemNotes({});
+    setItemReviewDates({});
     setPackageNotes('');
   };
 
-  const handleToggleItem = (itemId: string, status: 'approved' | 'rejected') => {
+  const handleToggleItem = (itemId: string, status: 'approved' | 'rejected' | 'held') => {
     setSelectedItems(prev => ({
       ...prev,
       [itemId]: prev[itemId] === status ? null : status,
     }));
+    // Clear notes and date when changing status
+    if (status === 'approved') {
+      setItemNotes(prev => ({ ...prev, [itemId]: '' }));
+      setItemReviewDates(prev => ({ ...prev, [itemId]: '' }));
+    }
   };
 
   const handleApproveAll = () => {
     if (!packageDetails?.items) return;
-    const allApproved: Record<string, 'approved'> = {};
+    const allApproved: Record<string, ItemStatus> = {};
     packageDetails.items.forEach(item => {
       allApproved[item.id] = 'approved';
     });
     setSelectedItems(allApproved);
+    setItemNotes({});
+    setItemReviewDates({});
   };
 
   const handleRejectAll = () => {
     if (!packageDetails?.items) return;
-    const allRejected: Record<string, 'rejected'> = {};
+    const allRejected: Record<string, ItemStatus> = {};
     packageDetails.items.forEach(item => {
       allRejected[item.id] = 'rejected';
     });
@@ -85,16 +99,25 @@ export default function MaintenanceApproval() {
   const handleSubmitReview = async () => {
     if (!packageDetails) return;
 
+    // Validate justifications for rejected and held items
+    for (const [itemId, status] of Object.entries(selectedItems)) {
+      if ((status === 'rejected' || status === 'held') && !itemNotes[itemId]?.trim()) {
+        toast.error(`Justificativa obrigatória para itens ${status === 'rejected' ? 'rejeitados' : 'segurados'}`);
+        return;
+      }
+    }
+
     const items = Object.entries(selectedItems)
       .filter(([_, status]) => status !== null)
       .map(([itemId, status]) => ({
         itemId,
-        status: status as 'approved' | 'rejected',
+        status: status as 'approved' | 'rejected' | 'held',
         notes: itemNotes[itemId] || undefined,
+        reviewDate: status === 'held' ? itemReviewDates[itemId] || undefined : undefined,
       }));
 
     if (items.length === 0) {
-      toast.error('Selecione pelo menos um item para aprovar ou rejeitar');
+      toast.error('Selecione pelo menos um item para aprovar, rejeitar ou segurar');
       return;
     }
 
@@ -122,6 +145,8 @@ export default function MaintenanceApproval() {
         return <Badge variant="outline" className="bg-success/10 text-success border-success">Aprovado</Badge>;
       case 'rejected':
         return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">Rejeitado</Badge>;
+      case 'held':
+        return <Badge variant="outline" className="bg-info/10 text-info border-info">Segurada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -302,7 +327,9 @@ export default function MaintenanceApproval() {
                         ? 'border-success bg-success/5' 
                         : selectedItems[item.id] === 'rejected'
                           ? 'border-destructive bg-destructive/5'
-                          : 'border-border'
+                          : selectedItems[item.id] === 'held'
+                            ? 'border-info bg-info/5'
+                            : 'border-border'
                     }`}>
                       <CardContent className="p-4">
                         <div className="flex gap-4">
@@ -354,7 +381,7 @@ export default function MaintenanceApproval() {
                             )}
 
                             {/* Actions */}
-                            <div className="flex items-center gap-4 pt-2">
+                            <div className="flex items-center gap-4 pt-2 flex-wrap">
                               <div 
                                 className="flex items-center gap-2 cursor-pointer"
                                 onClick={() => handleToggleItem(item.id, 'approved')}
@@ -363,7 +390,10 @@ export default function MaintenanceApproval() {
                                   checked={selectedItems[item.id] === 'approved'}
                                   className="border-success data-[state=checked]:bg-success"
                                 />
-                                <span className="text-sm text-success font-medium">Aprovar</span>
+                                <span className="text-sm text-success font-medium flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Aprovar
+                                </span>
                               </div>
                               <div 
                                 className="flex items-center gap-2 cursor-pointer"
@@ -373,14 +403,55 @@ export default function MaintenanceApproval() {
                                   checked={selectedItems[item.id] === 'rejected'}
                                   className="border-destructive data-[state=checked]:bg-destructive"
                                 />
-                                <span className="text-sm text-destructive font-medium">Rejeitar</span>
+                                <span className="text-sm text-destructive font-medium flex items-center gap-1">
+                                  <XCircle className="h-3 w-3" />
+                                  Rejeitar
+                                </span>
+                              </div>
+                              <div 
+                                className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => handleToggleItem(item.id, 'held')}
+                              >
+                                <Checkbox 
+                                  checked={selectedItems[item.id] === 'held'}
+                                  className="border-info data-[state=checked]:bg-info"
+                                />
+                                <span className="text-sm text-info font-medium flex items-center gap-1">
+                                  <PauseCircle className="h-3 w-3" />
+                                  Segurar
+                                </span>
                               </div>
                             </div>
 
-                            {/* Item Notes */}
-                            {selectedItems[item.id] && (
+                            {/* Item Notes - Required for rejected and held */}
+                            {(selectedItems[item.id] === 'rejected' || selectedItems[item.id] === 'held') && (
+                              <div className="mt-2 space-y-2">
+                                <Textarea
+                                  placeholder={`Justificativa OBRIGATÓRIA para ${selectedItems[item.id] === 'rejected' ? 'rejeição' : 'segurar'}...`}
+                                  value={itemNotes[item.id] || ''}
+                                  onChange={(e) => setItemNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                  className={`border-2 ${!itemNotes[item.id]?.trim() ? 'border-destructive/50' : 'border-border'}`}
+                                  rows={2}
+                                  required
+                                />
+                                {selectedItems[item.id] === 'held' && (
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-sm text-muted-foreground">Data de Revisão (opcional):</label>
+                                    <Input
+                                      type="date"
+                                      value={itemReviewDates[item.id] || ''}
+                                      onChange={(e) => setItemReviewDates(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                      className="w-auto"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Optional notes for approved items */}
+                            {selectedItems[item.id] === 'approved' && (
                               <Textarea
-                                placeholder={`Observação para este item (opcional)...`}
+                                placeholder="Observação para este item (opcional)..."
                                 value={itemNotes[item.id] || ''}
                                 onChange={(e) => setItemNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
                                 className="mt-2"
