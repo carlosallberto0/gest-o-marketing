@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bell, Check, CheckCheck, ExternalLink } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Bell, Check, CheckCheck, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -50,6 +50,21 @@ export function NotificationsPopover() {
   const marcarLida = useMarcarNotificacaoLida();
   const marcarTodasLidas = useMarcarTodasLidas();
 
+  // Sort notifications: priority unread first, then by date
+  const sortedNotificacoes = useMemo(() => {
+    return [...notificacoes].sort((a, b) => {
+      // Priority unread notifications first
+      const aIsPriorityUnread = a.prioridade === 'alta' && !a.lida;
+      const bIsPriorityUnread = b.prioridade === 'alta' && !b.lida;
+      
+      if (aIsPriorityUnread && !bIsPriorityUnread) return -1;
+      if (bIsPriorityUnread && !aIsPriorityUnread) return 1;
+      
+      // Then by date
+      return new Date(b.criada_em).getTime() - new Date(a.criada_em).getTime();
+    });
+  }, [notificacoes]);
+
   const handleNotificacaoClick = (notificacao: Notificacao) => {
     if (!notificacao.lida) {
       marcarLida.mutate(notificacao.id);
@@ -96,14 +111,14 @@ export function NotificationsPopover() {
             <div className="p-4 text-center text-muted-foreground">
               Carregando...
             </div>
-          ) : notificacoes.length === 0 ? (
+          ) : sortedNotificacoes.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-2 opacity-20" />
               <p>Nenhuma notificação</p>
             </div>
           ) : (
             <div className="divide-y">
-              {notificacoes.map((notificacao) => (
+              {sortedNotificacoes.map((notificacao) => (
                 <NotificacaoItem
                   key={notificacao.id}
                   notificacao={notificacao}
@@ -124,15 +139,24 @@ interface NotificacaoItemProps {
 }
 
 function NotificacaoItem({ notificacao, onClick }: NotificacaoItemProps) {
+  const isPriority = notificacao.prioridade === 'alta' && !notificacao.lida;
+  
   return (
     <button
       onClick={onClick}
       className={cn(
         'w-full text-left p-4 hover:bg-muted/50 transition-colors',
-        !notificacao.lida && 'bg-primary/5'
+        !notificacao.lida && 'bg-primary/5',
+        isPriority && 'bg-amber-100 dark:bg-amber-900/30 border-l-4 border-amber-500'
       )}
     >
       <div className="flex items-start gap-3">
+        {/* Priority Icon */}
+        {isPriority && (
+          <div className="flex-shrink-0 mt-0.5">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Badge
@@ -141,7 +165,12 @@ function NotificacaoItem({ notificacao, onClick }: NotificacaoItemProps) {
             >
               {getModuloLabel(notificacao.modulo)}
             </Badge>
-            {!notificacao.lida && (
+            {isPriority && (
+              <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
+                Prioritária
+              </Badge>
+            )}
+            {!notificacao.lida && !isPriority && (
               <span className="h-2 w-2 rounded-full bg-primary" />
             )}
           </div>

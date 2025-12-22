@@ -28,12 +28,12 @@ export default function MediaDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const isSuperAdmin = profile?.role === 'super_admin';
+  const isDirector = profile?.role === 'director';
   const isManager = profile?.role === 'manager' || profile?.role === 'collaborator';
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
   const { data: reviewSummary, isLoading: isLoadingReviews } = useMonthlyReviewSummary();
-
   const isLoading = isLoadingStats || isLoadingOutdoors || isLoadingReviews;
 
   const getStatusBadge = (status: string) => {
@@ -66,19 +66,24 @@ export default function MediaDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Mídia Externa
+              {isDirector ? 'Visão Estratégica' : 'Mídia Externa'}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Gestão de outdoors, contratos e ordens de serviço
+              {isDirector 
+                ? 'Monitoramento de KPIs e aprovações pendentes'
+                : 'Gestão de outdoors, contratos e ordens de serviço'}
             </p>
           </div>
-          <Button onClick={() => navigate('/outdoor-evaluation')} size="lg">
-            <Megaphone className="h-5 w-5 mr-2" />
-            Avaliar Outdoor
-          </Button>
+          {/* Hide "Avaliar Outdoor" button for directors */}
+          {!isDirector && (
+            <Button onClick={() => navigate('/outdoor-evaluation')} size="lg">
+              <Megaphone className="h-5 w-5 mr-2" />
+              Avaliar Outdoor
+            </Button>
+          )}
         </div>
 
-        {/* Stats - Hidden for managers */}
+        {/* Stats - Hidden for managers, Strategic KPIs for directors */}
         {!isManager && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <ScoreCard 
@@ -88,32 +93,71 @@ export default function MediaDashboard() {
               trend={-2}
               icon={<CheckCircle className="h-5 w-5 text-white" />}
             />
-            <ScoreCard 
-              title="Total Outdoors" 
-              score={stats?.totalOutdoors || 0} 
-              subtitle="Cadastrados"
-              icon={<Megaphone className="h-5 w-5 text-white" />}
-              className="[&>div>div:first-child>div:last-child]:hidden"
-            />
-            <ScoreCard 
-              title="Contratos" 
-              score={stats?.activeContracts || 0} 
-              subtitle="Ativos"
-              icon={<FileText className="h-5 w-5 text-white" />}
-              className="[&>div>div:first-child>div:last-child]:hidden"
-            />
-            <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-destructive">Pendentes</p>
-                  <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
-                  <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
+            {/* Directors see strategic KPIs only */}
+            {isDirector ? (
+              <>
+                <div className="bg-warning/10 rounded-xl p-5 border border-warning/20">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-warning">Manutenções Pendentes</p>
+                      <p className="text-3xl font-bold text-warning mt-2">{stats?.pendingEvaluations || 0}</p>
+                      <p className="text-xs text-warning/70 mt-1">Aguardam aprovação</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-warning flex items-center justify-center">
+                      <Wrench className="h-6 w-6 text-warning-foreground" />
+                    </div>
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
-                  <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+                <ScoreCard 
+                  title="Contratos" 
+                  score={stats?.activeContracts || 0} 
+                  subtitle="Próximos do vencimento"
+                  icon={<FileText className="h-5 w-5 text-white" />}
+                  className="[&>div>div:first-child>div:last-child]:hidden"
+                />
+                <div className="bg-info/10 rounded-xl p-5 border border-info/20">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-info">Investimento Mensal</p>
+                      <p className="text-3xl font-bold text-info mt-2">R$ {((stats?.totalOutdoors || 0) * 150).toLocaleString('pt-BR')}</p>
+                      <p className="text-xs text-info/70 mt-1">Mídia externa</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-info flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-info-foreground" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            ) : (
+              <>
+                <ScoreCard 
+                  title="Total Outdoors" 
+                  score={stats?.totalOutdoors || 0} 
+                  subtitle="Cadastrados"
+                  icon={<Megaphone className="h-5 w-5 text-white" />}
+                  className="[&>div>div:first-child>div:last-child]:hidden"
+                />
+                <ScoreCard 
+                  title="Contratos" 
+                  score={stats?.activeContracts || 0} 
+                  subtitle="Ativos"
+                  icon={<FileText className="h-5 w-5 text-white" />}
+                  className="[&>div>div:first-child>div:last-child]:hidden"
+                />
+                <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Pendentes</p>
+                      <p className="text-3xl font-bold text-destructive mt-2">{stats?.pendingEvaluations || 0}</p>
+                      <p className="text-xs text-destructive/70 mt-1">Aguardam avaliação</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-destructive flex items-center justify-center">
+                      <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -165,8 +209,8 @@ export default function MediaDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions - Hidden for managers */}
-          {!isManager && (
+          {/* Quick Actions - Hidden for managers and directors */}
+          {!isManager && !isDirector && (
             <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -235,51 +279,53 @@ export default function MediaDashboard() {
           </div>
         )}
 
-        {/* Recent Outdoors */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground text-lg">Outdoors Recentes</h3>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/outdoors')}>
-              Ver todos
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
+        {/* Recent Outdoors - Hidden for directors */}
+        {!isDirector && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground text-lg">Outdoors Recentes</h3>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/outdoors')}>
+                Ver todos
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {outdoors.slice(0, 6).map((outdoor, index) => (
+                <Card 
+                  key={outdoor.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base">{outdoor.code}</CardTitle>
+                      {getStatusBadge(outdoor.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = outdoor.location?.startsWith('http') ? outdoor.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outdoor.location || '')}`;
+                        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="flex items-center gap-1 text-sm text-primary hover:underline mb-2 text-left"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      <span>Ver no Google Maps</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{outdoor.width}m x {outdoor.height}m</span>
+                      <span>{outdoor.area}m²</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {outdoors.slice(0, 6).map((outdoor, index) => (
-              <Card 
-                key={outdoor.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">{outdoor.code}</CardTitle>
-                    {getStatusBadge(outdoor.status)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const url = outdoor.location?.startsWith('http') ? outdoor.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outdoor.location || '')}`;
-                      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                    }}
-                    className="flex items-center gap-1 text-sm text-primary hover:underline mb-2 text-left"
-                  >
-                    <MapPin className="h-3 w-3" />
-                    <span>Ver no Google Maps</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </button>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{outdoor.width}m x {outdoor.height}m</span>
-                    <span>{outdoor.area}m²</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </AppLayout>
   );

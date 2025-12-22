@@ -5,8 +5,10 @@ import { useOutdoors } from '@/hooks/useOutdoorData';
 import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOutdoorObservations, useCreateDirectorObservation } from '@/hooks/useDirectorObservations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
 import { EditOutdoorDialog } from '@/components/dialogs/EditOutdoorDialog';
@@ -21,8 +23,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -36,7 +41,9 @@ import {
   Edit,
   Power,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 
 export default function OutdoorDetail() {
@@ -45,16 +52,26 @@ export default function OutdoorDetail() {
   const { profile } = useAuth();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: contract, isLoading: loadingContract } = useContractByOutdoor(id || null);
+  const { data: observations = [], isLoading: loadingObservations } = useOutdoorObservations(id);
+  const createObservation = useCreateDirectorObservation();
+  
   const [showContractDialog, setShowContractDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [observationText, setObservationText] = useState('');
   
   const outdoor = outdoors.find(o => o.id === id);
   const isSuperAdmin = profile?.role === 'super_admin';
+  const isDirector = profile?.role === 'director';
 
+  const handleSendObservation = async () => {
+    if (!observationText.trim() || !id) return;
+    await createObservation.mutateAsync({ outdoorId: id, texto: observationText.trim() });
+    setObservationText('');
+  };
   const handleToggleStatus = async () => {
     if (!outdoor) return;
     setIsTogglingStatus(true);
@@ -239,28 +256,88 @@ export default function OutdoorDetail() {
               )}
             </div>
 
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                onClick={() => navigate('/outdoor-evaluation')}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Avaliar Outdoor
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setShowContractDialog(true)}
-                disabled={loadingContract}
-              >
-                {loadingContract ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4 mr-2" />
-                )}
-                {contract ? 'Ver Contrato' : 'Sem Contrato'}
-              </Button>
-            </div>
+            {/* Actions - Hidden for directors */}
+            {!isDirector && (
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  onClick={() => navigate('/outdoor-evaluation')}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Avaliar Outdoor
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowContractDialog(true)}
+                  disabled={loadingContract}
+                >
+                  {loadingContract ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  {contract ? 'Ver Contrato' : 'Sem Contrato'}
+                </Button>
+              </div>
+            )}
+
+            {/* Director Strategic Observations Section */}
+            {isDirector && (
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    Observações Estratégicas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder="Adicione observações estratégicas ou de comunicação para o Super Admin..."
+                      value={observationText}
+                      onChange={(e) => setObservationText(e.target.value)}
+                      rows={4}
+                      className="resize-none"
+                    />
+                    <Button 
+                      onClick={handleSendObservation}
+                      disabled={!observationText.trim() || createObservation.isPending}
+                      className="w-full"
+                    >
+                      {createObservation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Enviar Observação ao Super Admin
+                    </Button>
+                  </div>
+
+                  {/* Observation History */}
+                  {observations.length > 0 && (
+                    <div className="space-y-3 pt-3 border-t">
+                      <h4 className="text-sm font-medium text-muted-foreground">Suas observações anteriores</h4>
+                      {loadingObservations ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {observations.map((obs) => (
+                            <div key={obs.id} className="bg-muted/50 rounded-lg p-3 text-sm">
+                              <p className="text-foreground">{obs.texto}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {format(new Date(obs.criada_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
