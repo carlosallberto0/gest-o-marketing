@@ -42,6 +42,7 @@ import AuditLogs from "./pages/AuditLogs";
 import StrategicMapGoogle from "./pages/StrategicMapGoogle";
 import OutdoorReviews from "./pages/OutdoorReviews";
 import PendingApproval from "./pages/PendingApproval";
+import DirectorObservations from "./pages/DirectorObservations";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -363,6 +364,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
             <MaintenanceApproval />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/director-observations" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['director']}>
+            <DirectorObservations />
           </RequireRole>
         </ProtectedRoute>
       } 

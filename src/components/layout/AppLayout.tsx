@@ -114,23 +114,26 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Menu items for Media module - organized by workflow
   // Manager only sees: Maintenance Requests and Material Requests (no dashboard)
+  // Director sees: Dashboard, Outdoors, Aprovar Manutenção, Relatórios, Observações
   const mediaItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['super_admin', 'admin', 'director'] },
     { icon: Fuel, label: 'Cadastro', path: '/pdvs', roles: ['super_admin', 'admin'] },
     // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director'] },
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin', 'director'] },
+    { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
     // Manutenção e Serviços
-    { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin', 'director'] },
-    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
-    { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin', 'director'] },
+    { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
     // Fornecedores e Relatórios
     { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
+    // Director-only: Observações Enviadas
+    { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
   ];
 
   // Admin items - system administration

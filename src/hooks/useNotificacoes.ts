@@ -14,6 +14,7 @@ export interface Notificacao {
   tipo_referencia: string | null;
   lida: boolean;
   criada_em: string;
+  prioridade?: string; // 'normal' | 'alta'
 }
 
 export function useNotificacoes() {

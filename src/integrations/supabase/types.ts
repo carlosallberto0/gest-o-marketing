@@ -537,27 +537,33 @@ export type Database = {
       maintenance_package_items: {
         Row: {
           created_at: string
+          data_revisao: string | null
           director_notes: string | null
           evaluation_id: string | null
           id: string
+          justificativa_diretoria: string | null
           outdoor_id: string
           package_id: string
           status: string
         }
         Insert: {
           created_at?: string
+          data_revisao?: string | null
           director_notes?: string | null
           evaluation_id?: string | null
           id?: string
+          justificativa_diretoria?: string | null
           outdoor_id: string
           package_id: string
           status?: string
         }
         Update: {
           created_at?: string
+          data_revisao?: string | null
           director_notes?: string | null
           evaluation_id?: string | null
           id?: string
+          justificativa_diretoria?: string | null
           outdoor_id?: string
           package_id?: string
           status?: string
@@ -914,6 +920,7 @@ export type Database = {
           lida: boolean | null
           mensagem: string
           modulo: string
+          prioridade: string | null
           tipo: string
           tipo_referencia: string | null
           titulo: string
@@ -927,6 +934,7 @@ export type Database = {
           lida?: boolean | null
           mensagem: string
           modulo: string
+          prioridade?: string | null
           tipo: string
           tipo_referencia?: string | null
           titulo: string
@@ -940,6 +948,7 @@ export type Database = {
           lida?: boolean | null
           mensagem?: string
           modulo?: string
+          prioridade?: string | null
           tipo?: string
           tipo_referencia?: string | null
           titulo?: string
@@ -952,6 +961,45 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observacoes_diretoria_outdoor: {
+        Row: {
+          criada_em: string | null
+          diretor_id: string
+          id: string
+          outdoor_id: string
+          texto: string
+        }
+        Insert: {
+          criada_em?: string | null
+          diretor_id: string
+          id?: string
+          outdoor_id: string
+          texto: string
+        }
+        Update: {
+          criada_em?: string | null
+          diretor_id?: string
+          id?: string
+          outdoor_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observacoes_diretoria_outdoor_diretor_id_fkey"
+            columns: ["diretor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "observacoes_diretoria_outdoor_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
             referencedColumns: ["id"]
           },
         ]
