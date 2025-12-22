@@ -17,11 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateMaterialRequest } from '@/hooks/useMaterialRequests';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, Search, AlertTriangle } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
@@ -32,30 +35,39 @@ interface RequestMaterialDialogProps {
 }
 
 const requestSchema = z.object({
-  material_id: z.string().min(1, 'Selecione um material'),
+  materials: z
+    .array(
+      z.object({
+        material_id: z.string(),
+        quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+      })
+    )
+    .min(1, 'Selecione pelo menos um material'),
   pdv_id: z.string().min(1, 'Selecione um PDV'),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
-  justification: z.string().min(10, 'Justificativa deve ter pelo menos 10 caracteres').max(500, 'Justificativa deve ter no máximo 500 caracteres'),
+  justification: z
+    .string()
+    .min(10, 'Justificativa deve ter pelo menos 10 caracteres')
+    .max(500, 'Justificativa deve ter no máximo 500 caracteres'),
 });
 
 export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialId }: RequestMaterialDialogProps) {
-  const [materialId, setMaterialId] = useState(preselectedMaterialId || '');
+  const [selectedMaterials, setSelectedMaterials] = useState<Record<string, number>>({});
   const [pdvId, setPdvId] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [justification, setJustification] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { profile } = useAuth();
   const createRequest = useCreateMaterialRequest();
   
   const isAdminOrDirector = ['super_admin', 'admin', 'director', 'coordenador_compras'].includes(profile?.role || '');
 
-  // Fetch materials (excluding gifts for non-admin users - RLS handles this)
+  // Fetch materials
   const { data: materials = [], isLoading: loadingMaterials } = useQuery({
     queryKey: ['trade-materials-for-request'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('trade_materials')
-        .select('id, name, code, type, current_stock')
+        .select('id, name, code, type, current_stock, minimum_stock')
         .eq('status', 'active')
         .order('name');
       if (error) throw error;
@@ -63,7 +75,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
     },
   });
 
-  // Fetch PDVs - filter by user's pdv_id if not admin/director
+  // Fetch PDVs
   const { data: pdvs = [], isLoading: loadingPdvs } = useQuery({
     queryKey: ['pdvs-for-request', profile?.pdv_id, profile?.role],
     queryFn: async () => {
@@ -72,7 +84,6 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
         .select('id, name, code')
         .eq('status', 'active');
       
-      // Se não for admin/diretor, filtrar pelo PDV do usuário
       if (!isAdminOrDirector && profile?.pdv_id) {
         query = query.eq('id', profile.pdv_id);
       }
@@ -84,58 +95,100 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
     enabled: !!profile,
   });
 
-  // Pré-selecionar PDV do gerente/colaborador automaticamente
+  // Pre-select user's PDV for non-admin users
   useEffect(() => {
     if (!isAdminOrDirector && profile?.pdv_id && pdvs.length > 0 && !pdvId) {
       setPdvId(profile.pdv_id);
     }
   }, [profile, pdvs, isAdminOrDirector, pdvId]);
 
-  const selectedMaterial = materials.find(m => m.id === materialId);
+  // Pre-select material if provided
+  useEffect(() => {
+    if (preselectedMaterialId && materials.length > 0) {
+      setSelectedMaterials((prev) => ({
+        ...prev,
+        [preselectedMaterialId]: prev[preselectedMaterialId] || 1,
+      }));
+    }
+  }, [preselectedMaterialId, materials]);
+
+  const resetForm = () => {
+    setSelectedMaterials({});
+    setPdvId(isAdminOrDirector ? '' : profile?.pdv_id || '');
+    setJustification('');
+    setSearchTerm('');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
+  const toggleMaterial = (materialId: string) => {
+    setSelectedMaterials((prev) => {
+      const newSelected = { ...prev };
+      if (newSelected[materialId] !== undefined) {
+        delete newSelected[materialId];
+      } else {
+        newSelected[materialId] = 1;
+      }
+      return newSelected;
+    });
+  };
+
+  const updateQuantity = (materialId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setSelectedMaterials((prev) => ({
+      ...prev,
+      [materialId]: quantity,
+    }));
+  };
 
   const handleSubmit = async () => {
+    const items = Object.entries(selectedMaterials).map(([material_id, quantity]) => ({
+      material_id,
+      quantity,
+    }));
+
+    const result = requestSchema.safeParse({
+      materials: items,
+      pdv_id: pdvId,
+      justification: justification.trim(),
+    });
+
+    if (!result.success) {
+      result.error.errors.forEach((err) => toast.error(err.message));
+      return;
+    }
+
     try {
-      const result = requestSchema.safeParse({
-        material_id: materialId,
+      await createRequest.mutateAsync({
+        items,
         pdv_id: pdvId,
-        quantity,
         justification: justification.trim(),
       });
-
-      if (!result.success) {
-        result.error.errors.forEach(err => toast.error(err.message));
-        return;
-      }
-
-      await createRequest.mutateAsync({
-        material_id: result.data.material_id,
-        pdv_id: result.data.pdv_id,
-        quantity: result.data.quantity,
-        justification: result.data.justification,
-      });
-      
-      // Reset form
-      setMaterialId('');
-      setPdvId('');
-      setQuantity(1);
-      setJustification('');
-      onOpenChange(false);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        error.errors.forEach(err => toast.error(err.message));
-      }
+      handleClose();
+    } catch {
+      // Error handled in mutation
     }
   };
 
+  const filteredMaterials = materials.filter(
+    (material) =>
+      material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedCount = Object.keys(selectedMaterials).length;
   const isLoading = loadingMaterials || loadingPdvs;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Solicitar Material
+            Solicitar Materiais
           </DialogTitle>
         </DialogHeader>
 
@@ -144,39 +197,16 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="material">Material *</Label>
-              <Select value={materialId} onValueChange={setMaterialId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o material" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map(material => (
-                    <SelectItem key={material.id} value={material.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{material.name}</span>
-                        <span className="text-xs text-muted-foreground">({material.code})</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedMaterial && (
-                <p className="text-xs text-muted-foreground">
-                  Estoque disponível: {selectedMaterial.current_stock} unidades
-                </p>
-              )}
-            </div>
-
+          <div className="flex flex-col gap-4 flex-1 overflow-hidden">
+            {/* PDV Selection */}
             <div className="space-y-2">
               <Label htmlFor="pdv">PDV de Destino *</Label>
-              <Select value={pdvId} onValueChange={setPdvId}>
+              <Select value={pdvId} onValueChange={setPdvId} disabled={!isAdminOrDirector}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o PDV" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pdvs.map(pdv => (
+                  {pdvs.map((pdv) => (
                     <SelectItem key={pdv.id} value={pdv.id}>
                       <div className="flex items-center gap-2">
                         <span>{pdv.name}</span>
@@ -188,28 +218,108 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantidade *</Label>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                id="quantity"
-                type="number"
-                min={1}
-                max={selectedMaterial?.current_stock || 9999}
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                placeholder="Buscar material por nome ou código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
               />
-              {selectedMaterial && quantity > selectedMaterial.current_stock && (
-                <p className="text-xs text-warning">
-                  Atenção: quantidade solicitada maior que o estoque disponível
-                </p>
-              )}
             </div>
 
+            {/* Selected count badge */}
+            {selectedCount > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {selectedCount} {selectedCount === 1 ? 'material selecionado' : 'materiais selecionados'}
+                </Badge>
+              </div>
+            )}
+
+            {/* Materials list with checkboxes */}
+            <ScrollArea className="flex-1 border rounded-lg max-h-[300px]">
+              <div className="p-2 space-y-1">
+                {filteredMaterials.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    Nenhum material encontrado
+                  </p>
+                ) : (
+                  filteredMaterials.map((material) => {
+                    const isSelected = selectedMaterials[material.id] !== undefined;
+                    const quantity = selectedMaterials[material.id] || 1;
+                    const exceedsStock = quantity > material.current_stock;
+
+                    return (
+                      <div
+                        key={material.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                          isSelected
+                            ? 'bg-primary/5 border-primary/30'
+                            : 'bg-background hover:bg-muted/50 border-transparent'
+                        }`}
+                      >
+                        <Checkbox
+                          id={`material-${material.id}`}
+                          checked={isSelected}
+                          onCheckedChange={() => toggleMaterial(material.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <label
+                            htmlFor={`material-${material.id}`}
+                            className="font-medium cursor-pointer block truncate"
+                          >
+                            {material.name}
+                          </label>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>{material.code}</span>
+                            <span>•</span>
+                            <span
+                              className={
+                                material.current_stock <= (material.minimum_stock || 0)
+                                  ? 'text-destructive'
+                                  : ''
+                              }
+                            >
+                              Estoque: {material.current_stock}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`qty-${material.id}`} className="sr-only">
+                              Quantidade
+                            </Label>
+                            <Input
+                              id={`qty-${material.id}`}
+                              type="number"
+                              min={1}
+                              value={quantity}
+                              onChange={(e) =>
+                                updateQuantity(material.id, parseInt(e.target.value) || 1)
+                              }
+                              className={`w-20 text-center ${exceedsStock ? 'border-destructive' : ''}`}
+                            />
+                            {exceedsStock && (
+                              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Justification */}
             <div className="space-y-2">
               <Label htmlFor="justification">Justificativa *</Label>
               <Textarea
                 id="justification"
-                placeholder="Explique por que precisa deste material..."
+                placeholder="Explique por que precisa destes materiais..."
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 rows={3}
@@ -219,21 +329,21 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                 {justification.length}/500 caracteres
               </p>
             </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={createRequest.isPending}
-              >
-                {createRequest.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Enviar Solicitação
-              </Button>
-            </DialogFooter>
           </div>
         )}
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={createRequest.isPending || selectedCount === 0}
+          >
+            {createRequest.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Enviar Solicitação{selectedCount > 0 ? ` (${selectedCount})` : ''}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
