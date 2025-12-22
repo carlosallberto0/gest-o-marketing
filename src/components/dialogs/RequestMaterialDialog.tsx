@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateMaterialRequest } from '@/hooks/useMaterialRequests';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Package } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -43,7 +44,10 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
   const [quantity, setQuantity] = useState(1);
   const [justification, setJustification] = useState('');
 
+  const { profile } = useAuth();
   const createRequest = useCreateMaterialRequest();
+  
+  const isAdminOrDirector = ['super_admin', 'admin', 'director', 'coordenador_compras'].includes(profile?.role || '');
 
   // Fetch materials (excluding gifts for non-admin users - RLS handles this)
   const { data: materials = [], isLoading: loadingMaterials } = useQuery({
@@ -59,19 +63,33 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
     },
   });
 
-  // Fetch PDVs
+  // Fetch PDVs - filter by user's pdv_id if not admin/director
   const { data: pdvs = [], isLoading: loadingPdvs } = useQuery({
-    queryKey: ['pdvs-for-request'],
+    queryKey: ['pdvs-for-request', profile?.pdv_id, profile?.role],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('pdvs')
         .select('id, name, code')
-        .eq('status', 'active')
-        .order('name');
+        .eq('status', 'active');
+      
+      // Se não for admin/diretor, filtrar pelo PDV do usuário
+      if (!isAdminOrDirector && profile?.pdv_id) {
+        query = query.eq('id', profile.pdv_id);
+      }
+      
+      const { data, error } = await query.order('name');
       if (error) throw error;
       return data;
     },
+    enabled: !!profile,
   });
+
+  // Pré-selecionar PDV do gerente/colaborador automaticamente
+  useEffect(() => {
+    if (!isAdminOrDirector && profile?.pdv_id && pdvs.length > 0 && !pdvId) {
+      setPdvId(profile.pdv_id);
+    }
+  }, [profile, pdvs, isAdminOrDirector, pdvId]);
 
   const selectedMaterial = materials.find(m => m.id === materialId);
 
