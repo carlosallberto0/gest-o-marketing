@@ -15,7 +15,7 @@ interface SystemContextType {
 }
 
 const defaultSettings: SystemSettings = {
-  systemName: 'SR Off Trade Marketing',
+  systemName: 'Gestão & Marketing',
   logo: null,
   palette: 'default',
   theme: 'light',

@@ -129,7 +129,7 @@ export default function Auth() {
           <div className="w-20 h-20 rounded-lg bg-white/10 flex items-center justify-center mb-8">
             <Fuel className="h-10 w-10" />
           </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">SR Off Trade Marketing</h1>
+          <h1 className="text-4xl font-bold mb-4 text-center">Gestão & Marketing</h1>
           <p className="text-lg text-primary-foreground/80 text-center max-w-md">
             Sistema completo para gestão de merchandising e mídia externa
           </p>
@@ -148,7 +148,7 @@ export default function Auth() {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded bg-primary mb-4">
               <Fuel className="h-7 w-7 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold text-foreground">SR Off Trade Marketing</h1>
+            <h1 className="text-xl font-bold text-foreground">Gestão & Marketing</h1>
           </div>
 
           {/* Form Header */}
@@ -275,7 +275,7 @@ export default function Auth() {
 
           {/* Footer */}
           <p className="text-center text-xs text-muted-foreground mt-8">
-            © {new Date().getFullYear()} SR Off Trade Marketing. Todos os direitos reservados.
+            © {new Date().getFullYear()} Gestão & Marketing. Todos os direitos reservados.
           </p>
         </div>
       </div>

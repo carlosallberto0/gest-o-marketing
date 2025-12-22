@@ -9,7 +9,7 @@ export function NotificationSettings() {
 
   const handleTestNotification = () => {
     showNotification('Teste de Notificação', {
-      body: 'Esta é uma notificação de teste do SR Off Trade Marketing.',
+      body: 'Esta é uma notificação de teste do Gestão & Marketing.',
     });
   };
 

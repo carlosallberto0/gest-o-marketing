@@ -43,7 +43,7 @@ export default function PendingApproval() {
             </div>
             <CardTitle className="text-2xl">Aguardando Aprovação</CardTitle>
             <CardDescription className="text-base">
-              Bem-vindo ao SR Off Trade Marketing!
+              Bem-vindo ao Gestão & Marketing!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -84,7 +84,7 @@ export default function PendingApproval() {
       {/* Footer */}
       <footer className="w-full px-6 py-4 border-t border-border/50 bg-background/80">
         <p className="text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} SR Off Trade Marketing. Todos os direitos reservados.
+          © {new Date().getFullYear()} Gestão & Marketing. Todos os direitos reservados.
         </p>
       </footer>
     </div>

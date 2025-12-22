@@ -153,7 +153,7 @@ export default function ModuleSelection() {
       {/* Footer */}
       <footer className="w-full px-6 py-4 border-t border-border/50 bg-background/80">
         <p className="text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} SR Off Trade Marketing. Todos os direitos reservados.
+          © {new Date().getFullYear()} Gestão & Marketing. Todos os direitos reservados.
         </p>
       </footer>
     </div>
