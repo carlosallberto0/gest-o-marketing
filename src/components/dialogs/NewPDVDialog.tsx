@@ -40,11 +40,28 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
   }, [open]);
 
   const generateCode = async () => {
-    const { count } = await supabase
+    // Buscar todos os códigos que seguem o padrão PDV-XXXX
+    const { data } = await supabase
       .from('pdvs')
-      .select('*', { count: 'exact', head: true });
+      .select('code')
+      .like('code', 'PDV-%');
     
-    const nextNumber = (count || 0) + 1;
+    let maxNumber = 0;
+    
+    if (data) {
+      for (const pdv of data) {
+        // Extrair número do código (ex: "PDV-0009" → 9)
+        const match = pdv.code.match(/PDV-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNumber) {
+            maxNumber = num;
+          }
+        }
+      }
+    }
+    
+    const nextNumber = maxNumber + 1;
     const code = `PDV-${String(nextNumber).padStart(4, '0')}`;
     setFormData(prev => ({ ...prev, code }));
   };

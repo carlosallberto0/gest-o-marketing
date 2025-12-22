@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Loader2 } from 'lucide-react';
 import { useCreatePDV } from '@/hooks/useCreatePDV';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuickPDVDialogProps {
   open: boolean;
@@ -38,9 +39,24 @@ export function QuickPDVDialog({
       return;
     }
 
-    // Generate code automatically
-    const timestamp = Date.now().toString().slice(-6);
-    const code = `PDV-${timestamp}`;
+    // Buscar o maior código existente e incrementar
+    const { data: existingPDVs } = await supabase
+      .from('pdvs')
+      .select('code')
+      .like('code', 'PDV-%');
+    
+    let maxNumber = 0;
+    if (existingPDVs) {
+      for (const pdv of existingPDVs) {
+        const match = pdv.code.match(/PDV-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNumber) maxNumber = num;
+        }
+      }
+    }
+    
+    const code = `PDV-${String(maxNumber + 1).padStart(4, '0')}`;
 
     await createPDV.mutateAsync({
       code,
