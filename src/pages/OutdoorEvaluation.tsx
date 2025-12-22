@@ -28,7 +28,6 @@ import {
   Loader2,
   Building,
   ChevronRight,
-  Navigation,
   ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -351,26 +350,19 @@ export default function OutdoorEvaluation() {
               )}
             </div>
 
-            {/* Photo Upload with Geolocation */}
+            {/* Photo Upload */}
             {status && (
               <div className="bg-card rounded-xl p-5 border border-border shadow-sm animate-slide-up">
                 <label className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
-                  <Navigation className="h-4 w-4" />
-                  Fotos com Validação GPS <span className="text-destructive">*</span>
+                  Fotos do Outdoor <span className="text-destructive">*</span>
                   <span className="text-xs text-muted-foreground ml-auto">Mínimo 1 foto</span>
                 </label>
                 <GeoPhotoUpload
                   value={photos}
                   onChange={setPhotos}
-                  outdoorLat={outdoor.lat ?? null}
-                  outdoorLng={outdoor.lng ?? null}
-                  validationRadius={outdoor.validationRadiusMeters || 50}
                   maxPhotos={5}
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Tire fotos no local do outdoor. O GPS validará sua localização automaticamente.
-                </p>
               </div>
             )}
 
