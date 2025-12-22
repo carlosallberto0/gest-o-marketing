@@ -35,6 +35,7 @@ import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
 import Suppliers from "./pages/Suppliers";
 import MaintenanceRequests from "./pages/MaintenanceRequests";
+import MaintenanceApproval from "./pages/MaintenanceApproval";
 import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
@@ -352,6 +353,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
             <OutdoorReviews />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/maintenance-approval" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <MaintenanceApproval />
           </RequireRole>
         </ProtectedRoute>
       } 

@@ -29,7 +29,8 @@ import {
   FilePlus,
   Search,
   Bell,
-  Maximize2
+  Maximize2,
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -123,6 +124,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
     // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
+    { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin', 'director'] },
     { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'director', 'manager'] },
     { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin', 'director'] },
