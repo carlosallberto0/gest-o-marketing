@@ -56,37 +56,47 @@ export function useMaterialRequests() {
   });
 }
 
+interface CreateMaterialRequestItem {
+  material_id: string;
+  quantity: number;
+}
+
+interface CreateMaterialRequestData {
+  items: CreateMaterialRequestItem[];
+  pdv_id: string;
+  justification: string;
+}
+
 export function useCreateMaterialRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
-      material_id: string;
-      pdv_id: string;
-      quantity: number;
-      justification: string;
-    }) => {
+    mutationFn: async (data: CreateMaterialRequestData) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Usuário não autenticado');
 
-      const { data: result, error } = await supabase
+      const requests = data.items.map((item) => ({
+        material_id: item.material_id,
+        requester_id: userData.user.id,
+        pdv_id: data.pdv_id,
+        quantity: item.quantity,
+        justification: data.justification,
+      }));
+
+      const { error } = await supabase
         .from('material_requests')
-        .insert({
-          material_id: data.material_id,
-          requester_id: userData.user.id,
-          pdv_id: data.pdv_id,
-          quantity: data.quantity,
-          justification: data.justification,
-        })
-        .select()
-        .single();
+        .insert(requests);
 
       if (error) throw error;
-      return result;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['material-requests'] });
-      toast.success('Solicitação de material enviada com sucesso!');
+      const count = variables.items.length;
+      toast.success(
+        count === 1
+          ? 'Solicitação de material enviada com sucesso!'
+          : `${count} solicitações de materiais enviadas com sucesso!`
+      );
     },
     onError: (error) => {
       console.error('Error creating material request:', error);
