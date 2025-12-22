@@ -34,7 +34,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { NotificationsPopover } from '@/components/notifications/NotificationsPopover';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
@@ -232,18 +238,40 @@ export function AppLayout({ children }: AppLayoutProps) {
           </Button>
           <NotificationsPopover />
           {/* User dropdown */}
-          <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-primary font-semibold text-sm">
-                {profile?.name?.charAt(0) || '?'}
-              </span>
-            </div>
-            <div className="hidden xl:block">
-              <p className="text-sm font-medium text-foreground">{profile?.name}</p>
-              <p className="text-xs text-muted-foreground">{getRoleLabel(profile?.role || '')}</p>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 ml-3 pl-3 border-l border-border hover:bg-muted/50 rounded-lg px-3 py-2 transition-colors cursor-pointer">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-semibold text-sm">
+                    {profile?.name?.charAt(0) || '?'}
+                  </span>
+                </div>
+                <div className="hidden xl:block text-left">
+                  <p className="text-sm font-medium text-foreground">{profile?.name}</p>
+                  <p className="text-xs text-muted-foreground">{getRoleLabel(profile?.role || '')}</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{profile?.name}</p>
+                <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurações
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

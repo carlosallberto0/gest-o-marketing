@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Bell, Check, CheckCheck, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Bell, Check, CheckCheck, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,9 +16,11 @@ import {
   useNotificacoesNaoLidas,
   useMarcarNotificacaoLida,
   useMarcarTodasLidas,
+  useLimparNotificacoesLidas,
   Notificacao,
 } from '@/hooks/useNotificacoes';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const getModuloColor = (modulo: string) => {
   switch (modulo) {
@@ -49,6 +51,12 @@ export function NotificationsPopover() {
   const { data: naoLidas = 0 } = useNotificacoesNaoLidas();
   const marcarLida = useMarcarNotificacaoLida();
   const marcarTodasLidas = useMarcarTodasLidas();
+  const limparLidas = useLimparNotificacoesLidas();
+
+  // Count read notifications
+  const notificacoesLidas = useMemo(() => {
+    return notificacoes.filter(n => n.lida).length;
+  }, [notificacoes]);
 
   // Sort notifications: priority unread first, then by date
   const sortedNotificacoes = useMemo(() => {
@@ -79,6 +87,17 @@ export function NotificationsPopover() {
     marcarTodasLidas.mutate();
   };
 
+  const handleLimparLidas = () => {
+    limparLidas.mutate(undefined, {
+      onSuccess: () => {
+        toast.success('Notificações lidas removidas');
+      },
+      onError: () => {
+        toast.error('Erro ao limpar notificações');
+      },
+    });
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -94,17 +113,31 @@ export function NotificationsPopover() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h4 className="font-semibold">Notificações</h4>
-          {naoLidas > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleMarcarTodasLidas}
-              disabled={marcarTodasLidas.isPending}
-            >
-              <CheckCheck className="h-4 w-4 mr-1" />
-              Marcar todas
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {notificacoesLidas > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLimparLidas}
+                disabled={limparLidas.isPending}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+            {naoLidas > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarcarTodasLidas}
+                disabled={marcarTodasLidas.isPending}
+              >
+                <CheckCheck className="h-4 w-4 mr-1" />
+                Marcar todas
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="h-[400px]">
           {isLoading ? (
