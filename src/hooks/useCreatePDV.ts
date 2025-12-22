@@ -43,9 +43,13 @@ export function useCreatePDV() {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
       toast.success('PDV criado com sucesso!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating PDV:', error);
-      toast.error('Erro ao criar PDV');
+      if (error?.code === '23505') {
+        toast.error('Código duplicado. Feche o diálogo e tente novamente.');
+      } else {
+        toast.error('Erro ao criar PDV');
+      }
     },
   });
 }
