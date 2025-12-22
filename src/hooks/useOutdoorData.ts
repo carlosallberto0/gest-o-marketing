@@ -129,40 +129,53 @@ export function useCreateMediaEvaluation() {
       }
 
       // Update outdoor status using RPC (bypasses RLS for managers)
-      const { error: outdoorError } = await supabase.rpc('update_outdoor_after_evaluation', {
+      console.log('Chamando RPC update_outdoor_after_evaluation:', {
         p_outdoor_id: input.outdoorId,
         p_status: input.status,
         p_non_operational_reason: input.nonOperationalReason || null,
       });
 
-      if (outdoorError) throw outdoorError;
+      const { data: rpcData, error: outdoorError } = await supabase.rpc('update_outdoor_after_evaluation', {
+        p_outdoor_id: input.outdoorId,
+        p_status: input.status,
+        p_non_operational_reason: input.nonOperationalReason || null,
+      });
+
+      console.log('Resultado RPC update_outdoor_after_evaluation:', { rpcData, outdoorError });
+
+      if (outdoorError) {
+        console.error('Erro ao atualizar outdoor via RPC:', outdoorError);
+        throw outdoorError;
+      }
 
       // Send notification to super_admin and admin
       const statusLabel = input.status === 'operational' ? 'Operacional' : 'Não Operacional';
-      try {
-        await notificarPorRole(
-          'super_admin',
-          'media_evaluation',
-          'media',
-          'Nova Avaliação de Outdoor',
-          `Outdoor avaliado como ${statusLabel}`,
-          `/outdoor/${input.outdoorId}`,
-          evaluation.id,
-          'media_evaluation'
-        );
-        await notificarPorRole(
-          'admin',
-          'media_evaluation',
-          'media',
-          'Nova Avaliação de Outdoor',
-          `Outdoor avaliado como ${statusLabel}`,
-          `/outdoor/${input.outdoorId}`,
-          evaluation.id,
-          'media_evaluation'
-        );
-      } catch (notifError) {
-        console.warn('Erro ao enviar notificação:', notifError);
-      }
+      
+      console.log('Enviando notificação para super_admin...');
+      const notifResult1 = await notificarPorRole(
+        'super_admin',
+        'media_evaluation',
+        'media',
+        'Nova Avaliação de Outdoor',
+        `Outdoor avaliado como ${statusLabel}`,
+        `/outdoor/${input.outdoorId}`,
+        evaluation.id,
+        'media_evaluation'
+      );
+      console.log('Resultado notificação super_admin:', notifResult1);
+
+      console.log('Enviando notificação para admin...');
+      const notifResult2 = await notificarPorRole(
+        'admin',
+        'media_evaluation',
+        'media',
+        'Nova Avaliação de Outdoor',
+        `Outdoor avaliado como ${statusLabel}`,
+        `/outdoor/${input.outdoorId}`,
+        evaluation.id,
+        'media_evaluation'
+      );
+      console.log('Resultado notificação admin:', notifResult2);
 
       return evaluation;
     },
