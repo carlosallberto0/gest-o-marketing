@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PDVWithStats {
   id: string;
@@ -18,11 +19,13 @@ interface PDVWithStats {
 }
 
 export function usePDVs() {
+  const { profile } = useAuth();
+
   return useQuery({
-    queryKey: ['pdvs'],
+    queryKey: ['pdvs', profile?.id, profile?.role, profile?.pdv_id],
     queryFn: async () => {
       // Get PDVs with manager info
-      const { data: pdvs, error: pdvError } = await supabase
+      let query = supabase
         .from('pdvs')
         .select(`
           id,
@@ -37,6 +40,13 @@ export function usePDVs() {
           manager:profiles!pdvs_manager_id_fkey(name)
         `)
         .order('name');
+
+      // If user is manager or collaborator with a PDV assigned, filter to only their PDV
+      if (profile?.pdv_id && ['manager', 'collaborator'].includes(profile?.role || '')) {
+        query = query.eq('id', profile.pdv_id);
+      }
+
+      const { data: pdvs, error: pdvError } = await query;
 
       if (pdvError) throw pdvError;
 
@@ -88,5 +98,6 @@ export function usePDVs() {
 
       return pdvsWithStats;
     },
+    enabled: !!profile,
   });
 }
