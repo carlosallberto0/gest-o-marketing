@@ -80,7 +80,7 @@ export default function Settings() {
   const { profile } = useAuth();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState('default');
-  const [systemName, setSystemName] = useState('SR Off Trade Marketing');
+  const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
