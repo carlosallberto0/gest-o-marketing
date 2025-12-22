@@ -104,6 +104,29 @@ export function useMarcarTodasLidas() {
   });
 }
 
+export function useLimparNotificacoesLidas() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('notificacoes_sistema')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('lida', true);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notificacoes-nao-lidas', user?.id] });
+    },
+  });
+}
+
 // Function to send notification (for use in other hooks/components)
 export async function enviarNotificacao(
   usuarioId: string,
