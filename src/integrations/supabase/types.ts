@@ -486,6 +486,106 @@ export type Database = {
           },
         ]
       }
+      maintenance_approval_packages: {
+        Row: {
+          created_at: string
+          created_by: string
+          director_id: string | null
+          director_notes: string | null
+          id: string
+          observations: string | null
+          reviewed_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          director_id?: string | null
+          director_notes?: string | null
+          id?: string
+          observations?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          director_id?: string | null
+          director_notes?: string | null
+          id?: string
+          observations?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_approval_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_approval_packages_director_id_fkey"
+            columns: ["director_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_package_items: {
+        Row: {
+          created_at: string
+          director_notes: string | null
+          evaluation_id: string | null
+          id: string
+          outdoor_id: string
+          package_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          director_notes?: string | null
+          evaluation_id?: string | null
+          id?: string
+          outdoor_id: string
+          package_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          director_notes?: string | null
+          evaluation_id?: string | null
+          id?: string
+          outdoor_id?: string
+          package_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_package_items_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "media_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_package_items_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_approval_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           approved_at: string | null

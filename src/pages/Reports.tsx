@@ -3,10 +3,15 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useModule } from '@/contexts/ModuleContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateMaintenancePackage } from '@/hooks/useMaintenancePackages';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -27,14 +32,25 @@ import {
   XCircle,
   Clock,
   Image as ImageIcon,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Send,
+  Filter,
+  Wrench
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Reports() {
   const { activeModule } = useModule();
+  const { user } = useAuth();
   const [period, setPeriod] = useState('30');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'operational' | 'non_operational'>('all');
+  const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [packageObservations, setPackageObservations] = useState('');
+  
+  const createPackage = useCreateMaintenancePackage();
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   // Fetch media evaluations
   const { data: mediaEvaluations = [], isLoading: loadingMedia } = useQuery({
@@ -99,12 +115,74 @@ export default function Reports() {
 
   const isLoading = loadingMedia || loadingMerch;
 
+  // Filter media evaluations by status
+  const filteredMediaEvaluations = statusFilter === 'all' 
+    ? mediaEvaluations 
+    : mediaEvaluations.filter(e => e.status === statusFilter);
+
+  // Get unique non-operational outdoors (latest evaluation per outdoor)
+  const nonOperationalOutdoors = mediaEvaluations
+    .filter(e => e.status === 'non_operational')
+    .reduce((acc, evaluation) => {
+      const outdoorId = evaluation.outdoor_id;
+      if (!acc[outdoorId] || new Date(evaluation.evaluated_at) > new Date(acc[outdoorId].evaluated_at)) {
+        acc[outdoorId] = evaluation;
+      }
+      return acc;
+    }, {} as Record<string, typeof mediaEvaluations[0]>);
+
+  const nonOperationalList = Object.values(nonOperationalOutdoors);
+
   // Calculate stats for media module
   const mediaStats = {
     total: mediaEvaluations.length,
     operational: mediaEvaluations.filter(e => e.status === 'operational').length,
     nonOperational: mediaEvaluations.filter(e => e.status === 'non_operational').length,
     pending: mediaEvaluations.filter(e => e.status === 'pending_evaluation').length,
+  };
+
+  const handleToggleOutdoor = (outdoorId: string) => {
+    setSelectedOutdoors(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(outdoorId)) {
+        newSet.delete(outdoorId);
+      } else {
+        newSet.add(outdoorId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllNonOperational = () => {
+    if (selectedOutdoors.size === nonOperationalList.length) {
+      setSelectedOutdoors(new Set());
+    } else {
+      setSelectedOutdoors(new Set(nonOperationalList.map(e => e.outdoor_id)));
+    }
+  };
+
+  const handleSendToDirector = async () => {
+    if (selectedOutdoors.size === 0) {
+      toast.error('Selecione pelo menos um outdoor');
+      return;
+    }
+
+    const items = Array.from(selectedOutdoors).map(outdoorId => {
+      const evaluation = nonOperationalOutdoors[outdoorId];
+      return {
+        outdoor_id: outdoorId,
+        evaluation_id: evaluation?.id,
+      };
+    });
+
+    await createPackage.mutateAsync({
+      observations: packageObservations || undefined,
+      items,
+    });
+
+    setShowSendDialog(false);
+    setSelectedOutdoors(new Set());
+    setPackageObservations('');
   };
 
   // Calculate stats for merch module
@@ -302,6 +380,16 @@ export default function Reports() {
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Excel
             </Button>
+            {activeModule === 'media' && isSuperAdmin && (
+              <Button 
+                onClick={() => setShowSendDialog(true)}
+                disabled={selectedOutdoors.size === 0}
+                className="bg-primary"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Enviar à Diretoria ({selectedOutdoors.size})
+              </Button>
+            )}
           </div>
         </div>
 
@@ -406,6 +494,95 @@ export default function Reports() {
                   </CardContent>
                 </Card>
               </div>
+            )}
+
+            {/* Status Filter for Media Module */}
+            {activeModule === 'media' && (
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Filtrar:</span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={statusFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    Todos
+                  </Button>
+                  <Button 
+                    variant={statusFilter === 'operational' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setStatusFilter('operational')}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Operacionais
+                  </Button>
+                  <Button 
+                    variant={statusFilter === 'non_operational' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setStatusFilter('non_operational')}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Não Operacionais
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Non-Operational Outdoors Selection Card (for super_admin) */}
+            {activeModule === 'media' && isSuperAdmin && nonOperationalList.length > 0 && (
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-5 w-5 text-destructive" />
+                      Outdoors Não Operacionais - Solicitar Manutenção
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleSelectAllNonOperational}>
+                      {selectedOutdoors.size === nonOperationalList.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Selecione os outdoors que devem ser enviados para aprovação de manutenção pela diretoria.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {nonOperationalList.map((evaluation) => (
+                      <div 
+                        key={evaluation.outdoor_id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedOutdoors.has(evaluation.outdoor_id) 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleToggleOutdoor(evaluation.outdoor_id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Checkbox 
+                            checked={selectedOutdoors.has(evaluation.outdoor_id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{(evaluation as any).outdoors?.code || 'Outdoor'}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {(evaluation as any).pdvs?.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {(evaluation as any).outdoors?.location}
+                            </p>
+                            {evaluation.non_operational_reason && (
+                              <Badge variant="destructive" className="mt-1 text-xs">
+                                {evaluation.non_operational_reason}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* PDV Performance Heatmap (Merch only) */}
@@ -566,6 +743,49 @@ export default function Reports() {
             </Card>
           </>
         )}
+
+        {/* Send to Director Dialog */}
+        <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                Enviar para Aprovação da Diretoria
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Você está enviando <strong>{selectedOutdoors.size}</strong> outdoor(s) não operacional(is) 
+                para aprovação de manutenção pela diretoria.
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Observações (opcional)</label>
+                <Textarea
+                  placeholder="Adicione observações sobre este pacote de manutenção..."
+                  value={packageObservations}
+                  onChange={(e) => setPackageObservations(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSendDialog(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSendToDirector}
+                disabled={createPackage.isPending}
+              >
+                {createPackage.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Enviar para Diretoria
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
