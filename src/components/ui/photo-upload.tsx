@@ -23,12 +23,10 @@ export function PhotoUpload({
   folder = "photos"
 }: PhotoUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione uma imagem válida');
       return;
@@ -59,6 +57,39 @@ export function PhotoUpload({
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processFile(file);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled && !isLoading) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (disabled || isLoading) return;
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) await processFile(file);
   };
 
   const handleRemove = () => {
@@ -118,21 +149,33 @@ export function PhotoUpload({
         <button
           type="button"
           onClick={triggerFileInput}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           disabled={disabled || isLoading}
           className={cn(
-            "w-full h-24 border-2 border-dashed border-border rounded-lg",
-            "flex flex-col items-center justify-center gap-2",
-            "text-muted-foreground hover:text-foreground hover:border-primary/50",
-            "transition-colors cursor-pointer",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
+            "w-full h-24 border-2 border-dashed rounded-lg",
+            "flex flex-col items-center justify-center gap-1",
+            "transition-all cursor-pointer",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            isDragging 
+              ? "border-primary bg-primary/10 text-primary scale-[1.02]" 
+              : "border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
           )}
         >
           {isLoading ? (
             <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+          ) : isDragging ? (
+            <>
+              <Upload className="h-6 w-6" />
+              <span className="text-sm font-medium">Solte a imagem aqui</span>
+            </>
           ) : (
             <>
               <Camera className="h-5 w-5" />
               <span className="text-xs">{placeholder}</span>
+              <span className="text-[10px] text-muted-foreground/70">ou arraste uma imagem</span>
             </>
           )}
         </button>
