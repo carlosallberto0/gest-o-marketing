@@ -200,21 +200,26 @@ export default function OutdoorDetail() {
               <h3 className="font-semibold text-foreground">Informações do Outdoor</h3>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
+                <div className="flex items-start gap-3 min-w-0">
+                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">Localização</p>
                     {outdoor.locationUrl ? (
                       <a
                         href={toGoogleMapsUrl(outdoor.locationUrl) || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline font-medium text-left"
+                        className="flex items-center gap-1 text-primary hover:underline font-medium text-left min-w-0"
+                        title={outdoor.locationUrl}
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                       >
-                        {outdoor.location}
-                        <ExternalLink className="h-3 w-3" />
+                        <span className="truncate min-w-0">
+                          {outdoor.location && outdoor.location !== outdoor.locationUrl 
+                            ? outdoor.location 
+                            : outdoor.locationUrl}
+                        </span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                     ) : (
                       <p className="font-medium text-foreground">{outdoor.location}</p>
