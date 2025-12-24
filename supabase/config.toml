@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.reset-password]
 verify_jwt = false
+
+[functions.resolve-google-maps-url]
+verify_jwt = false

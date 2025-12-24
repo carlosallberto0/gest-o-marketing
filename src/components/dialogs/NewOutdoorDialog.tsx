@@ -6,12 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Link as LinkIcon } from 'lucide-react';
+import { Loader2, MapPin, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { usePDVs } from '@/hooks/usePDVs';
 import { useCreateOutdoor } from '@/hooks/useCreateOutdoor';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { extractCoordsFromGoogleMapsUrl } from '@/lib/googleMaps';
+import { extractCoordsFromGoogleMapsUrl, isShortGoogleMapsUrl } from '@/lib/googleMaps';
 import { toast } from 'sonner';
 
 interface NewOutdoorDialogProps {
@@ -22,6 +22,8 @@ interface NewOutdoorDialogProps {
 export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) {
   const { data: pdvs } = usePDVs();
   const createOutdoor = useCreateOutdoor();
+  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     code: '',
     pdvId: '',
@@ -67,18 +69,50 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     setFormData(prev => ({ ...prev, code }));
   };
 
-  const handleUrlChange = (url: string) => {
+  const handleUrlChange = async (url: string) => {
     setFormData(prev => ({ ...prev, locationUrl: url }));
+    setUrlError(null);
     
+    if (!url.trim()) return;
+
+    // Try local extraction first (for full URLs)
     const coords = extractCoordsFromGoogleMapsUrl(url);
     if (coords) {
       setFormData(prev => ({
         ...prev,
-        locationUrl: url,
         lat: coords.lat.toString(),
         lng: coords.lng.toString(),
       }));
       toast.success('Coordenadas extraídas com sucesso!');
+      return;
+    }
+
+    // If short URL, resolve via backend
+    if (isShortGoogleMapsUrl(url)) {
+      setIsResolvingUrl(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('resolve-google-maps-url', {
+          body: { url: url.trim() }
+        });
+
+        if (error) throw error;
+
+        if (data?.coords) {
+          setFormData(prev => ({
+            ...prev,
+            lat: data.coords.lat.toString(),
+            lng: data.coords.lng.toString(),
+          }));
+          toast.success('Coordenadas extraídas com sucesso!');
+        } else {
+          setUrlError('Não foi possível extrair coordenadas desta URL.');
+        }
+      } catch (err) {
+        console.error('Error resolving URL:', err);
+        setUrlError('Erro ao processar URL. Tente usar o link completo do Google Maps.');
+      } finally {
+        setIsResolvingUrl(false);
+      }
     }
   };
 
@@ -183,17 +217,38 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                 value={formData.locationUrl}
                 onChange={(e) => handleUrlChange(e.target.value)}
                 placeholder="Cole um link do Google Maps..."
-                className="flex-1"
+                className="flex-1 truncate"
+                title={formData.locationUrl}
               />
-              {hasCoords && (
-                <Badge variant="outline" className="flex items-center gap-1 shrink-0">
-                  <MapPin className="h-3 w-3" />
-                  Coords
+              {isResolvingUrl && (
+                <Badge variant="secondary" className="flex items-center gap-1 shrink-0">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Carregando...
                 </Badge>
               )}
+              {!isResolvingUrl && hasCoords && (
+                <Badge variant="outline" className="flex items-center gap-1 shrink-0 text-green-600 border-green-600">
+                  <MapPin className="h-3 w-3" />
+                  OK
+                </Badge>
+              )}
+              {formData.locationUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => window.open(formData.locationUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+            {urlError && (
+              <p className="text-xs text-destructive">{urlError}</p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Cole um link do Google Maps para extrair as coordenadas automaticamente
+              Cole um link do Google Maps (curto ou completo) para extrair as coordenadas automaticamente
             </p>
           </div>
 
