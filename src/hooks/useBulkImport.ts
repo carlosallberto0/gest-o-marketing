@@ -514,20 +514,31 @@ export function useBulkImport() {
           outdoor.latitude = coords.lat;
           outdoor.longitude = coords.lng;
           
-          // Find the referenced posto
-          let postoId = postoCache[outdoor.posto_referencia?.toLowerCase() || ''];
+          // Find the referenced posto with normalized matching
+          const normalizeText = (text: string) => 
+            text.toLowerCase()
+              .trim()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+          
+          const postoRefNormalized = normalizeText(outdoor.posto_referencia || '');
+          let postoId = postoCache[postoRefNormalized];
           
           if (!postoId && outdoor.posto_referencia) {
-            // Try to find by exact or partial match
-            const { data } = await supabase
+            // Fetch all PDVs and find best match
+            const { data: allPdvs } = await supabase
               .from('pdvs')
-              .select('id')
-              .ilike('name', `%${outdoor.posto_referencia}%`)
-              .maybeSingle();
+              .select('id, name');
             
-            if (data) {
-              postoId = data.id;
-              postoCache[outdoor.posto_referencia.toLowerCase()] = data.id;
+            if (allPdvs) {
+              const match = allPdvs.find(p => 
+                normalizeText(p.name).includes(postoRefNormalized) || 
+                postoRefNormalized.includes(normalizeText(p.name))
+              );
+              if (match) {
+                postoId = match.id;
+                postoCache[postoRefNormalized] = match.id;
+              }
             }
           }
           
@@ -538,15 +549,16 @@ export function useBulkImport() {
           // Generate sequential code for outdoor (OUT-01, OUT-02, etc.)
           const code = `OUT-${String(outdoorCounter).padStart(2, '0')}`;
           outdoorCounter++;
-          const outdoorLocation = outdoor.posto_referencia || 'Local a confirmar';
+          // Use the raw URL as location (user requested this)
+          const outdoorLocation = outdoor.link_url;
           
-          // Check for existing outdoor
+          // Check for existing outdoor by URL
           if (options.ignoreDuplicates) {
             const { data: existing } = await supabase
               .from('outdoors')
               .select('id')
               .eq('pdv_id', postoId)
-              .ilike('location', outdoorLocation)
+              .eq('location_url', outdoor.link_url)
               .maybeSingle();
             
             if (existing) {
