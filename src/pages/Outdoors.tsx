@@ -310,6 +310,7 @@ export default function Outdoors() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <MapPin className="h-4 w-4 shrink-0" />
                       <span className="truncate max-w-[200px]">{outdoor.locationUrl}</span>
