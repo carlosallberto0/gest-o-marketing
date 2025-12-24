@@ -6,6 +6,7 @@ interface CreateOutdoorInput {
   code: string;
   pdvId: string;
   location: string;
+  locationUrl?: string;
   width: number;
   height: number;
   photoUrl?: string;
@@ -26,6 +27,7 @@ export function useCreateOutdoor() {
           code: input.code,
           pdv_id: input.pdvId,
           location: input.location,
+          location_url: input.locationUrl || null,
           width: input.width,
           height: input.height,
           photo_url: input.photoUrl || null,

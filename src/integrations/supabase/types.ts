@@ -1133,6 +1133,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           location: string
+          location_url: string | null
           non_operational_reason: string | null
           ownership_type: string | null
           pdv_id: string
@@ -1157,6 +1158,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           location: string
+          location_url?: string | null
           non_operational_reason?: string | null
           ownership_type?: string | null
           pdv_id: string
@@ -1181,6 +1183,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           location?: string
+          location_url?: string | null
           non_operational_reason?: string | null
           ownership_type?: string | null
           pdv_id?: string

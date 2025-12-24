@@ -544,6 +544,7 @@ export function useBulkImport() {
             .insert({
               code,
               location: outdoorLocation,
+              location_url: outdoor.link_url || null,
               pdv_id: postoId,
               lat: outdoor.latitude,
               lng: outdoor.longitude,

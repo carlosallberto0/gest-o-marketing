@@ -27,6 +27,7 @@ export interface MapOutdoor {
   id: string;
   code: string;
   location: string;
+  location_url: string | null;
   lat: number | null;
   lng: number | null;
   width: number;
@@ -176,6 +177,7 @@ export function useMapOutdoors() {
           id,
           code,
           location,
+          location_url,
           lat,
           lng,
           width,
@@ -226,6 +228,7 @@ export function useMapOutdoors() {
           id: outdoor.id,
           code: outdoor.code,
           location: outdoor.location,
+          location_url: outdoor.location_url,
           lat: finalLat,
           lng: finalLng,
           width: outdoor.width,

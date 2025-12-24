@@ -8,6 +8,7 @@ interface OutdoorWithPDV {
   id: string;
   code: string;
   location: string;
+  location_url: string | null;
   width: number;
   height: number;
   area: number | null;
@@ -54,6 +55,7 @@ export function useOutdoors() {
         pdvName: out.pdvs?.name || 'PDV não encontrado',
         code: out.code,
         location: out.location,
+        locationUrl: out.location_url || undefined,
         width: Number(out.width),
         height: Number(out.height),
         area: out.area ? Number(out.area) : Number(out.width) * Number(out.height),
