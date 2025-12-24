@@ -206,10 +206,11 @@ export default function OutdoorDetail() {
                     <p className="text-sm text-muted-foreground">Localização</p>
                     {outdoor.locationUrl ? (
                       <a 
-                        href={toGoogleMapsUrl(outdoor.locationUrl) || outdoor.locationUrl}
+                        href={outdoor.locationUrl.startsWith('http') ? outdoor.locationUrl : `https://${outdoor.locationUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-primary hover:underline font-medium"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {outdoor.location}
                         <ExternalLink className="h-3 w-3" />
