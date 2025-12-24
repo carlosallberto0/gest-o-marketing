@@ -41,39 +41,47 @@ export function toGoogleMapsUrl(input?: string | null): string | null {
 export function extractCoordsFromGoogleMapsUrl(url: string): { lat: number; lng: number } | null {
   if (!url) return null;
   
-  const trimmedUrl = url.trim();
+  // Decode URL to handle %2C and + as commas/spaces
+  const decodedUrl = decodeURIComponent(url.trim()).replace(/\+/g, '');
+
+  // Pattern: /maps/search/-16.455045,-49.054816 (expanded short URLs)
+  const searchPattern = /\/maps\/search\/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/;
+  const searchMatch = decodedUrl.match(searchPattern);
+  if (searchMatch) {
+    return { lat: parseFloat(searchMatch[1]), lng: parseFloat(searchMatch[2]) };
+  }
 
   // Pattern: /@-23.5505,-46.6333,
   const atPattern = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-  const atMatch = trimmedUrl.match(atPattern);
+  const atMatch = decodedUrl.match(atPattern);
   if (atMatch) {
     return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
   }
 
   // Pattern: ?q=-23.5505,-46.6333 or &q=
   const qPattern = /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-  const qMatch = trimmedUrl.match(qPattern);
+  const qMatch = decodedUrl.match(qPattern);
   if (qMatch) {
     return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
   }
 
   // Pattern: !3d-23.5505!4d-46.6333 (embedded maps)
   const embedPattern = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
-  const embedMatch = trimmedUrl.match(embedPattern);
+  const embedMatch = decodedUrl.match(embedPattern);
   if (embedMatch) {
     return { lat: parseFloat(embedMatch[1]), lng: parseFloat(embedMatch[2]) };
   }
 
   // Pattern: !8m2!3d-23.5505!4d-46.6333
   const dataPattern = /!8m2!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
-  const dataMatch = trimmedUrl.match(dataPattern);
+  const dataMatch = decodedUrl.match(dataPattern);
   if (dataMatch) {
     return { lat: parseFloat(dataMatch[1]), lng: parseFloat(dataMatch[2]) };
   }
 
   // Pattern: /place/-23.5505,-46.6333
   const placePattern = /\/place\/(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-  const placeMatch = trimmedUrl.match(placePattern);
+  const placeMatch = decodedUrl.match(placePattern);
   if (placeMatch) {
     return { lat: parseFloat(placeMatch[1]), lng: parseFloat(placeMatch[2]) };
   }

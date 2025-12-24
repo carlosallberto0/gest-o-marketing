@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
-import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -307,21 +306,21 @@ export default function Outdoors() {
                 <div className="space-y-2 text-sm">
                   {outdoor.locationUrl ? (
                     <a 
-                      href={toGoogleMapsUrl(outdoor.locationUrl) || outdoor.locationUrl}
+                      href={outdoor.locationUrl.startsWith('http') ? outdoor.locationUrl : `https://${outdoor.locationUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-primary hover:underline"
                     >
                       <MapPin className="h-4 w-4 shrink-0" />
-                      <span className="truncate max-w-[200px]">{outdoor.location}</span>
+                      <span className="truncate max-w-[200px]">{outdoor.locationUrl}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
-                  ) : (
+                  ) : outdoor.location ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4" />
-                      <span>{outdoor.location}</span>
+                      <span className="truncate max-w-[200px]">{outdoor.location}</span>
                     </div>
-                  )}
+                  ) : null}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Maximize className="h-4 w-4" />
                     <span>{outdoor.width}m x {outdoor.height}m ({outdoor.area}m²)</span>
