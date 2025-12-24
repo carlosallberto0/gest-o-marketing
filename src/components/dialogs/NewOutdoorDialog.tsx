@@ -5,11 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhotoUpload } from '@/components/ui/photo-upload';
-import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, MapPin, Link as LinkIcon } from 'lucide-react';
 import { usePDVs } from '@/hooks/usePDVs';
 import { useCreateOutdoor } from '@/hooks/useCreateOutdoor';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { extractCoordsFromGoogleMapsUrl } from '@/lib/googleMaps';
+import { toast } from 'sonner';
 
 interface NewOutdoorDialogProps {
   open: boolean;
@@ -23,11 +26,14 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     code: '',
     pdvId: '',
     location: '',
+    locationUrl: '',
     width: '',
     height: '',
     photoUrl: '',
     ownershipType: 'owned' as 'owned' | 'rented',
     supplierId: '',
+    lat: '',
+    lng: '',
   });
 
   // Fetch suppliers
@@ -61,6 +67,21 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     setFormData(prev => ({ ...prev, code }));
   };
 
+  const handleUrlChange = (url: string) => {
+    setFormData(prev => ({ ...prev, locationUrl: url }));
+    
+    const coords = extractCoordsFromGoogleMapsUrl(url);
+    if (coords) {
+      setFormData(prev => ({
+        ...prev,
+        locationUrl: url,
+        lat: coords.lat.toString(),
+        lng: coords.lng.toString(),
+      }));
+      toast.success('Coordenadas extraídas com sucesso!');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -73,6 +94,8 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       photoUrl: formData.photoUrl || undefined,
       ownershipType: formData.ownershipType,
       supplierId: formData.supplierId || undefined,
+      lat: formData.lat ? parseFloat(formData.lat) : undefined,
+      lng: formData.lng ? parseFloat(formData.lng) : undefined,
     });
     
     onOpenChange(false);
@@ -80,15 +103,19 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       code: '',
       pdvId: '',
       location: '',
+      locationUrl: '',
       width: '',
       height: '',
       photoUrl: '',
       ownershipType: 'owned',
       supplierId: '',
+      lat: '',
+      lng: '',
     });
   };
 
   const mediaPDVs = pdvs?.filter(pdv => pdv.active_modules?.includes('media')) || [];
+  const hasCoords = formData.lat && formData.lng;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,6 +169,58 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
               placeholder="Ex: Entrada principal, fachada lateral, rodovia km 123..."
               required
             />
+          </div>
+
+          {/* URL do Google Maps */}
+          <div className="space-y-2">
+            <Label htmlFor="locationUrl" className="flex items-center gap-2">
+              <LinkIcon className="h-3.5 w-3.5" />
+              URL de Localização (opcional)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="locationUrl"
+                value={formData.locationUrl}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                placeholder="Cole um link do Google Maps..."
+                className="flex-1"
+              />
+              {hasCoords && (
+                <Badge variant="outline" className="flex items-center gap-1 shrink-0">
+                  <MapPin className="h-3 w-3" />
+                  Coords
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cole um link do Google Maps para extrair as coordenadas automaticamente
+            </p>
+          </div>
+
+          {/* Coordenadas */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="lat">Latitude (opcional)</Label>
+              <Input
+                id="lat"
+                type="number"
+                step="any"
+                value={formData.lat}
+                onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                placeholder="-23.5505"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lng">Longitude (opcional)</Label>
+              <Input
+                id="lng"
+                type="number"
+                step="any"
+                value={formData.lng}
+                onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+                placeholder="-46.6333"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -16,7 +16,8 @@ import {
   Filter,
   Eye,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -27,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
+import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { usePDVs } from '@/hooks/usePDVs';
 
 export default function Outdoors() {
@@ -35,8 +37,9 @@ export default function Outdoors() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pdvFilter, setPdvFilter] = useState<string>('all');
   const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
-  const { data: outdoors = [], isLoading } = useOutdoors();
+  const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
 
 
@@ -75,10 +78,16 @@ export default function Outdoors() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Outdoors</h1>
             <p className="text-muted-foreground mt-1">Gestão de mídia externa</p>
           </div>
-          <Button onClick={() => setIsNewOutdoorOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Outdoor
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button onClick={() => setIsNewOutdoorOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Outdoor
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -215,6 +224,7 @@ export default function Outdoors() {
       </div>
 
       <NewOutdoorDialog open={isNewOutdoorOpen} onOpenChange={setIsNewOutdoorOpen} />
+      <BulkImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} onSuccess={() => refetch()} />
     </AppLayout>
   );
 }

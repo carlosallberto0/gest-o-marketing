@@ -11,6 +11,8 @@ interface CreateOutdoorInput {
   photoUrl?: string;
   ownershipType?: 'owned' | 'rented';
   supplierId?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export function useCreateOutdoor() {
@@ -29,6 +31,8 @@ export function useCreateOutdoor() {
           photo_url: input.photoUrl || null,
           ownership_type: input.ownershipType || 'owned',
           supplier_id: input.supplierId || null,
+          lat: input.lat || null,
+          lng: input.lng || null,
           status: 'pending_evaluation',
         })
         .select()
