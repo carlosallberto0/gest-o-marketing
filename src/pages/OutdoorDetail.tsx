@@ -205,23 +205,17 @@ export default function OutdoorDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
                     {outdoor.locationUrl ? (
-                      <button
-                        type="button"
+                      <a
+                        href={toGoogleMapsUrl(outdoor.locationUrl) || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-1 text-primary hover:underline font-medium text-left"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const raw = (outdoor.locationUrl ?? '').trim();
-                          const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-                          const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-                          if (!newWindow) {
-                            toast.warning('O navegador bloqueou pop-ups. Por favor, permita pop-ups para este site.');
-                          }
-                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                       >
                         {outdoor.location}
                         <ExternalLink className="h-3 w-3" />
-                      </button>
+                      </a>
                     ) : (
                       <p className="font-medium text-foreground">{outdoor.location}</p>
                     )}

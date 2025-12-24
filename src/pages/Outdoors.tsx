@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
+import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -305,24 +306,18 @@ export default function Outdoors() {
                 
                 <div className="space-y-2 text-sm">
                   {outdoor.locationUrl ? (
-                    <button
-                      type="button"
+                    <a
+                      href={toGoogleMapsUrl(outdoor.locationUrl) || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex items-center gap-2 text-primary hover:underline text-left"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const raw = (outdoor.locationUrl ?? '').trim();
-                        const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-                        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-                        if (!newWindow) {
-                          toast.warning('O navegador bloqueou pop-ups. Por favor, permita pop-ups para este site.');
-                        }
-                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                     >
                       <MapPin className="h-4 w-4 shrink-0" />
                       <span className="truncate max-w-[200px]">{outdoor.locationUrl}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
-                    </button>
+                    </a>
                   ) : outdoor.location ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4" />
