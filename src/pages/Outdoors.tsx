@@ -7,6 +7,7 @@ import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Megaphone, 
   Search, 
@@ -17,7 +18,9 @@ import {
   Eye,
   Loader2,
   ExternalLink,
-  Upload
+  Upload,
+  Trash2,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -27,9 +30,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { usePDVs } from '@/hooks/usePDVs';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function Outdoors() {
   const navigate = useNavigate();
@@ -38,10 +54,11 @@ export default function Outdoors() {
   const [pdvFilter, setPdvFilter] = useState<string>('all');
   const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
-
 
   const filteredOutdoors = outdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,6 +74,49 @@ export default function Outdoors() {
     operational: outdoors.filter(o => o.status === 'operational').length,
     nonOperational: outdoors.filter(o => o.status === 'non_operational').length,
     pending: outdoors.filter(o => o.status === 'pending_evaluation').length,
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedOutdoors(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOutdoors.size === filteredOutdoors.length && filteredOutdoors.length > 0) {
+      setSelectedOutdoors(new Set());
+    } else {
+      setSelectedOutdoors(new Set(filteredOutdoors.map(o => o.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOutdoors.size === 0) return;
+    setIsDeleting(true);
+    try {
+      const idsToDelete = Array.from(selectedOutdoors);
+      
+      const { error } = await supabase
+        .from('outdoors')
+        .delete()
+        .in('id', idsToDelete);
+      
+      if (error) throw error;
+      
+      toast.success(`${idsToDelete.length} outdoor(s) excluído(s) com sucesso!`);
+      setSelectedOutdoors(new Set());
+      refetch();
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -110,8 +170,62 @@ export default function Outdoors() {
           </div>
         </div>
 
+        {/* Bulk Action Bar */}
+        {selectedOutdoors.size > 0 && (
+          <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Checkbox 
+                checked={selectedOutdoors.size === filteredOutdoors.length && filteredOutdoors.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm font-medium text-foreground">
+                {selectedOutdoors.size} outdoor(s) selecionado(s)
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedOutdoors(new Set())}>
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDeleting}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Selecionados
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir {selectedOutdoors.size} outdoor(s)?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Todos os outdoors selecionados 
+                      e suas avaliações serão removidos permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                      {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-3">
+            <Checkbox 
+              id="select-all"
+              checked={filteredOutdoors.length > 0 && selectedOutdoors.size === filteredOutdoors.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+              Selecionar todos
+            </label>
+          </div>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -151,10 +265,24 @@ export default function Outdoors() {
           {filteredOutdoors.map((outdoor, index) => (
             <div 
               key={outdoor.id}
-              className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 animate-slide-up"
+              className={cn(
+                "bg-card rounded-xl border overflow-hidden hover:shadow-lg transition-all duration-300 animate-slide-up",
+                selectedOutdoors.has(outdoor.id) ? "border-primary ring-2 ring-primary/20" : "border-border"
+              )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="aspect-video bg-muted relative">
+                {/* Selection Checkbox */}
+                <div 
+                  className="absolute top-3 left-3 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedOutdoors.has(outdoor.id)}
+                    onCheckedChange={() => toggleSelection(outdoor.id)}
+                    className="bg-background border-2 h-5 w-5"
+                  />
+                </div>
                 <img 
                   src={outdoor.photoUrl || '/placeholder.svg'} 
                   alt={outdoor.code}
