@@ -88,8 +88,18 @@ export function generateCSVTemplate(): string {
   ].join('\n');
 }
 
-// Robust CSV parser that handles quoted values with commas
-function parseCSVLine(line: string): string[] {
+// Detect delimiter from header line (supports , and ;)
+function detectDelimiter(headerLine: string): string {
+  const semicolonCount = (headerLine.match(/;/g) || []).length;
+  const commaCount = (headerLine.match(/,/g) || []).length;
+  
+  // If semicolons are more prevalent, use semicolon
+  // This handles Brazilian/European CSV formats
+  return semicolonCount > commaCount ? ';' : ',';
+}
+
+// Robust CSV parser that handles quoted values with configurable delimiter
+function parseCSVLine(line: string, delimiter: string = ','): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -106,7 +116,7 @@ function parseCSVLine(line: string): string[] {
         // Toggle quote mode
         inQuotes = !inQuotes;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       result.push(current.trim());
       current = '';
     } else {
@@ -142,15 +152,20 @@ export function useBulkImport() {
       throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
     }
     
-    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+    // Auto-detect delimiter from header line
+    const delimiter = detectDelimiter(lines[0]);
+    console.log('Delimitador detectado:', delimiter);
+    
+    const headers = parseCSVLine(lines[0], delimiter).map(h => h.toLowerCase().trim());
+    console.log('Cabeçalhos lidos:', headers);
     
     // Validate required headers - now just tipo and link_url (or url alias)
     const hasLinkUrl = headers.includes('link_url') || headers.includes('url');
     if (!headers.includes('tipo')) {
-      throw new Error('Coluna obrigatória ausente: tipo');
+      throw new Error(`Coluna obrigatória ausente: tipo. Delimitador detectado: "${delimiter}". Cabeçalhos encontrados: ${headers.join(', ')}`);
     }
     if (!hasLinkUrl) {
-      throw new Error('Coluna obrigatória ausente: link_url (ou url)');
+      throw new Error(`Coluna obrigatória ausente: link_url (ou url). Delimitador detectado: "${delimiter}". Cabeçalhos encontrados: ${headers.join(', ')}`);
     }
     
     const records: ImportRecord[] = [];
@@ -159,7 +174,7 @@ export function useBulkImport() {
       const line = lines[i].trim();
       if (!line || line.startsWith('#')) continue; // Skip empty lines and comments
       
-      const values = parseCSVLine(line);
+      const values = parseCSVLine(line, delimiter);
       const record: any = {};
       
       headers.forEach((header, idx) => {
