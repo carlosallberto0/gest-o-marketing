@@ -27,9 +27,10 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Upload, FileText, CheckCircle, AlertCircle, Download, X, FileDown } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, X, FileDown, ExternalLink } from 'lucide-react';
 import { useBulkImport, ImportRecord, generateCSVTemplate } from '@/hooks/useBulkImport';
 import { toast } from 'sonner';
+import { isShortGoogleMapsUrl } from '@/lib/googleMaps';
 
 interface BulkImportDialogProps {
   open: boolean;
@@ -195,10 +196,14 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
               <p className="font-medium">Campos obrigatórios:</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 <li><strong>tipo</strong>: "posto" ou "outdoor"</li>
-                <li><strong>nome</strong>: Nome do posto ou outdoor</li>
-                <li><strong>latitude</strong>: Coordenada (ex: -23.5505)</li>
-                <li><strong>longitude</strong>: Coordenada (ex: -46.6333)</li>
+                <li><strong>link_url</strong>: URL do Google Maps (completa ou encurtada)</li>
                 <li><strong>posto_referencia</strong>: Obrigatório para outdoors (nome do posto associado)</li>
+              </ul>
+              <p className="font-medium mt-3">Campos opcionais:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li><strong>nome</strong>: Nome do posto (outdoors usam código automático)</li>
+                <li><strong>endereco</strong>, <strong>cidade</strong>, <strong>estado</strong>: Endereço</li>
+                <li><strong>largura</strong>, <strong>altura</strong>: Dimensões do outdoor (metros)</li>
               </ul>
             </div>
           </div>
@@ -264,8 +269,8 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Lat/Lng</TableHead>
+                    <TableHead>Nome/Código</TableHead>
+                    <TableHead>Link</TableHead>
                     <TableHead>Referência</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -277,11 +282,23 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
                           {record.tipo}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        {record.nome}
+                      <TableCell className="font-medium max-w-[150px] truncate">
+                        {record.nome || <span className="text-muted-foreground italic">Auto</span>}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
+                      <TableCell className="text-sm">
+                        {record.link_url ? (
+                          <a 
+                            href={record.link_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {isShortGoogleMapsUrl(record.link_url) ? 'Link curto' : 'Google Maps'}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
                         {record.posto_referencia || '-'}
