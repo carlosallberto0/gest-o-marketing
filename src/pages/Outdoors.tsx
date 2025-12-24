@@ -315,8 +315,7 @@ export default function Outdoors() {
                         const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
                         const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
                         if (!newWindow) {
-                          toast.info('Navegador bloqueou pop-ups. Abrindo na mesma aba...');
-                          window.location.assign(url);
+                          toast.warning('O navegador bloqueou pop-ups. Por favor, permita pop-ups para este site.');
                         }
                       }}
                     >
