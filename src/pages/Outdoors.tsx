@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
-import { toGoogleMapsUrl } from '@/lib/googleMaps';
+import { coordsToGoogleMapsUrl, toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -180,7 +180,8 @@ export default function Outdoors() {
                   <button 
                     type="button"
                     onClick={() => {
-                      const url = toGoogleMapsUrl(outdoor.location);
+                      // Priorizar coordenadas, fallback para location
+                      const url = coordsToGoogleMapsUrl(outdoor.lat, outdoor.lng) || toGoogleMapsUrl(outdoor.location);
                       if (url) window.open(url, '_blank', 'noopener,noreferrer');
                     }}
                     className="flex items-center gap-2 text-primary hover:underline cursor-pointer text-left"

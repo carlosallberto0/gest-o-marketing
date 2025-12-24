@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
-import { toGoogleMapsUrl } from '@/lib/googleMaps';
+import { coordsToGoogleMapsUrl, toGoogleMapsUrl } from '@/lib/googleMaps';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutdoorObservations, useCreateDirectorObservation } from '@/hooks/useDirectorObservations';
@@ -207,7 +207,8 @@ export default function OutdoorDetail() {
                     <button 
                       type="button"
                       onClick={() => {
-                        const url = toGoogleMapsUrl(outdoor.location);
+                        // Priorizar coordenadas, fallback para location
+                        const url = coordsToGoogleMapsUrl(outdoor.lat, outdoor.lng) || toGoogleMapsUrl(outdoor.location);
                         if (url) window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                       className="flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer text-left"
