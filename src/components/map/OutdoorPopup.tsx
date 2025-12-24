@@ -1,7 +1,7 @@
 import { MapOutdoor } from '@/hooks/useStrategicMapData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { toGoogleMapsUrl } from '@/lib/googleMaps';
+import { coordsToGoogleMapsUrl, toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Wrench, MapPin, AlertTriangle, Calendar, Ruler, ExternalLink } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,7 +37,8 @@ export function OutdoorPopup({ outdoor, onClose, onNavigate }: OutdoorPopupProps
   const handleOpenLocation = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = toGoogleMapsUrl(outdoor.location);
+    // Priorizar coordenadas, fallback para location
+    const url = coordsToGoogleMapsUrl(outdoor.lat, outdoor.lng) || toGoogleMapsUrl(outdoor.location);
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }

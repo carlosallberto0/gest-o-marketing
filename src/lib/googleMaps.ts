@@ -1,6 +1,14 @@
 // Utilitários para links do Google Maps
 
 /**
+ * Cria uma URL do Google Maps a partir de coordenadas lat/lng
+ */
+export function coordsToGoogleMapsUrl(lat?: number | null, lng?: number | null): string | null {
+  if (lat == null || lng == null) return null;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
+/**
  * Converte um valor salvo em `outdoor.location` em uma URL abrível no Google Maps.
  * - Se já for URL (http/https), retorna como está.
  * - Se for URL sem protocolo (ex: maps.app.goo.gl/...), adiciona https://
