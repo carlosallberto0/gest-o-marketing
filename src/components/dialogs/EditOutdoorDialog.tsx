@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -44,6 +45,7 @@ export function EditOutdoorDialog({
     lng: '',
     status: 'pending_evaluation' as string,
     non_operational_reason: '',
+    photoUrl: '',
   });
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export function EditOutdoorDialog({
         lng: outdoor.lng?.toString() || '',
         status: outdoor.status,
         non_operational_reason: outdoor.nonOperationalReason || '',
+        photoUrl: outdoor.photoUrl || '',
       });
     }
   }, [outdoor]);
@@ -76,6 +79,7 @@ export function EditOutdoorDialog({
         non_operational_reason: formData.status === 'non_operational' 
           ? formData.non_operational_reason 
           : null,
+        photo_url: formData.photoUrl || null,
       };
 
       if (formData.lat) updateData.lat = parseFloat(formData.lat);
@@ -116,12 +120,24 @@ export function EditOutdoorDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Foto do Outdoor</Label>
+            <PhotoUpload
+              value={formData.photoUrl || null}
+              onChange={(url) => setFormData({ ...formData, photoUrl: url || '' })}
+              folder="outdoors"
+              placeholder="Clique ou arraste para adicionar foto"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Código</Label>
               <Input
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                readOnly
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
             </div>
             <div className="space-y-2">
