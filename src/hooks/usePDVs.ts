@@ -12,6 +12,9 @@ interface PDVWithStats {
   state: string;
   status: string;
   active_modules: string[];
+  photo_url?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   manager: { name: string } | null;
   lastMerchScore?: number;
   totalOutdoors?: number;
@@ -37,6 +40,9 @@ export function usePDVs() {
           state,
           status,
           active_modules,
+          photo_url,
+          lat,
+          lng,
           manager:profiles!pdvs_manager_id_fkey(name)
         `)
         .order('name');
