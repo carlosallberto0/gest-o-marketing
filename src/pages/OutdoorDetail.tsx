@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
-import { coordsToGoogleMapsUrl, toGoogleMapsUrl } from '@/lib/googleMaps';
+import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutdoorObservations, useCreateDirectorObservation } from '@/hooks/useDirectorObservations';
@@ -204,18 +204,19 @@ export default function OutdoorDetail() {
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        // Priorizar coordenadas, fallback para location
-                        const url = coordsToGoogleMapsUrl(outdoor.lat, outdoor.lng) || toGoogleMapsUrl(outdoor.location);
-                        if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer text-left"
-                    >
-                      Ver no Google Maps
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
+                    {outdoor.locationUrl ? (
+                      <a 
+                        href={toGoogleMapsUrl(outdoor.locationUrl) || outdoor.locationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline font-medium"
+                      >
+                        {outdoor.location}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <p className="font-medium text-foreground">{outdoor.location}</p>
+                    )}
                   </div>
                 </div>
                 

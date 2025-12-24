@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
-import { coordsToGoogleMapsUrl, toGoogleMapsUrl } from '@/lib/googleMaps';
+import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -177,19 +177,23 @@ export default function Outdoors() {
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      // Priorizar coordenadas, fallback para location
-                      const url = coordsToGoogleMapsUrl(outdoor.lat, outdoor.lng) || toGoogleMapsUrl(outdoor.location);
-                      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                    }}
-                    className="flex items-center gap-2 text-primary hover:underline cursor-pointer text-left"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span>Ver no Google Maps</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </button>
+                  {outdoor.locationUrl ? (
+                    <a 
+                      href={toGoogleMapsUrl(outdoor.locationUrl) || outdoor.locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-primary hover:underline"
+                    >
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span className="truncate max-w-[200px]">{outdoor.location}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>{outdoor.location}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Maximize className="h-4 w-4" />
                     <span>{outdoor.width}m x {outdoor.height}m ({outdoor.area}m²)</span>

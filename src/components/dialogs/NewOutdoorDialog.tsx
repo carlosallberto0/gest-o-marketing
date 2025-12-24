@@ -123,6 +123,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       code: formData.code,
       pdvId: formData.pdvId,
       location: formData.location,
+      locationUrl: formData.locationUrl || undefined,
       width: parseFloat(formData.width),
       height: parseFloat(formData.height),
       photoUrl: formData.photoUrl || undefined,
