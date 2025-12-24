@@ -482,6 +482,23 @@ export function useBulkImport() {
         setProgress(Math.round((processed / total) * 100));
       }
 
+      // Buscar o maior código OUT-xx existente para gerar sequencial
+      const { data: existingOutdoors } = await supabase
+        .from('outdoors')
+        .select('code')
+        .like('code', 'OUT-%');
+
+      let outdoorCounter = 1;
+      if (existingOutdoors && existingOutdoors.length > 0) {
+        for (const o of existingOutdoors) {
+          const match = o.code?.match(/^OUT-(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num >= outdoorCounter) outdoorCounter = num + 1;
+          }
+        }
+      }
+
       // Now process outdoors
       for (let i = 0; i < outdoors.length; i++) {
         const outdoor = outdoors[i];
@@ -518,9 +535,10 @@ export function useBulkImport() {
             throw new Error(`Posto de referência não encontrado: "${outdoor.posto_referencia}"`);
           }
           
-          // Generate code for outdoor
-          const code = `OUT-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-          const outdoorLocation = outdoor.nome || `Outdoor ${code}`;
+          // Generate sequential code for outdoor (OUT-01, OUT-02, etc.)
+          const code = `OUT-${String(outdoorCounter).padStart(2, '0')}`;
+          outdoorCounter++;
+          const outdoorLocation = outdoor.posto_referencia || 'Local a confirmar';
           
           // Check for existing outdoor
           if (options.ignoreDuplicates) {
