@@ -305,17 +305,25 @@ export default function Outdoors() {
                 
                 <div className="space-y-2 text-sm">
                   {outdoor.locationUrl ? (
-                    <a 
-                      href={outdoor.locationUrl.startsWith('http') ? outdoor.locationUrl : `https://${outdoor.locationUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-primary hover:underline"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-primary hover:underline text-left"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const raw = (outdoor.locationUrl ?? '').trim();
+                        const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+                        if (!newWindow) {
+                          toast.info('Navegador bloqueou pop-ups. Abrindo na mesma aba...');
+                          window.location.assign(url);
+                        }
+                      }}
                     >
                       <MapPin className="h-4 w-4 shrink-0" />
                       <span className="truncate max-w-[200px]">{outdoor.locationUrl}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
+                    </button>
                   ) : outdoor.location ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4" />

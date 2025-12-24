@@ -205,16 +205,24 @@ export default function OutdoorDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Localização</p>
                     {outdoor.locationUrl ? (
-                      <a 
-                        href={outdoor.locationUrl.startsWith('http') ? outdoor.locationUrl : `https://${outdoor.locationUrl}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline font-medium"
-                        onClick={(e) => e.stopPropagation()}
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-primary hover:underline font-medium text-left"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const raw = (outdoor.locationUrl ?? '').trim();
+                          const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                          const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+                          if (!newWindow) {
+                            toast.info('Navegador bloqueou pop-ups. Abrindo na mesma aba...');
+                            window.location.assign(url);
+                          }
+                        }}
                       >
                         {outdoor.location}
                         <ExternalLink className="h-3 w-3" />
-                      </a>
+                      </button>
                     ) : (
                       <p className="font-medium text-foreground">{outdoor.location}</p>
                     )}
