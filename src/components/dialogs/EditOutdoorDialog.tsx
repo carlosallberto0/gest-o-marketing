@@ -76,7 +76,6 @@ export function EditOutdoorDialog({
         location: formData.location,
         width: formData.width,
         height: formData.height,
-        area: formData.width * formData.height,
         status: formData.status,
         non_operational_reason: formData.status === 'non_operational' 
           ? formData.non_operational_reason 
@@ -236,6 +235,7 @@ export function EditOutdoorDialog({
                 <SelectItem value="diesel">Diesel</SelectItem>
                 <SelectItem value="institucional">Institucional</SelectItem>
                 <SelectItem value="servico">Serviço</SelectItem>
+                <SelectItem value="carta_frete">Carta Frete</SelectItem>
               </SelectContent>
             </Select>
           </div>

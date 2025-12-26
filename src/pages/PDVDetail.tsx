@@ -66,6 +66,7 @@ function getDescriptionTypeLabel(type: string | null): string {
     diesel: 'Diesel',
     institucional: 'Institucional',
     servico: 'Serviço',
+    carta_frete: 'Carta Frete',
   };
   return labels[type] || type;
 }
