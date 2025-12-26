@@ -36,6 +36,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     supplierId: '',
     lat: '',
     lng: '',
+    descriptionType: '',
   });
 
   // Fetch suppliers
@@ -131,6 +132,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       supplierId: formData.supplierId || undefined,
       lat: formData.lat ? parseFloat(formData.lat) : undefined,
       lng: formData.lng ? parseFloat(formData.lng) : undefined,
+      descriptionType: formData.descriptionType || undefined,
     });
     
     onOpenChange(false);
@@ -146,6 +148,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
       supplierId: '',
       lat: '',
       lng: '',
+      descriptionType: '',
     });
   };
 
@@ -348,6 +351,26 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                 {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Description Type */}
+          <div className="space-y-2">
+            <Label>Descrição/Tipo do Outdoor</Label>
+            <Select 
+              value={formData.descriptionType || 'none'} 
+              onValueChange={(v) => setFormData({ ...formData, descriptionType: v === 'none' ? '' : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
+                <SelectItem value="diesel">Diesel</SelectItem>
+                <SelectItem value="institucional">Institucional</SelectItem>
+                <SelectItem value="servico">Serviço</SelectItem>
               </SelectContent>
             </Select>
           </div>

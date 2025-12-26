@@ -11,7 +11,18 @@ interface PDVDetails {
   state: string;
   status: string;
   active_modules: string[];
+  photo_url: string | null;
   manager: { name: string } | null;
+}
+
+interface PDVOutdoor {
+  id: string;
+  code: string;
+  location: string;
+  width: number;
+  height: number;
+  status: string;
+  description_type: string | null;
 }
 
 interface EvaluationHistory {
@@ -49,6 +60,7 @@ export function usePDVDetails(pdvId: string) {
           state,
           status,
           active_modules,
+          photo_url,
           manager:profiles!pdvs_manager_id_fkey(name)
         `)
         .eq('id', pdvId)
@@ -56,6 +68,23 @@ export function usePDVDetails(pdvId: string) {
 
       if (error) throw error;
       return data as PDVDetails | null;
+    },
+    enabled: !!pdvId,
+  });
+}
+
+export function usePDVOutdoors(pdvId: string) {
+  return useQuery({
+    queryKey: ['pdv-outdoors', pdvId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('outdoors')
+        .select('id, code, location, width, height, status, description_type')
+        .eq('pdv_id', pdvId)
+        .order('code');
+
+      if (error) throw error;
+      return data as PDVOutdoor[];
     },
     enabled: !!pdvId,
   });

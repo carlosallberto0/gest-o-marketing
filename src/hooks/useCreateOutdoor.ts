@@ -14,6 +14,7 @@ interface CreateOutdoorInput {
   supplierId?: string;
   lat?: number;
   lng?: number;
+  descriptionType?: string;
 }
 
 export function useCreateOutdoor() {
@@ -36,6 +37,7 @@ export function useCreateOutdoor() {
           lat: input.lat || null,
           lng: input.lng || null,
           status: 'pending_evaluation',
+          description_type: input.descriptionType || null,
         })
         .select()
         .single();
