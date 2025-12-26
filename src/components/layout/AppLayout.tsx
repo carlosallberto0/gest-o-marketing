@@ -28,6 +28,7 @@ import {
   Wrench,
   FilePlus,
   Search,
+  Upload,
   Bell,
   Maximize2,
   CheckCircle
@@ -130,6 +131,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
     { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
+    // Carga em Massa - Super Admin only
+    { icon: Upload, label: 'Carga de Imagens', path: '/bulk-image-upload', roles: ['super_admin'] },
     // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin', 'director'] },
