@@ -30,8 +30,11 @@ import {
   Calendar,
   Monitor,
   ChevronRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Plus
 } from 'lucide-react';
+import { useState } from 'react';
+import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -89,6 +92,7 @@ function getStatusBadgeClass(status: string): string {
 export default function PDVDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
   
   const { data: pdv, isLoading: loadingPDV } = usePDVDetails(id || '');
   const { data: history, isLoading: loadingHistory } = usePDVEvaluationHistory(id || '');
@@ -272,7 +276,13 @@ export default function PDVDetail() {
                   {loadingOutdoors ? 'Carregando...' : `${outdoors?.length || 0} outdoors cadastrados`}
                 </p>
               </div>
-              <Monitor className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => setIsNewOutdoorOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Novo Outdoor
+                </Button>
+                <Monitor className="h-5 w-5 text-muted-foreground" />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -551,6 +561,12 @@ export default function PDVDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <NewOutdoorDialog 
+        open={isNewOutdoorOpen} 
+        onOpenChange={setIsNewOutdoorOpen} 
+        initialPdvId={id}
+      />
     </AppLayout>
   );
 }

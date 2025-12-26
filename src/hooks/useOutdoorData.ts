@@ -21,6 +21,7 @@ interface OutdoorWithPDV {
   lat: number | null;
   lng: number | null;
   validation_radius_meters: number | null;
+  description_type: string | null;
   pdvs: {
     name: string;
   } | null;
@@ -67,6 +68,7 @@ export function useOutdoors() {
         lat: out.lat ? Number(out.lat) : null,
         lng: out.lng ? Number(out.lng) : null,
         validationRadiusMeters: out.validation_radius_meters || 50,
+        descriptionType: out.description_type || undefined,
       }));
     },
     enabled: !!profile,

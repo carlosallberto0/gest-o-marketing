@@ -81,6 +81,7 @@ export interface Outdoor {
   lat: number | null;
   lng: number | null;
   validationRadiusMeters: number;
+  descriptionType?: string;
 }
 
 // =============== CONTRACT TYPES ===============
