@@ -189,7 +189,7 @@ serve(async (req) => {
             <!-- Footer -->
             <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; margin: 0; font-size: 14px;">
-                SR Off Trade Marketing
+                Gestão & Marketing
               </p>
               <p style="color: #9ca3af; margin: 10px 0 0; font-size: 12px;">
                 Este é um email automático, por favor não responda diretamente.
@@ -203,7 +203,7 @@ serve(async (req) => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: "SR Off Trade <onboarding@resend.dev>",
+      from: "Gestão & Marketing <onboarding@resend.dev>",
       to: [supplier.email],
       subject: `Nova Ordem de Serviço - ${serviceOrder.number}`,
       html: emailHtml,

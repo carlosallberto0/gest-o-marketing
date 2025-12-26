@@ -26,8 +26,8 @@ export default function PendingApproval() {
       {/* Header */}
       <header className="w-full px-6 py-4 flex items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div>
-          <h1 className="text-xl font-bold text-foreground">SR Off Trade</h1>
-          <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+          <h1 className="text-xl font-bold text-foreground">Gestão & Marketing</h1>
+          <p className="text-xs text-muted-foreground">Sistema de Gestão Integrado</p>
         </div>
         <Button variant="ghost" size="icon" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
