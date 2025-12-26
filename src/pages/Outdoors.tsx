@@ -52,6 +52,7 @@ export default function Outdoors() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pdvFilter, setPdvFilter] = useState<string>('all');
+  const [descriptionTypeFilter, setDescriptionTypeFilter] = useState<string>('all');
   const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
@@ -66,7 +67,8 @@ export default function Outdoors() {
                          outdoor.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || outdoor.status === statusFilter;
     const matchesPdv = pdvFilter === 'all' || outdoor.pdvId === pdvFilter;
-    return matchesSearch && matchesStatus && matchesPdv;
+    const matchesDescriptionType = descriptionTypeFilter === 'all' || outdoor.descriptionType === descriptionTypeFilter;
+    return matchesSearch && matchesStatus && matchesPdv && matchesDescriptionType;
   });
 
   const stats = {
@@ -256,6 +258,19 @@ export default function Outdoors() {
               {pdvs.filter(p => p.active_modules?.includes('media')).map(pdv => (
                 <SelectItem key={pdv.id} value={pdv.id}>{pdv.name}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={descriptionTypeFilter} onValueChange={setDescriptionTypeFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
+              <SelectItem value="diesel">Diesel</SelectItem>
+              <SelectItem value="institucional">Institucional</SelectItem>
+              <SelectItem value="servico">Serviço</SelectItem>
+              <SelectItem value="carta_frete">Carta Frete</SelectItem>
             </SelectContent>
           </Select>
         </div>

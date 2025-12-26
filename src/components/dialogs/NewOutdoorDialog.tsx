@@ -17,9 +17,10 @@ import { toast } from 'sonner';
 interface NewOutdoorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialPdvId?: string;
 }
 
-export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) {
+export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoorDialogProps) {
   const { data: pdvs } = usePDVs();
   const createOutdoor = useCreateOutdoor();
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
@@ -53,12 +54,15 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
     },
   });
 
-  // Generate code automatically when dialog opens
+  // Generate code automatically when dialog opens and pre-select PDV if provided
   useEffect(() => {
     if (open) {
       generateCode();
+      if (initialPdvId) {
+        setFormData(prev => ({ ...prev, pdvId: initialPdvId }));
+      }
     }
-  }, [open]);
+  }, [open, initialPdvId]);
 
   const generateCode = async () => {
     const { count } = await supabase
