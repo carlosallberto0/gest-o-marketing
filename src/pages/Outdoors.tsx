@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { toGoogleMapsUrl } from '@/lib/googleMaps';
+import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -310,9 +311,12 @@ export default function Outdoors() {
                   />
                 </div>
                 <img 
-                  src={outdoor.photoUrl || '/placeholder.svg'} 
+                  src={convertGoogleDriveUrl(outdoor.photoUrl) || '/placeholder.svg'} 
                   alt={outdoor.code}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                  }}
                 />
                 <Badge className={cn(
                   "absolute top-3 right-3",

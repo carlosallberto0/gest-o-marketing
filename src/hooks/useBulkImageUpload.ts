@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Json } from '@/integrations/supabase/types';
+import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 
 interface ImageImportRecord {
   codigo_outdoor: string;
@@ -204,10 +205,13 @@ export function useBulkImageUpload() {
 
         // If not test mode, update the outdoor
         if (!modoTeste) {
+          // Convert Google Drive URL before saving
+          const convertedUrl = convertGoogleDriveUrl(record.foto_url);
+          
           const { error: updateError } = await supabase
             .from('outdoors')
             .update({
-              photo_url: record.foto_url,
+              photo_url: convertedUrl,
               updated_at: new Date().toISOString(),
             })
             .eq('id', outdoor.id);
