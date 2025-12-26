@@ -29,7 +29,7 @@ export default function BulkImageUpload() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [modoTeste, setModoTeste] = useState(true);
-  const [parsedRecords, setParsedRecords] = useState<Array<{ codigo_outdoor: string; foto_url: string; linha: number }>>([]);
+  const [parsedRecords, setParsedRecords] = useState<Array<{ codigo_outdoor: string; foto_url: string; nome_posto?: string; linha: number }>>([]);
 
   const {
     isProcessing,
@@ -143,7 +143,7 @@ export default function BulkImageUpload() {
                   Baixar Template (CSV)
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  O arquivo deve conter as colunas: <code className="bg-muted px-1 rounded">codigo_outdoor</code> e <code className="bg-muted px-1 rounded">foto_url</code>
+                  Colunas: <code className="bg-muted px-1 rounded">nome_posto</code> (opcional), <code className="bg-muted px-1 rounded">codigo_outdoor</code> e <code className="bg-muted px-1 rounded">foto_url</code>
                 </p>
               </CardContent>
             </Card>
@@ -336,8 +336,9 @@ export default function BulkImageUpload() {
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium mb-1">Colunas obrigatórias:</p>
+                  <p className="font-medium mb-1">Colunas:</p>
                   <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                    <li><code className="bg-muted px-1 rounded">nome_posto</code> (opcional)</li>
                     <li><code className="bg-muted px-1 rounded">codigo_outdoor</code></li>
                     <li><code className="bg-muted px-1 rounded">foto_url</code></li>
                   </ul>
