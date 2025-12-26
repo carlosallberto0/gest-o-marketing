@@ -46,6 +46,7 @@ export function EditOutdoorDialog({
     status: 'pending_evaluation' as string,
     non_operational_reason: '',
     photoUrl: '',
+    descriptionType: '',
   });
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export function EditOutdoorDialog({
         status: outdoor.status,
         non_operational_reason: outdoor.nonOperationalReason || '',
         photoUrl: outdoor.photoUrl || '',
+        descriptionType: (outdoor as any).descriptionType || (outdoor as any).description_type || '',
       });
     }
   }, [outdoor]);
@@ -80,6 +82,7 @@ export function EditOutdoorDialog({
           ? formData.non_operational_reason 
           : null,
         photo_url: formData.photoUrl || null,
+        description_type: formData.descriptionType || null,
       };
 
       if (formData.lat) updateData.lat = parseFloat(formData.lat);
@@ -216,6 +219,26 @@ export function EditOutdoorDialog({
               />
             </div>
           )}
+
+          {/* Description Type */}
+          <div className="space-y-2">
+            <Label>Descrição/Tipo do Outdoor</Label>
+            <Select 
+              value={formData.descriptionType || 'none'} 
+              onValueChange={(v) => setFormData({ ...formData, descriptionType: v === 'none' ? '' : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
+                <SelectItem value="diesel">Diesel</SelectItem>
+                <SelectItem value="institucional">Institucional</SelectItem>
+                <SelectItem value="servico">Serviço</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { usePDVDetails, usePDVEvaluationHistory, usePDVCategoryBreakdown } from '@/hooks/usePDVDetails';
+import { usePDVDetails, usePDVEvaluationHistory, usePDVCategoryBreakdown, usePDVOutdoors } from '@/hooks/usePDVDetails';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,10 @@ import {
   Activity,
   BarChart3,
   ClipboardCheck,
-  Calendar
+  Calendar,
+  Monitor,
+  ChevronRight,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -56,6 +59,32 @@ function getTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
+function getDescriptionTypeLabel(type: string | null): string {
+  if (!type) return '';
+  const labels: Record<string, string> = {
+    etanol_gasolina: 'Etanol/Gasolina',
+    diesel: 'Diesel',
+    institucional: 'Institucional',
+    servico: 'Serviço',
+  };
+  return labels[type] || type;
+}
+
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    operational: 'Operacional',
+    non_operational: 'Não Operacional',
+    pending_evaluation: 'Pendente',
+  };
+  return labels[status] || status;
+}
+
+function getStatusBadgeClass(status: string): string {
+  if (status === 'operational') return 'bg-success/10 text-success border-success/20';
+  if (status === 'non_operational') return 'bg-destructive/10 text-destructive border-destructive/20';
+  return 'bg-warning/10 text-warning border-warning/20';
+}
+
 export default function PDVDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -63,6 +92,7 @@ export default function PDVDetail() {
   const { data: pdv, isLoading: loadingPDV } = usePDVDetails(id || '');
   const { data: history, isLoading: loadingHistory } = usePDVEvaluationHistory(id || '');
   const { data: categoryBreakdown, isLoading: loadingCategories } = usePDVCategoryBreakdown(id || '');
+  const { data: outdoors, isLoading: loadingOutdoors } = usePDVOutdoors(id || '');
 
   // Calculate stats
   const latestScore = history?.[0]?.percentage_score || 0;
@@ -102,6 +132,23 @@ export default function PDVDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
+          
+          {/* PDV Photo Thumbnail */}
+          {pdv?.photo_url && (
+            <div className="w-16 h-16 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
+              <img 
+                src={pdv.photo_url} 
+                alt={pdv.name} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          {!loadingPDV && !pdv?.photo_url && (
+            <div className="w-16 h-16 rounded-lg border border-border bg-muted flex items-center justify-center flex-shrink-0">
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+          
           <div className="flex-1">
             {loadingPDV ? (
               <div className="space-y-2">
@@ -213,6 +260,70 @@ export default function PDVDetail() {
             </Card>
           </div>
         ) : null}
+
+        {/* Outdoors do PDV */}
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold">Outdoors do PDV</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {loadingOutdoors ? 'Carregando...' : `${outdoors?.length || 0} outdoors cadastrados`}
+                </p>
+              </div>
+              <Monitor className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingOutdoors ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : outdoors && outdoors.length > 0 ? (
+              <div className="space-y-3">
+                {outdoors.map(outdoor => (
+                  <div 
+                    key={outdoor.id} 
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/outdoor/${outdoor.id}`)}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Monitor className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{outdoor.code}</p>
+                        <p className="text-sm text-muted-foreground truncate">{outdoor.location}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground hidden sm:block">
+                        {outdoor.width}m x {outdoor.height}m
+                      </span>
+                      {outdoor.description_type && (
+                        <Badge variant="outline" className="hidden md:flex">
+                          {getDescriptionTypeLabel(outdoor.description_type)}
+                        </Badge>
+                      )}
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs", getStatusBadgeClass(outdoor.status))}
+                      >
+                        {getStatusLabel(outdoor.status)}
+                      </Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum outdoor cadastrado para este PDV</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
