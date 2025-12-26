@@ -371,6 +371,7 @@ export function NewOutdoorDialog({ open, onOpenChange }: NewOutdoorDialogProps) 
                 <SelectItem value="diesel">Diesel</SelectItem>
                 <SelectItem value="institucional">Institucional</SelectItem>
                 <SelectItem value="servico">Serviço</SelectItem>
+                <SelectItem value="carta_frete">Carta Frete</SelectItem>
               </SelectContent>
             </Select>
           </div>
