@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { toGoogleMapsUrl } from '@/lib/googleMaps';
+import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { useContractByOutdoor } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutdoorObservations, useCreateDirectorObservation } from '@/hooks/useDirectorObservations';
@@ -187,9 +188,12 @@ export default function OutdoorDetail() {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="aspect-video bg-muted">
               <img 
-                src={outdoor.photoUrl || '/placeholder.svg'} 
+                src={convertGoogleDriveUrl(outdoor.photoUrl) || '/placeholder.svg'} 
                 alt={outdoor.code}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
               />
             </div>
           </div>
