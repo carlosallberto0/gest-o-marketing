@@ -328,11 +328,11 @@ export default function PDVs() {
                           </p>
                         </div>
                       )}
-                      {pdv.totalOutdoors !== undefined && pdv.totalOutdoors > 0 && (
+                      {pdv.active_modules?.includes('media') && (
                         <div className="flex-1">
                           <p className="text-xs text-muted-foreground">Outdoors</p>
                           <p className="text-lg font-bold text-foreground">
-                            {pdv.operationalOutdoors}/{pdv.totalOutdoors}
+                            {pdv.operationalOutdoors ?? 0}/{pdv.totalOutdoors ?? 0}
                           </p>
                         </div>
                       )}
