@@ -20,8 +20,10 @@ import {
   ExternalLink,
   Upload,
   Trash2,
-  X
+  X,
+  ImagePlus
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -58,8 +60,11 @@ export default function Outdoors() {
   const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const { profile } = useAuth();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
+  
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const filteredOutdoors = outdoors.filter(outdoor => {
     const matchesSearch = outdoor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,6 +146,12 @@ export default function Outdoors() {
             <p className="text-muted-foreground mt-1">Gestão de mídia externa</p>
           </div>
           <div className="flex gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={() => navigate('/bulk-image-upload')}>
+                <ImagePlus className="h-4 w-4 mr-2" />
+                Carga de Imagens
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Importar CSV
