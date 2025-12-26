@@ -22,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Outdoor } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { usePDVs } from '@/hooks/usePDVs';
+import { usePDVsList } from '@/hooks/usePDVsList';
 
 interface EditOutdoorDialogProps {
   open: boolean;
@@ -38,7 +38,7 @@ export function EditOutdoorDialog({
   onSuccess,
 }: EditOutdoorDialogProps) {
   const { profile } = useAuth();
-  const { data: pdvs } = usePDVs();
+  const { data: pdvs, isLoading: isLoadingPdvs } = usePDVsList();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -152,9 +152,10 @@ export function EditOutdoorDialog({
               <Select
                 value={formData.pdvId}
                 onValueChange={(value) => setFormData({ ...formData, pdvId: value })}
+                disabled={isLoadingPdvs}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o posto" />
+                  <SelectValue placeholder={isLoadingPdvs ? "Carregando..." : "Selecione o posto"} />
                 </SelectTrigger>
                 <SelectContent>
                   {pdvs?.map((pdv) => (
