@@ -21,6 +21,8 @@ import { Loader2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Outdoor } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { usePDVs } from '@/hooks/usePDVs';
 
 interface EditOutdoorDialogProps {
   open: boolean;
@@ -35,6 +37,8 @@ export function EditOutdoorDialog({
   outdoor,
   onSuccess,
 }: EditOutdoorDialogProps) {
+  const { profile } = useAuth();
+  const { data: pdvs } = usePDVs();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -47,7 +51,10 @@ export function EditOutdoorDialog({
     non_operational_reason: '',
     photoUrl: '',
     descriptionType: '',
+    pdvId: '',
   });
+
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   useEffect(() => {
     if (outdoor) {
@@ -62,6 +69,7 @@ export function EditOutdoorDialog({
         non_operational_reason: outdoor.nonOperationalReason || '',
         photoUrl: outdoor.photoUrl || '',
         descriptionType: (outdoor as any).descriptionType || (outdoor as any).description_type || '',
+        pdvId: outdoor.pdvId || '',
       });
     }
   }, [outdoor]);
@@ -83,6 +91,11 @@ export function EditOutdoorDialog({
         photo_url: formData.photoUrl || null,
         description_type: formData.descriptionType || null,
       };
+
+      // Super Admin pode alterar o PDV
+      if (isSuperAdmin && formData.pdvId) {
+        updateData.pdv_id = formData.pdvId;
+      }
 
       if (formData.lat) updateData.lat = parseFloat(formData.lat);
       if (formData.lng) updateData.lng = parseFloat(formData.lng);
@@ -131,6 +144,28 @@ export function EditOutdoorDialog({
               placeholder="Clique ou arraste para adicionar foto"
             />
           </div>
+
+          {/* Super Admin pode alterar o PDV */}
+          {isSuperAdmin && (
+            <div className="space-y-2">
+              <Label>Posto (PDV)</Label>
+              <Select
+                value={formData.pdvId}
+                onValueChange={(value) => setFormData({ ...formData, pdvId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o posto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pdvs?.map((pdv) => (
+                    <SelectItem key={pdv.id} value={pdv.id}>
+                      {pdv.code} - {pdv.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
