@@ -486,6 +486,50 @@ export type Database = {
           },
         ]
       }
+      logs_carga_massa: {
+        Row: {
+          arquivo_nome: string
+          created_at: string
+          detalhes_erros: Json | null
+          erros: number
+          id: string
+          modo_teste: boolean | null
+          sucessos: number
+          total_linhas: number
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo_nome: string
+          created_at?: string
+          detalhes_erros?: Json | null
+          erros?: number
+          id?: string
+          modo_teste?: boolean | null
+          sucessos?: number
+          total_linhas?: number
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo_nome?: string
+          created_at?: string
+          detalhes_erros?: Json | null
+          erros?: number
+          id?: string
+          modo_teste?: boolean | null
+          sucessos?: number
+          total_linhas?: number
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_carga_massa_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_approval_packages: {
         Row: {
           created_at: string

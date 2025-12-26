@@ -43,6 +43,7 @@ import StrategicMapGoogle from "./pages/StrategicMapGoogle";
 import OutdoorReviews from "./pages/OutdoorReviews";
 import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
+import BulkImageUpload from "./pages/BulkImageUpload";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -374,6 +375,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['director']}>
             <DirectorObservations />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/bulk-image-upload" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <BulkImageUpload />
           </RequireRole>
         </ProtectedRoute>
       } 
