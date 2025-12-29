@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { usePDVDetails, usePDVEvaluationHistory, usePDVCategoryBreakdown, usePDVOutdoors } from '@/hooks/usePDVDetails';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,17 +63,7 @@ function getTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-function getDescriptionTypeLabel(type: string | null): string {
-  if (!type) return '';
-  const labels: Record<string, string> = {
-    etanol_gasolina: 'Etanol/Gasolina',
-    diesel: 'Diesel',
-    institucional: 'Institucional',
-    servico: 'Serviço',
-    carta_frete: 'Carta Frete',
-  };
-  return labels[type] || type;
-}
+// getDescriptionTypeLabel is now handled dynamically via useSystemOptions
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
@@ -98,6 +89,13 @@ export default function PDVDetail() {
   const { data: history, isLoading: loadingHistory } = usePDVEvaluationHistory(id || '');
   const { data: categoryBreakdown, isLoading: loadingCategories } = usePDVCategoryBreakdown(id || '');
   const { data: outdoors, isLoading: loadingOutdoors } = usePDVOutdoors(id || '');
+  const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
+
+  const getDescriptionTypeLabel = (type: string | null): string => {
+    if (!type) return '';
+    const found = descriptionTypes.find(t => t.option_key === type);
+    return found?.option_label || type;
+  };
 
   // Calculate stats
   const latestScore = history?.[0]?.percentage_score || 0;
