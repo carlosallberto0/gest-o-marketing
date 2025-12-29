@@ -73,8 +73,10 @@ const getMarkerIcon = (
 ) => {
   const baseUrl = 'data:image/svg+xml;charset=UTF-8,';
   
-  // Responsive size based on zoom (small like Mapbox)
-  const size = zoom <= 10 ? 16 : zoom <= 13 ? 20 : 24;
+  // Responsive size based on zoom - outdoors are slightly larger for visibility
+  const size = type === 'outdoor' 
+    ? (zoom <= 10 ? 18 : zoom <= 13 ? 24 : 28)
+    : (zoom <= 10 ? 16 : zoom <= 13 ? 20 : 24);
   const strokeWidth = 2;
   const r = size / 2;
   
@@ -83,7 +85,7 @@ const getMarkerIcon = (
     if (type === 'outdoor') {
       if (status === 'operational') return '#3b82f6';     // Blue
       if (status === 'non_operational') return '#ef4444'; // Red
-      return '#f59e0b';                                    // Yellow/amber
+      return '#f59e0b';                                    // Yellow/amber (pending_evaluation)
     }
     // PDV status
     if (status === 'critical') return '#ef4444';  // Red
@@ -489,34 +491,79 @@ function StrategicMapContent() {
             </MarkerClusterer>
           )}
 
-          {/* Outdoor Markers */}
-          {showOutdoors && outdoorsWithCoords.map(outdoor => (
-            <Marker
-              key={outdoor.id}
-              position={{ lat: outdoor.lat!, lng: outdoor.lng! }}
-              icon={{
-                url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
-                scaledSize: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10),
+          {/* Outdoor Markers with Clustering */}
+          {showOutdoors && outdoorsWithCoords.length > 0 && (
+            <MarkerClusterer 
+              options={{
+                ...clusterOptions,
+                styles: [
+                  {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                        <circle cx="20" cy="20" r="18" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                      </svg>
+                    `),
+                    width: 40,
+                    height: 40,
+                    textColor: 'white',
+                  },
+                  {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50">
+                        <circle cx="25" cy="25" r="23" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                      </svg>
+                    `),
+                    width: 50,
+                    height: 50,
+                    textColor: 'white',
+                  },
+                  {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+                        <circle cx="30" cy="30" r="28" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                      </svg>
+                    `),
+                    width: 60,
+                    height: 60,
+                    textColor: 'white',
+                  },
+                ],
               }}
-              onClick={() => {
-                setSelectedPDV(null);
-                setSelectedOutdoor(outdoor);
-              }}
-              onRightClick={(e) => {
-                if (isSuperAdmin) {
-                  const mouseEvent = e.domEvent as MouseEvent | undefined;
-                  setContextMenu({
-                    show: true,
-                    x: mouseEvent?.clientX || 0,
-                    y: mouseEvent?.clientY || 0,
-                    type: 'outdoor',
-                    item: outdoor,
-                  });
-                }
-              }}
-            />
-          ))}
+            >
+              {(clusterer) => (
+                <>
+                  {outdoorsWithCoords.map(outdoor => (
+                    <Marker
+                      key={outdoor.id}
+                      position={{ lat: outdoor.lat!, lng: outdoor.lng! }}
+                      clusterer={clusterer}
+                      icon={{
+                        url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
+                        scaledSize: new google.maps.Size(24, 24),
+                        anchor: new google.maps.Point(12, 12),
+                      }}
+                      onClick={() => {
+                        setSelectedPDV(null);
+                        setSelectedOutdoor(outdoor);
+                      }}
+                      onRightClick={(e) => {
+                        if (isSuperAdmin) {
+                          const mouseEvent = e.domEvent as MouseEvent | undefined;
+                          setContextMenu({
+                            show: true,
+                            x: mouseEvent?.clientX || 0,
+                            y: mouseEvent?.clientY || 0,
+                            type: 'outdoor',
+                            item: outdoor,
+                          });
+                        }
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </MarkerClusterer>
+          )}
 
           {/* PDV InfoWindow */}
           {selectedPDV && selectedPDV.lat && selectedPDV.lng && (
