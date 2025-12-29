@@ -1589,6 +1589,50 @@ export type Database = {
         }
         Relationships: []
       }
+      system_options: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          option_key: string
+          option_label: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          option_key: string
+          option_label: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          option_key?: string
+          option_label?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_options_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           description: string | null
