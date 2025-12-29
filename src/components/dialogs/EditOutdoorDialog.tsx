@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PhotoUpload } from '@/components/ui/photo-upload';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Outdoor } from '@/types';
@@ -45,6 +45,7 @@ export function EditOutdoorDialog({
   const [formData, setFormData] = useState({
     code: '',
     location: '',
+    locationUrl: '',
     width: 3,
     height: 2,
     lat: '',
@@ -63,6 +64,7 @@ export function EditOutdoorDialog({
       setFormData({
         code: outdoor.code,
         location: outdoor.location,
+        locationUrl: (outdoor as any).locationUrl || (outdoor as any).location_url || '',
         width: outdoor.width,
         height: outdoor.height,
         lat: outdoor.lat?.toString() || '',
@@ -84,6 +86,7 @@ export function EditOutdoorDialog({
       const updateData: any = {
         code: formData.code,
         location: formData.location,
+        location_url: formData.locationUrl || null,
         width: formData.width,
         height: formData.height,
         status: formData.status,
@@ -199,11 +202,37 @@ export function EditOutdoorDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Localização</Label>
+            <Label>Endereço / Localização do Outdoor</Label>
             <Input
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="Ex: Entrada principal, fachada lateral, rodovia km 123..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              URL de Localização (Google Maps)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.locationUrl}
+                onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })}
+                placeholder="https://maps.app.goo.gl/..."
+                className="flex-1"
+              />
+              {formData.locationUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => window.open(formData.locationUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
