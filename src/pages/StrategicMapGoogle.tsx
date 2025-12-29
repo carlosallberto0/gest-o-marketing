@@ -65,6 +65,62 @@ const clusterOptions = {
   maxZoom: 14,
 };
 
+// Outdoor-specific cluster options - tighter clustering to handle overlapping coordinates
+const outdoorClusterOptions = {
+  minimumClusterSize: 2, // Cluster even 2 overlapping points
+  maxZoom: 17, // Keep clustering until very high zoom
+};
+
+// Detail mode threshold - above this zoom, we show individual markers with spiderfy
+const DETAIL_MODE_ZOOM = 18;
+
+// Helper to group outdoors by coordinate and spread overlapping ones
+const groupAndSpreadOutdoors = (outdoors: MapOutdoor[], zoom: number) => {
+  // Group by coordinate (using toFixed for stability)
+  const groups: { [key: string]: MapOutdoor[] } = {};
+  
+  outdoors.forEach(outdoor => {
+    if (outdoor.lat && outdoor.lng) {
+      const key = `${outdoor.lat.toFixed(6)},${outdoor.lng.toFixed(6)}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(outdoor);
+    }
+  });
+  
+  // Calculate spread radius based on zoom (smaller at higher zoom)
+  // At zoom 18, approx 0.00005 degrees ≈ 5-6 meters
+  const spreadRadius = 0.00008 * Math.pow(2, 18 - zoom);
+  
+  // Return outdoors with adjusted positions for overlapping ones
+  const result: Array<MapOutdoor & { displayLat: number; displayLng: number }> = [];
+  
+  Object.values(groups).forEach(group => {
+    if (group.length === 1) {
+      // Single outdoor at this location - no adjustment needed
+      result.push({
+        ...group[0],
+        displayLat: group[0].lat!,
+        displayLng: group[0].lng!,
+      });
+    } else {
+      // Multiple outdoors at same location - spread them in a circle
+      group.forEach((outdoor, index) => {
+        const angle = (2 * Math.PI * index) / group.length;
+        const offsetLat = spreadRadius * Math.cos(angle);
+        const offsetLng = spreadRadius * Math.sin(angle);
+        
+        result.push({
+          ...outdoor,
+          displayLat: outdoor.lat! + offsetLat,
+          displayLng: outdoor.lng! + offsetLng,
+        });
+      });
+    }
+  });
+  
+  return result;
+};
+
 // Simple circle marker - Mapbox style
 const getMarkerIcon = (
   type: 'posto' | 'conveniencia' | 'both' | 'outdoor', 
@@ -249,6 +305,15 @@ function StrategicMapContent() {
   const outdoorsWithCoords = useMemo(() => 
     filteredOutdoors.filter(outdoor => outdoor.lat && outdoor.lng),
   [filteredOutdoors]);
+
+  // Check if we're in detail mode (high zoom)
+  const isDetailMode = currentZoom >= DETAIL_MODE_ZOOM;
+
+  // Spread overlapping outdoors in detail mode
+  const spreadOutdoors = useMemo(() => {
+    if (!isDetailMode) return [];
+    return groupAndSpreadOutdoors(outdoorsWithCoords, currentZoom);
+  }, [outdoorsWithCoords, currentZoom, isDetailMode]);
 
   // Handle map load
   const onMapLoad = useCallback((map: google.maps.Map) => {
@@ -491,11 +556,11 @@ function StrategicMapContent() {
             </MarkerClusterer>
           )}
 
-          {/* Outdoor Markers with Clustering */}
-          {showOutdoors && outdoorsWithCoords.length > 0 && (
+          {/* Outdoor Markers - Clustered mode (zoom < 18) */}
+          {showOutdoors && outdoorsWithCoords.length > 0 && !isDetailMode && (
             <MarkerClusterer 
               options={{
-                ...clusterOptions,
+                ...outdoorClusterOptions,
                 styles: [
                   {
                     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
@@ -564,6 +629,35 @@ function StrategicMapContent() {
               )}
             </MarkerClusterer>
           )}
+
+          {/* Outdoor Markers - Detail mode (zoom >= 18) with visual spreading */}
+          {showOutdoors && isDetailMode && spreadOutdoors.map(outdoor => (
+            <Marker
+              key={outdoor.id}
+              position={{ lat: outdoor.displayLat, lng: outdoor.displayLng }}
+              icon={{
+                url: getMarkerIcon('outdoor', outdoor.status, currentZoom),
+                scaledSize: new google.maps.Size(28, 28),
+                anchor: new google.maps.Point(14, 14),
+              }}
+              onClick={() => {
+                setSelectedPDV(null);
+                setSelectedOutdoor(outdoor);
+              }}
+              onRightClick={(e) => {
+                if (isSuperAdmin) {
+                  const mouseEvent = e.domEvent as MouseEvent | undefined;
+                  setContextMenu({
+                    show: true,
+                    x: mouseEvent?.clientX || 0,
+                    y: mouseEvent?.clientY || 0,
+                    type: 'outdoor',
+                    item: outdoor,
+                  });
+                }
+              }}
+            />
+          ))}
 
           {/* PDV InfoWindow */}
           {selectedPDV && selectedPDV.lat && selectedPDV.lng && (
