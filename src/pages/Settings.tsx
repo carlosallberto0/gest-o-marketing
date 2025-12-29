@@ -20,8 +20,10 @@ import {
   Loader2,
   Bell,
   CalendarClock,
-  History
+  History,
+  Settings2
 } from 'lucide-react';
+import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -234,7 +236,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-2xl", isSuperAdmin ? "grid-cols-4" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-3xl", isSuperAdmin ? "grid-cols-5" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -251,6 +253,12 @@ export default function Settings() {
               <TabsTrigger value="evaluations">
                 <CalendarClock className="h-4 w-4 mr-2" />
                 Avaliações
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="fields">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Campos
               </TabsTrigger>
             )}
           </TabsList>
@@ -641,6 +649,13 @@ export default function Settings() {
                   Salvar Configurações de Avaliação
                 </Button>
               </div>
+            </TabsContent>
+          )}
+
+          {/* Fields Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="fields" className="space-y-6">
+              <FieldOptionsSettings />
             </TabsContent>
           )}
         </Tabs>

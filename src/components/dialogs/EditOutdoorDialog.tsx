@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { Outdoor } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { usePDVsList } from '@/hooks/usePDVsList';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 interface EditOutdoorDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function EditOutdoorDialog({
 }: EditOutdoorDialogProps) {
   const { profile } = useAuth();
   const { data: pdvs, isLoading: isLoadingPdvs } = usePDVsList();
+  const { data: descriptionTypes } = useSystemOptions('outdoor_description_type');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -267,11 +269,11 @@ export function EditOutdoorDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
-                <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
-                <SelectItem value="diesel">Diesel</SelectItem>
-                <SelectItem value="institucional">Institucional</SelectItem>
-                <SelectItem value="servico">Serviço</SelectItem>
-                <SelectItem value="carta_frete">Carta Frete</SelectItem>
+                {descriptionTypes?.map((opt) => (
+                  <SelectItem key={opt.option_key} value={opt.option_key}>
+                    {opt.option_label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

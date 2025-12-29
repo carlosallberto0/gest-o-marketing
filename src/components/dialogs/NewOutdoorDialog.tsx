@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { extractCoordsFromGoogleMapsUrl, isShortGoogleMapsUrl } from '@/lib/googleMaps';
 import { toast } from 'sonner';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 interface NewOutdoorDialogProps {
   open: boolean;
@@ -23,6 +24,8 @@ interface NewOutdoorDialogProps {
 export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoorDialogProps) {
   const { data: pdvs } = usePDVs();
   const createOutdoor = useCreateOutdoor();
+  const { data: descriptionTypes } = useSystemOptions('outdoor_description_type');
+  const { data: ownershipTypes } = useSystemOptions('outdoor_ownership_type');
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -334,8 +337,18 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owned">Próprio</SelectItem>
-                <SelectItem value="rented">Alugado</SelectItem>
+                {ownershipTypes?.length ? (
+                  ownershipTypes.map((opt) => (
+                    <SelectItem key={opt.option_key} value={opt.option_key}>
+                      {opt.option_label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="owned">Próprio</SelectItem>
+                    <SelectItem value="rented">Alugado</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -371,11 +384,11 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
-                <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
-                <SelectItem value="diesel">Diesel</SelectItem>
-                <SelectItem value="institucional">Institucional</SelectItem>
-                <SelectItem value="servico">Serviço</SelectItem>
-                <SelectItem value="carta_frete">Carta Frete</SelectItem>
+                {descriptionTypes?.map((opt) => (
+                  <SelectItem key={opt.option_key} value={opt.option_key}>
+                    {opt.option_label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
