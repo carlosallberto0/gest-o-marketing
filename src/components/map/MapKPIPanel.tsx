@@ -37,12 +37,16 @@ export function MapKPIPanel({ kpis }: MapKPIPanelProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Radio className="h-3 w-3" />
-            <span>Outdoors</span>
+            <span>Outdoors ({kpis.totalOutdoors})</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="bg-blue-500/10 text-blue-600 px-2 py-1 rounded text-center">
               <div className="font-bold">{kpis.operationalOutdoors}</div>
               <div className="text-[10px]">Operacionais</div>
+            </div>
+            <div className="bg-amber-500/10 text-amber-600 px-2 py-1 rounded text-center">
+              <div className="font-bold">{kpis.pendingEvaluationOutdoors}</div>
+              <div className="text-[10px]">Pendentes</div>
             </div>
             <div className="bg-red-500/10 text-red-600 px-2 py-1 rounded text-center">
               <div className="font-bold">{kpis.nonOperationalOutdoors}</div>
