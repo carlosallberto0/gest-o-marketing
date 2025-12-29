@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors } from '@/hooks/useOutdoorData';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
@@ -64,6 +65,7 @@ export default function Outdoors() {
   const { profile } = useAuth();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
+  const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
   
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -278,11 +280,11 @@ export default function Outdoors() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="etanol_gasolina">Etanol/Gasolina</SelectItem>
-              <SelectItem value="diesel">Diesel</SelectItem>
-              <SelectItem value="institucional">Institucional</SelectItem>
-              <SelectItem value="servico">Serviço</SelectItem>
-              <SelectItem value="carta_frete">Carta Frete</SelectItem>
+              {descriptionTypes.map(type => (
+                <SelectItem key={type.option_key} value={type.option_key}>
+                  {type.option_label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
