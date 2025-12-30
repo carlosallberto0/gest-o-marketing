@@ -55,7 +55,7 @@ export default function MerchDashboard() {
           </div>
           <Button onClick={() => navigate('/checklist')} size="lg">
             <ClipboardCheck className="h-5 w-5 mr-2" />
-            Novo Checklist
+            {['director', 'manager'].includes(profile?.role || '') ? 'Avaliar PDV' : 'Novo Checklist'}
           </Button>
         </div>
 

@@ -82,7 +82,8 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
       let query = supabase
         .from('pdvs')
         .select('id, name, code')
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('type', 'conveniencia');
       
       if (!isAdminOrDirector && profile?.pdv_id) {
         query = query.eq('id', profile.pdv_id);
