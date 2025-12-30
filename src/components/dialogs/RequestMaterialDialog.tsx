@@ -18,13 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateMaterialRequest } from '@/hooks/useMaterialRequests';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Package, Search, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Loader2, Package, Search, AlertTriangle } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
@@ -243,15 +243,15 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
               {filteredMaterials.length} de {materials.length} materiais disponíveis
             </p>
 
-            {/* Materials list with checkboxes */}
-            <ScrollArea className="flex-1 border rounded-lg min-h-[280px] max-h-[50vh]">
-              <div className="p-2 space-y-1">
-                {filteredMaterials.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    Nenhum material encontrado
-                  </p>
-                ) : (
-                  filteredMaterials.map((material) => {
+            {/* Materials list - Grid layout showing all materials */}
+            <div className="border rounded-lg p-2">
+              {filteredMaterials.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  Nenhum material encontrado
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {filteredMaterials.map((material) => {
                     const isSelected = selectedMaterials[material.id] !== undefined;
                     const quantity = selectedMaterials[material.id] || 1;
                     const exceedsStock = quantity > material.current_stock;
@@ -259,44 +259,32 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                     return (
                       <div
                         key={material.id}
-                        className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
+                        className={`flex items-center gap-2 p-1.5 rounded-md border transition-colors ${
                           isSelected
                             ? 'bg-primary/5 border-primary/30'
-                            : 'bg-background hover:bg-muted/50 border-transparent'
+                            : 'bg-background hover:bg-muted/50 border-border/50'
                         }`}
                       >
                         <Checkbox
                           id={`material-${material.id}`}
                           checked={isSelected}
                           onCheckedChange={() => toggleMaterial(material.id)}
+                          className="h-4 w-4"
                         />
                         <div className="flex-1 min-w-0">
                           <label
                             htmlFor={`material-${material.id}`}
-                            className="font-medium cursor-pointer block truncate text-sm"
+                            className="font-medium cursor-pointer block truncate text-xs"
                           >
                             {material.name}
                           </label>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{material.code}</span>
-                            <span>•</span>
-                            <span
-                              className={
-                                material.current_stock <= (material.minimum_stock || 0)
-                                  ? 'text-destructive'
-                                  : ''
-                              }
-                            >
-                              Estoque: {material.current_stock}
-                            </span>
-                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {material.code} • Est: {material.current_stock}
+                          </span>
                         </div>
 
                         {isSelected && (
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={`qty-${material.id}`} className="sr-only">
-                              Quantidade
-                            </Label>
+                          <div className="flex items-center gap-1">
                             <Input
                               id={`qty-${material.id}`}
                               type="number"
@@ -305,27 +293,19 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                               onChange={(e) =>
                                 updateQuantity(material.id, parseInt(e.target.value) || 1)
                               }
-                              className={`w-16 h-8 text-center text-sm ${exceedsStock ? 'border-destructive' : ''}`}
+                              className={`w-12 h-6 text-center text-xs px-1 ${exceedsStock ? 'border-destructive' : ''}`}
                             />
                             {exceedsStock && (
-                              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                              <AlertTriangle className="h-3 w-3 text-destructive flex-shrink-0" />
                             )}
                           </div>
                         )}
                       </div>
                     );
-                  })
-                )}
-              </div>
-            </ScrollArea>
-            
-            {/* Scroll indicator - OUTSIDE ScrollArea, always visible */}
-            {filteredMaterials.length > 5 && (
-              <div className="flex items-center justify-center gap-1 py-1.5 text-xs text-muted-foreground animate-pulse">
-                <ChevronDown className="h-3 w-3" />
-                <span>Role para ver mais {filteredMaterials.length - 5} materiais</span>
-              </div>
-            )}
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Justification */}
             <div className="space-y-2">
@@ -335,7 +315,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                 placeholder="Explique por que precisa destes materiais..."
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
-                rows={3}
+                rows={2}
                 maxLength={500}
               />
               <p className="text-xs text-muted-foreground text-right">
