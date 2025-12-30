@@ -24,7 +24,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateMaterialRequest } from '@/hooks/useMaterialRequests';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Package, Search, AlertTriangle } from 'lucide-react';
+import { Loader2, Package, Search, AlertTriangle, ChevronDown } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
@@ -244,7 +244,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
             </p>
 
             {/* Materials list with checkboxes */}
-            <ScrollArea className="flex-1 border rounded-lg max-h-[400px]">
+            <ScrollArea className="flex-1 border rounded-lg min-h-[280px] max-h-[50vh]">
               <div className="p-2 space-y-1">
                 {filteredMaterials.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
@@ -259,7 +259,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                     return (
                       <div
                         key={material.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                        className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
                           isSelected
                             ? 'bg-primary/5 border-primary/30'
                             : 'bg-background hover:bg-muted/50 border-transparent'
@@ -273,11 +273,11 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                         <div className="flex-1 min-w-0">
                           <label
                             htmlFor={`material-${material.id}`}
-                            className="font-medium cursor-pointer block truncate"
+                            className="font-medium cursor-pointer block truncate text-sm"
                           >
                             {material.name}
                           </label>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>{material.code}</span>
                             <span>•</span>
                             <span
@@ -305,7 +305,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                               onChange={(e) =>
                                 updateQuantity(material.id, parseInt(e.target.value) || 1)
                               }
-                              className={`w-20 text-center ${exceedsStock ? 'border-destructive' : ''}`}
+                              className={`w-16 h-8 text-center text-sm ${exceedsStock ? 'border-destructive' : ''}`}
                             />
                             {exceedsStock && (
                               <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
@@ -317,6 +317,13 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                   })
                 )}
               </div>
+              {filteredMaterials.length > 5 && (
+                <div className="sticky bottom-0 bg-gradient-to-t from-background to-transparent pt-4 pb-2 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                    <ChevronDown className="h-3 w-3" /> Role para ver mais materiais
+                  </p>
+                </div>
+              )}
             </ScrollArea>
 
             {/* Justification */}
