@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useCampaigns, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
+import { useAuth } from '@/contexts/AuthContext';
 import { getCampaignTypeLabel, getCampaignStatusLabel, getCampaignStatusColor } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,8 +38,11 @@ export default function Campaigns() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
 
+  const { profile } = useAuth();
   const { data: campaigns = [], isLoading } = useCampaigns();
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateCampaignStatus();
+  
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -97,10 +101,12 @@ export default function Campaigns() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Campanhas</h1>
             <p className="text-muted-foreground mt-1">Gestão de campanhas de merchandising</p>
           </div>
-          <Button onClick={() => setIsNewCampaignOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Campanha
-          </Button>
+          {isSuperAdmin && (
+            <Button onClick={() => setIsNewCampaignOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Campanha
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
