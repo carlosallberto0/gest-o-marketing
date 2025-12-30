@@ -93,6 +93,11 @@ export function QuestionItem({
                 Foto obrigatória
               </span>
             )}
+            {question.requiresComment && (
+              <span className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
+                Comentário obrigatório
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -166,10 +171,10 @@ export function QuestionItem({
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />
-                Observação
+                Observação {question.requiresComment && <span className="text-warning">*</span>}
               </label>
               <Textarea
-                placeholder="Adicione uma observação..."
+                placeholder={question.requiresComment ? "Observação obrigatória..." : "Adicione uma observação..."}
                 value={observation || ''}
                 onChange={(e) => onObservation(question.id, e.target.value)}
                 className="resize-none text-sm"

@@ -66,6 +66,7 @@ export function useSimplifiedChecklistCategories() {
             tip: q.tip || undefined,
             order: q.sort_order,
             requiresPhoto: q.requires_photo,
+            requiresComment: q.requires_comment,
             isCritical: q.is_critical,
             requiresMaterial: q.requires_material,
             materialType: q.material_type || undefined,
