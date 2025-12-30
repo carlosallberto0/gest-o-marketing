@@ -317,14 +317,15 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
                   })
                 )}
               </div>
-              {filteredMaterials.length > 5 && (
-                <div className="sticky bottom-0 bg-gradient-to-t from-background to-transparent pt-4 pb-2 text-center">
-                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                    <ChevronDown className="h-3 w-3" /> Role para ver mais materiais
-                  </p>
-                </div>
-              )}
             </ScrollArea>
+            
+            {/* Scroll indicator - OUTSIDE ScrollArea, always visible */}
+            {filteredMaterials.length > 5 && (
+              <div className="flex items-center justify-center gap-1 py-1.5 text-xs text-muted-foreground animate-pulse">
+                <ChevronDown className="h-3 w-3" />
+                <span>Role para ver mais {filteredMaterials.length - 5} materiais</span>
+              </div>
+            )}
 
             {/* Justification */}
             <div className="space-y-2">
