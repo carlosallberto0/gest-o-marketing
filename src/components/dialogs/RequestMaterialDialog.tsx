@@ -238,8 +238,13 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
               </div>
             )}
 
+            {/* Materials count */}
+            <p className="text-xs text-muted-foreground">
+              {filteredMaterials.length} de {materials.length} materiais disponíveis
+            </p>
+
             {/* Materials list with checkboxes */}
-            <ScrollArea className="flex-1 border rounded-lg max-h-[300px]">
+            <ScrollArea className="flex-1 border rounded-lg max-h-[400px]">
               <div className="p-2 space-y-1">
                 {filteredMaterials.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">

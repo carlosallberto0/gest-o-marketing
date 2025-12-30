@@ -383,6 +383,15 @@ export default function Materials() {
           {editMaterial && (
             <div className="space-y-4">
               <div className="space-y-2">
+                <Label>Código</Label>
+                <Input
+                  value={editMaterial.code}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">O código não pode ser alterado</p>
+              </div>
+              <div className="space-y-2">
                 <Label>Nome</Label>
                 <Input
                   value={editMaterial.name}
