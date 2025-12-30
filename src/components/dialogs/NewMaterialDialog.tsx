@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface NewMaterialDialogProps {
   open: boolean;
@@ -27,9 +29,10 @@ const materialTypes = [
 ];
 
 export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps) {
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
   const [formData, setFormData] = useState({
-    code: '',
     name: '',
     type: '',
     category: '',
@@ -39,26 +42,76 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
     currentStock: '',
   });
 
+  // Generate next code when dialog opens
+  useEffect(() => {
+    if (open) {
+      generateNextCode();
+    }
+  }, [open]);
+
+  const generateNextCode = async () => {
+    try {
+      const { data: existingCodes } = await supabase
+        .from('trade_materials')
+        .select('code')
+        .like('code', 'MAT-%');
+
+      const maxNum = existingCodes?.reduce((max, item) => {
+        const num = parseInt(item.code.replace('MAT-', ''));
+        return !isNaN(num) && num > max ? num : max;
+      }, 0) || 0;
+
+      setGeneratedCode(`MAT-${String(maxNum + 1).padStart(3, '0')}`);
+    } catch (error) {
+      console.error('Error generating code:', error);
+      setGeneratedCode(`MAT-${String(Date.now()).slice(-3)}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.name || !formData.type || !generatedCode) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success('Material criado com sucesso!');
-    setIsLoading(false);
-    onOpenChange(false);
-    setFormData({
-      code: '',
-      name: '',
-      type: '',
-      category: '',
-      description: '',
-      unitCost: '',
-      minimumStock: '',
-      currentStock: '',
-    });
+    try {
+      const { error } = await supabase
+        .from('trade_materials')
+        .insert({
+          code: generatedCode,
+          name: formData.name,
+          type: formData.type as any,
+          category: formData.category || 'Geral',
+          description: formData.description || null,
+          unit_cost: parseFloat(formData.unitCost) || 0,
+          minimum_stock: parseInt(formData.minimumStock) || 0,
+          current_stock: parseInt(formData.currentStock) || 0,
+        });
+
+      if (error) throw error;
+
+      toast.success('Material criado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['trade-materials'] });
+      onOpenChange(false);
+      setFormData({
+        name: '',
+        type: '',
+        category: '',
+        description: '',
+        unitCost: '',
+        minimumStock: '',
+        currentStock: '',
+      });
+      setGeneratedCode('');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao criar material');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,14 +126,15 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
               <Label htmlFor="code">Código</Label>
               <Input
                 id="code"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="MAT-001"
-                required
+                value={generatedCode}
+                disabled
+                className="bg-muted"
+                placeholder="Gerando..."
               />
+              <p className="text-xs text-muted-foreground">Gerado automaticamente</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Tipo</Label>
+              <Label htmlFor="type">Tipo *</Label>
               <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
