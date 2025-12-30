@@ -253,6 +253,7 @@ export type Database = {
           id: string
           is_critical: boolean
           material_type: Database["public"]["Enums"]["material_type"] | null
+          requires_comment: boolean
           requires_material: boolean
           requires_photo: boolean
           sort_order: number
@@ -265,6 +266,7 @@ export type Database = {
           id?: string
           is_critical?: boolean
           material_type?: Database["public"]["Enums"]["material_type"] | null
+          requires_comment?: boolean
           requires_material?: boolean
           requires_photo?: boolean
           sort_order?: number
@@ -277,6 +279,7 @@ export type Database = {
           id?: string
           is_critical?: boolean
           material_type?: Database["public"]["Enums"]["material_type"] | null
+          requires_comment?: boolean
           requires_material?: boolean
           requires_photo?: boolean
           sort_order?: number

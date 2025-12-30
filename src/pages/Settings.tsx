@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { ChecklistSettingsManager } from '@/components/settings/ChecklistSettingsManager';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { 
@@ -21,7 +22,8 @@ import {
   Bell,
   CalendarClock,
   History,
-  Settings2
+  Settings2,
+  ClipboardCheck
 } from 'lucide-react';
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { toast } from 'sonner';
@@ -236,7 +238,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-3xl", isSuperAdmin ? "grid-cols-5" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-4xl", isSuperAdmin ? "grid-cols-6" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -249,6 +251,12 @@ export default function Settings() {
               <Bell className="h-4 w-4 mr-2" />
               Notificações
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="checklist">
+                <ClipboardCheck className="h-4 w-4 mr-2" />
+                Checklist
+              </TabsTrigger>
+            )}
             {isSuperAdmin && (
               <TabsTrigger value="evaluations">
                 <CalendarClock className="h-4 w-4 mr-2" />
@@ -446,6 +454,13 @@ export default function Settings() {
           <TabsContent value="notifications" className="space-y-6">
             <NotificationSettings />
           </TabsContent>
+
+          {/* Checklist Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="checklist" className="space-y-6">
+              <ChecklistSettingsManager />
+            </TabsContent>
+          )}
 
           {/* Evaluations Tab - Super Admin Only */}
           {isSuperAdmin && (

@@ -102,7 +102,20 @@ export default function Checklist() {
     return missing;
   }, [answers, categories]);
 
-  const canSubmit = totalAnswered === totalQuestions && missingRequiredPhotos.length === 0 && signatureUrl;
+  // Check for missing required comments
+  const missingRequiredComments = useMemo(() => {
+    const missing: string[] = [];
+    categories.forEach(category => {
+      category.questions.forEach(question => {
+        if (question.requiresComment && answers[question.id]?.value && !answers[question.id]?.observation?.trim()) {
+          missing.push(question.id);
+        }
+      });
+    });
+    return missing;
+  }, [answers, categories]);
+
+  const canSubmit = totalAnswered === totalQuestions && missingRequiredPhotos.length === 0 && missingRequiredComments.length === 0 && signatureUrl;
 
   const handleAnswer = (questionId: string, value: AnswerValue) => {
     setAnswers(prev => ({
@@ -184,6 +197,10 @@ export default function Checklist() {
     }
     if (missingRequiredPhotos.length > 0) {
       toast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
+      return;
+    }
+    if (missingRequiredComments.length > 0) {
+      toast.error(`${missingRequiredComments.length} comentário(s) obrigatório(s) não foram preenchidos`);
       return;
     }
     if (!signatureUrl) {
@@ -324,6 +341,12 @@ export default function Checklist() {
                 <div className="flex items-center gap-2 text-warning">
                   <AlertCircle className="h-4 w-4" />
                   <span>{missingRequiredPhotos.length} foto(s) obrigatória(s) pendente(s)</span>
+                </div>
+              )}
+              {missingRequiredComments.length > 0 && (
+                <div className="flex items-center gap-2 text-warning">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{missingRequiredComments.length} comentário(s) obrigatório(s) pendente(s)</span>
                 </div>
               )}
               {signatureUrl ? (

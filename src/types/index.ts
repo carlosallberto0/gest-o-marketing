@@ -154,9 +154,10 @@ export interface ChecklistQuestion {
   text: string;
   tip?: string;
   order: number;
-  requiresPhoto?: boolean;
-  isCritical?: boolean;
-  requiresMaterial?: boolean;
+  requiresPhoto: boolean;
+  requiresComment?: boolean;
+  isCritical: boolean;
+  requiresMaterial: boolean;
   materialType?: string;
 }
 
