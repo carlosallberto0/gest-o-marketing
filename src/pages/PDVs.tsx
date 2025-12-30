@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NewPDVDialog } from '@/components/dialogs/NewPDVDialog';
 import { EditPDVDialog } from '@/components/dialogs/EditPDVDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const getTypeLabel = (type: string) => {
   switch (type) {
@@ -98,6 +99,9 @@ export default function PDVs() {
   const { data: pdvs, isLoading } = usePDVs();
   const toggleStatus = useTogglePDVStatus();
   const deletePDV = useDeletePDV();
+  const { profile } = useAuth();
+  
+  const isSuperAdmin = profile?.role === 'super_admin';
   
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -158,10 +162,12 @@ export default function PDVs() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">PDVs</h1>
             <p className="text-muted-foreground mt-1">Gestão de pontos de venda</p>
           </div>
-          <Button onClick={() => setIsNewPDVOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo PDV
-          </Button>
+          {isSuperAdmin && (
+            <Button onClick={() => setIsNewPDVOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo PDV
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -272,14 +278,18 @@ export default function PDVs() {
                           <Power className="h-4 w-4 mr-2" />
                           {pdv.status === 'active' ? 'Desativar' : 'Ativar'}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(pdv.id, pdv.name); }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {isSuperAdmin && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(pdv.id, pdv.name); }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

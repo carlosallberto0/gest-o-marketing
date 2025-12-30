@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier, Supplier, CreateSupplierInput } from '@/hooks/useSuppliers';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
 
 type ServiceType = 'installation' | 'maintenance' | 'removal' | 'replacement';
@@ -36,6 +37,9 @@ export default function Suppliers() {
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();
+  const { profile } = useAuth();
+  
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -208,27 +212,29 @@ export default function Suppliers() {
             <h1 className="text-2xl font-bold text-foreground">Fornecedores</h1>
             <p className="text-muted-foreground">Gerencie os fornecedores de serviços de manutenção</p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Fornecedor
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Novo Fornecedor</DialogTitle>
-              </DialogHeader>
-              <SupplierForm />
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleCreate} disabled={createSupplier.isPending}>
-                  {createSupplier.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Cadastrar
+          {isSuperAdmin && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Fornecedor
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Novo Fornecedor</DialogTitle>
+                </DialogHeader>
+                <SupplierForm />
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleCreate} disabled={createSupplier.isPending}>
+                    {createSupplier.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Cadastrar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -363,27 +369,29 @@ export default function Suppliers() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir fornecedor?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. O fornecedor será removido permanentemente.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(supplier.id)}>
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          {isSuperAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir fornecedor?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. O fornecedor será removido permanentemente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(supplier.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

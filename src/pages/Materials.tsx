@@ -151,10 +151,12 @@ export default function Materials() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Materiais</h1>
             <p className="text-muted-foreground mt-1">Gestão de materiais de trade marketing</p>
           </div>
-          <Button onClick={() => setIsNewMaterialOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Material
-          </Button>
+          {isSuperAdmin && (
+            <Button onClick={() => setIsNewMaterialOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Material
+            </Button>
+          )}
         </div>
 
         {/* Stats */}

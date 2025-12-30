@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -84,6 +85,9 @@ export default function PDVDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isNewOutdoorOpen, setIsNewOutdoorOpen] = useState(false);
+  const { profile } = useAuth();
+  
+  const isSuperAdmin = profile?.role === 'super_admin';
   
   const { data: pdv, isLoading: loadingPDV } = usePDVDetails(id || '');
   const { data: history, isLoading: loadingHistory } = usePDVEvaluationHistory(id || '');
@@ -275,10 +279,12 @@ export default function PDVDetail() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => setIsNewOutdoorOpen(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Novo Outdoor
-                </Button>
+                {isSuperAdmin && (
+                  <Button size="sm" onClick={() => setIsNewOutdoorOpen(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Novo Outdoor
+                  </Button>
+                )}
                 <Monitor className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>

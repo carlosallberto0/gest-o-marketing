@@ -155,14 +155,18 @@ export default function Outdoors() {
                 Carga de Imagens
               </Button>
             )}
-            <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Importar CSV
-            </Button>
-            <Button onClick={() => setIsNewOutdoorOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Outdoor
-            </Button>
+            {isSuperAdmin && (
+              <>
+                <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importar CSV
+                </Button>
+                <Button onClick={() => setIsNewOutdoorOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Outdoor
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -186,8 +190,8 @@ export default function Outdoors() {
           </div>
         </div>
 
-        {/* Bulk Action Bar */}
-        {selectedOutdoors.size > 0 && (
+        {/* Bulk Action Bar - Super Admin only */}
+        {isSuperAdmin && selectedOutdoors.size > 0 && (
           <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <Checkbox 
@@ -232,16 +236,18 @@ export default function Outdoors() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex items-center gap-3">
-            <Checkbox 
-              id="select-all"
-              checked={filteredOutdoors.length > 0 && selectedOutdoors.size === filteredOutdoors.length}
-              onCheckedChange={toggleSelectAll}
-            />
-            <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-              Selecionar todos
-            </label>
-          </div>
+          {isSuperAdmin && (
+            <div className="flex items-center gap-3">
+              <Checkbox 
+                id="select-all"
+                checked={filteredOutdoors.length > 0 && selectedOutdoors.size === filteredOutdoors.length}
+                onCheckedChange={toggleSelectAll}
+              />
+              <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                Selecionar todos
+              </label>
+            </div>
+          )}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -301,17 +307,19 @@ export default function Outdoors() {
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="aspect-video bg-muted relative">
-                {/* Selection Checkbox */}
-                <div 
-                  className="absolute top-3 left-3 z-10"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Checkbox
-                    checked={selectedOutdoors.has(outdoor.id)}
-                    onCheckedChange={() => toggleSelection(outdoor.id)}
-                    className="bg-background border-2 h-5 w-5"
-                  />
-                </div>
+                {/* Selection Checkbox - Super Admin only */}
+                {isSuperAdmin && (
+                  <div 
+                    className="absolute top-3 left-3 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedOutdoors.has(outdoor.id)}
+                      onCheckedChange={() => toggleSelection(outdoor.id)}
+                      className="bg-background border-2 h-5 w-5"
+                    />
+                  </div>
+                )}
                 <img 
                   src={convertGoogleDriveUrl(outdoor.photoUrl) || '/placeholder.svg'} 
                   alt={outdoor.code}
