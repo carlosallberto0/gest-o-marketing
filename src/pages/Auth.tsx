@@ -9,6 +9,7 @@ import { Fuel, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
+import { useLoginScreenSettings } from '@/hooks/useLoginScreenSettings';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -22,6 +23,7 @@ const signupSchema = loginSchema.extend({
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { data: loginSettings } = useLoginScreenSettings();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -123,15 +125,37 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Branding (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80" />
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-primary-foreground">
+      <div 
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        style={{
+          backgroundColor: loginSettings?.background_type === 'color' 
+            ? loginSettings.background_color 
+            : undefined,
+          backgroundImage: loginSettings?.background_type === 'image' && loginSettings.background_image 
+            ? `url(${loginSettings.background_image})` 
+            : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {loginSettings?.background_type === 'color' && (
+          <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-transparent to-black/20" />
+        )}
+        {loginSettings?.background_type === 'image' && loginSettings.background_image && (
+          <div 
+            className="absolute inset-0 bg-black"
+            style={{ opacity: (loginSettings.overlay_opacity || 50) / 100 }}
+          />
+        )}
+        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
           <div className="w-20 h-20 rounded-lg bg-white/10 flex items-center justify-center mb-8">
             <Fuel className="h-10 w-10" />
           </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">Gestão & Marketing</h1>
-          <p className="text-lg text-primary-foreground/80 text-center max-w-md">
-            Sistema completo para gestão de merchandising e mídia externa
+          <h1 className="text-4xl font-bold mb-4 text-center">
+            {loginSettings?.title || 'Gestão & Marketing'}
+          </h1>
+          <p className="text-lg text-white/80 text-center max-w-md">
+            {loginSettings?.subtitle || 'Sistema completo para gestão de merchandising e mídia externa'}
           </p>
         </div>
         {/* Decorative circles */}
