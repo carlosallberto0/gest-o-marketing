@@ -17,12 +17,15 @@ import {
   MapPin,
   ExternalLink,
   ClipboardCheck,
-  Wrench
+  Wrench,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FinancialKPICard } from '@/components/dashboard/FinancialKPICard';
+import { CostDistributionChart } from '@/components/dashboard/CostDistributionChart';
 
 export default function MediaDashboard() {
   const { profile } = useAuth();
@@ -276,6 +279,18 @@ export default function MediaDashboard() {
                 <p className="text-xs text-muted-foreground">Precisam Manutenção</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Financial Section - Super Admin and Director only */}
+        {(isSuperAdmin || isDirector) && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground text-lg">Visão Financeira</h3>
+            </div>
+            <FinancialKPICard showDetails={isSuperAdmin} />
+            <CostDistributionChart showDetails={isSuperAdmin} />
           </div>
         )}
 
