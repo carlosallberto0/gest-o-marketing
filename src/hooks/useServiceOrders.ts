@@ -187,6 +187,10 @@ interface CreateServiceOrderInput {
   type: 'installation' | 'maintenance' | 'removal' | 'replacement';
   description: string;
   total_cost: number;
+  custo_fornecedor?: number;
+  custos_operacionais?: number;
+  multiplicador_regional?: number;
+  detalhamento_custos?: Record<string, unknown>;
 }
 
 export function useCreateServiceOrder() {
@@ -201,13 +205,23 @@ export function useCreateServiceOrder() {
 
       const orderNumber = `OS-${String((count || 0) + 1).padStart(4, '0')}`;
 
+      const insertData: any = {
+        outdoor_id: input.outdoor_id,
+        supplier_id: input.supplier_id,
+        type: input.type,
+        description: input.description,
+        total_cost: input.total_cost,
+        custo_fornecedor: input.custo_fornecedor || 0,
+        custos_operacionais: input.custos_operacionais || 0,
+        multiplicador_regional: input.multiplicador_regional || 1,
+        detalhamento_custos: input.detalhamento_custos || {},
+        number: orderNumber,
+        status: 'pending',
+      };
+
       const { data, error } = await supabase
         .from('service_orders')
-        .insert({
-          ...input,
-          number: orderNumber,
-          status: 'pending' as any, // Start with pending admin approval
-        })
+        .insert(insertData)
         .select()
         .single();
 

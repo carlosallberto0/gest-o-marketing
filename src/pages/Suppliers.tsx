@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier, Supplier, CreateSupplierInput } from '@/hooks/useSuppliers';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign } from 'lucide-react';
+import { SupplierPricingDialog } from '@/components/dialogs/SupplierPricingDialog';
 
 type ServiceType = 'installation' | 'maintenance' | 'removal' | 'replacement';
 
@@ -45,6 +46,7 @@ export default function Suppliers() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [pricingSupplier, setPricingSupplier] = useState<Supplier | null>(null);
 
   const [formData, setFormData] = useState<CreateSupplierInput>({
     name: '',
@@ -362,6 +364,16 @@ export default function Suppliers() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {isSuperAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setPricingSupplier(supplier)}
+                              title="Configurar Preços"
+                            >
+                              <DollarSign className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -418,6 +430,16 @@ export default function Suppliers() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Pricing Dialog */}
+        {pricingSupplier && (
+          <SupplierPricingDialog
+            supplierId={pricingSupplier.id}
+            supplierName={pricingSupplier.name}
+            open={!!pricingSupplier}
+            onOpenChange={(open) => !open && setPricingSupplier(null)}
+          />
+        )}
       </div>
     </AppLayout>
   );

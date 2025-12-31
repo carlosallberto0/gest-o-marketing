@@ -727,6 +727,14 @@ export default function Settings() {
               <FieldOptionsSettings />
             </TabsContent>
           )}
+
+          {/* Costs Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="costs" className="space-y-6">
+              <OperationalCostsSettings />
+              <RegionalMultiplierSettings />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>
