@@ -788,30 +788,47 @@ export default function StrategicMapMapbox() {
     adminMarkersRef.current.forEach(m => m.remove());
     adminMarkersRef.current = [];
 
-    if (adminMode && isSuperAdmin) {
-      // Hide PDV points layer
-      if (map.getLayer('pdv-points')) {
-        map.setLayoutProperty('pdv-points', 'visibility', 'none');
-      }
+    // PDV layers that need to be hidden in admin mode
+    const pdvLayers = ['pdv-clusters', 'pdv-cluster-count', 'pdv-points'];
 
-      // Create draggable markers
+    if (adminMode && isSuperAdmin) {
+      // Hide ALL PDV layers (clusters + points) so draggable markers are visible
+      pdvLayers.forEach(layer => {
+        if (map.getLayer(layer)) {
+          map.setLayoutProperty(layer, 'visibility', 'none');
+        }
+      });
+
+      // Create draggable markers for all PDVs
       pdvsWithCoords.forEach(pdv => {
         const color = STATUS_COLORS[pdv.evaluationStatus] || STATUS_COLORS.ok;
         
         const el = document.createElement('div');
-        el.style.width = '20px';
-        el.style.height = '20px';
+        el.style.width = '24px';
+        el.style.height = '24px';
         el.style.borderRadius = '50%';
         el.style.backgroundColor = color;
         el.style.border = '3px solid white';
-        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
         el.style.cursor = 'grab';
+        el.style.transition = 'transform 0.15s ease';
+
+        // Visual feedback on hover
+        el.onmouseenter = () => { el.style.transform = 'scale(1.2)'; };
+        el.onmouseleave = () => { el.style.transform = 'scale(1)'; };
 
         const marker = new mapboxgl.Marker({ element: el, draggable: true })
           .setLngLat([pdv.lng!, pdv.lat!])
           .addTo(map);
 
+        marker.on('dragstart', () => {
+          el.style.cursor = 'grabbing';
+          el.style.transform = 'scale(1.3)';
+        });
+
         marker.on('dragend', () => {
+          el.style.cursor = 'grab';
+          el.style.transform = 'scale(1)';
           const lngLat = marker.getLngLat();
           handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
         });
@@ -831,10 +848,12 @@ export default function StrategicMapMapbox() {
         adminMarkersRef.current.push(marker);
       });
     } else {
-      // Show PDV points layer again
-      if (map.getLayer('pdv-points') && showPDVs) {
-        map.setLayoutProperty('pdv-points', 'visibility', 'visible');
-      }
+      // Restore PDV layer visibility based on showPDVs setting
+      pdvLayers.forEach(layer => {
+        if (map.getLayer(layer)) {
+          map.setLayoutProperty(layer, 'visibility', showPDVs ? 'visible' : 'none');
+        }
+      });
     }
   }, [adminMode, isSuperAdmin, pdvsWithCoords, mapLoaded, handlePDVCoordinateUpdate, showPDVs]);
 
