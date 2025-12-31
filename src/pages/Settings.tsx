@@ -28,8 +28,11 @@ import {
   ClipboardCheck,
   LogIn,
   MessageSquare,
-  LayoutGrid
+  LayoutGrid,
+  DollarSign
 } from 'lucide-react';
+import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
+import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearanceSettings';
 import { toast } from 'sonner';
@@ -244,7 +247,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-9" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-10" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -291,6 +294,12 @@ export default function Settings() {
               <TabsTrigger value="fields">
                 <Settings2 className="h-4 w-4 mr-2" />
                 Campos
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="costs">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Custos
               </TabsTrigger>
             )}
           </TabsList>
