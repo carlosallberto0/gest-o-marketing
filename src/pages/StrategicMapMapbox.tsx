@@ -16,13 +16,10 @@ import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { MapLegend } from '@/components/map/MapLegend';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRoot, Root } from 'react-dom/client';
-
-// Detail mode threshold - above this zoom, we show individual markers with spiderfy
-const DETAIL_MODE_ZOOM = 16;
 
 // Status colors
 const STATUS_COLORS = {
@@ -36,52 +33,16 @@ const STATUS_COLORS = {
   pending_evaluation: '#f59e0b', // Yellow/amber
 };
 
-// Helper to group outdoors by coordinate and spread overlapping ones
-const groupAndSpreadOutdoors = (outdoors: MapOutdoor[], zoom: number) => {
-  const groups: { [key: string]: MapOutdoor[] } = {};
-  
-  outdoors.forEach(outdoor => {
-    if (outdoor.lat && outdoor.lng) {
-      const key = `${outdoor.lat.toFixed(6)},${outdoor.lng.toFixed(6)}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(outdoor);
-    }
-  });
-  
-  const spreadRadius = 0.00008 * Math.pow(2, 18 - zoom);
-  const result: Array<MapOutdoor & { displayLat: number; displayLng: number }> = [];
-  
-  Object.values(groups).forEach(group => {
-    if (group.length === 1) {
-      result.push({
-        ...group[0],
-        displayLat: group[0].lat!,
-        displayLng: group[0].lng!,
-      });
-    } else {
-      group.forEach((outdoor, index) => {
-        const angle = (2 * Math.PI * index) / group.length;
-        const offsetLat = spreadRadius * Math.cos(angle);
-        const offsetLng = spreadRadius * Math.sin(angle);
-        
-        result.push({
-          ...outdoor,
-          displayLat: outdoor.lat! + offsetLat,
-          displayLng: outdoor.lng! + offsetLng,
-        });
-      });
-    }
-  });
-  
-  return result;
-};
+// Cluster colors based on point count
+const PDV_CLUSTER_COLORS = ['#51bbd6', '#f1f075', '#f28cb1'];
+const OUTDOOR_CLUSTER_COLORS = ['#3b82f6', '#8b5cf6', '#ef4444'];
 
 export default function StrategicMapMapbox() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const adminMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const popupRootRef = useRef<Root | null>(null);
 
@@ -96,12 +57,13 @@ export default function StrategicMapMapbox() {
     updateCenter, 
     updateZoom, 
     updateFilters, 
-    updateLayers 
+    updateLayers,
+    updateTheme 
   } = useMapPersistence();
 
-  // Current zoom level for responsive markers
-  const [currentZoom, setCurrentZoom] = useState(persistedState.zoom);
+  // Map state
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapTheme, setMapTheme] = useState<'light' | 'dark'>(persistedState.theme);
 
   // Layer visibility
   const [showPDVs, setShowPDVs] = useState(persistedState.layers.showPDVs);
@@ -122,10 +84,6 @@ export default function StrategicMapMapbox() {
     open: false, lat: 0, lng: 0 
   });
 
-  // Selected items for popup
-  const [selectedPDV, setSelectedPDV] = useState<MapPDV | null>(null);
-  const [selectedOutdoor, setSelectedOutdoor] = useState<MapOutdoor | null>(null);
-
   // Context menu
   const [contextMenu, setContextMenu] = useState<{
     show: boolean;
@@ -137,7 +95,6 @@ export default function StrategicMapMapbox() {
   } | null>(null);
 
   const isSuperAdmin = profile?.role === 'super_admin';
-  const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
 
   // Default center (Brazil)
   const defaultCenter = useMemo(() => {
@@ -228,14 +185,57 @@ export default function StrategicMapMapbox() {
     filteredOutdoors.filter(outdoor => outdoor.lat && outdoor.lng),
   [filteredOutdoors]);
 
-  // Check if we're in detail mode (high zoom)
-  const isDetailMode = currentZoom >= DETAIL_MODE_ZOOM;
+  // GeoJSON for PDVs
+  const pdvGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: 'FeatureCollection',
+    features: pdvsWithCoords.map(pdv => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [pdv.lng!, pdv.lat!]
+      },
+      properties: {
+        id: pdv.id,
+        name: pdv.name,
+        code: pdv.code,
+        address: pdv.address,
+        city: pdv.city,
+        state: pdv.state,
+        type: pdv.type,
+        status: pdv.status,
+        evaluationStatus: pdv.evaluationStatus,
+        managerName: pdv.managerName,
+        lastEvaluationDate: pdv.lastEvaluationDate,
+        outdoorCount: pdv.outdoorCount,
+      }
+    }))
+  }), [pdvsWithCoords]);
 
-  // Spread overlapping outdoors in detail mode
-  const spreadOutdoors = useMemo(() => {
-    if (!isDetailMode) return outdoorsWithCoords.map(o => ({ ...o, displayLat: o.lat!, displayLng: o.lng! }));
-    return groupAndSpreadOutdoors(outdoorsWithCoords, currentZoom);
-  }, [outdoorsWithCoords, currentZoom, isDetailMode]);
+  // GeoJSON for Outdoors
+  const outdoorGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: 'FeatureCollection',
+    features: outdoorsWithCoords.map(outdoor => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [outdoor.lng!, outdoor.lat!]
+      },
+      properties: {
+        id: outdoor.id,
+        code: outdoor.code,
+        location: outdoor.location,
+        width: outdoor.width,
+        height: outdoor.height,
+        status: outdoor.status,
+        pdv_id: outdoor.pdv_id,
+        pdvName: outdoor.pdvName,
+        photo_url: outdoor.photo_url,
+        lastEvaluation: outdoor.lastEvaluation,
+        contractEndDate: outdoor.contractEndDate,
+        daysSinceEvaluation: outdoor.daysSinceEvaluation,
+      }
+    }))
+  }), [outdoorsWithCoords]);
 
   // Handle PDV coordinate update (drag end in admin mode)
   const handlePDVCoordinateUpdate = useCallback(async (pdvId: string, lat: number, lng: number) => {
@@ -282,6 +282,17 @@ export default function StrategicMapMapbox() {
     refetchPDVs();
     refetchOutdoors();
   }, [refetchPDVs, refetchOutdoors]);
+
+  // Handle theme toggle
+  const handleThemeToggle = useCallback(() => {
+    const newTheme = mapTheme === 'light' ? 'dark' : 'light';
+    setMapTheme(newTheme);
+    updateTheme(newTheme);
+    
+    if (mapRef.current) {
+      mapRef.current.setStyle(`mapbox://styles/mapbox/${newTheme}-v11`);
+    }
+  }, [mapTheme, updateTheme]);
 
   // Close context menu on click
   useEffect(() => {
@@ -352,6 +363,229 @@ export default function StrategicMapMapbox() {
     return [];
   }, [contextMenu, navigate, handleTogglePDVStatus]);
 
+  // Add sources and layers to map
+  const addSourcesAndLayers = useCallback((map: mapboxgl.Map) => {
+    // PDV Source with clustering
+    if (!map.getSource('pdvs')) {
+      map.addSource('pdvs', {
+        type: 'geojson',
+        data: pdvGeoJSON,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+      });
+    }
+
+    // PDV Cluster Layer
+    if (!map.getLayer('pdv-clusters')) {
+      map.addLayer({
+        id: 'pdv-clusters',
+        type: 'circle',
+        source: 'pdvs',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step', ['get', 'point_count'],
+            PDV_CLUSTER_COLORS[0], 10,
+            PDV_CLUSTER_COLORS[1], 50,
+            PDV_CLUSTER_COLORS[2]
+          ],
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            20, 10,
+            30, 50,
+            40
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // PDV Cluster Count Layer
+    if (!map.getLayer('pdv-cluster-count')) {
+      map.addLayer({
+        id: 'pdv-cluster-count',
+        type: 'symbol',
+        source: 'pdvs',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12
+        },
+        paint: {
+          'text-color': '#000000'
+        }
+      });
+    }
+
+    // PDV Individual Points Layer
+    if (!map.getLayer('pdv-points')) {
+      map.addLayer({
+        id: 'pdv-points',
+        type: 'circle',
+        source: 'pdvs',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match', ['get', 'evaluationStatus'],
+            'ok', STATUS_COLORS.ok,
+            'pending', STATUS_COLORS.pending,
+            'critical', STATUS_COLORS.critical,
+            STATUS_COLORS.ok
+          ],
+          'circle-radius': 10,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Outdoor Source with clustering
+    if (!map.getSource('outdoors')) {
+      map.addSource('outdoors', {
+        type: 'geojson',
+        data: outdoorGeoJSON,
+        cluster: true,
+        clusterMaxZoom: 15,
+        clusterRadius: 40,
+      });
+    }
+
+    // Outdoor Cluster Layer
+    if (!map.getLayer('outdoor-clusters')) {
+      map.addLayer({
+        id: 'outdoor-clusters',
+        type: 'circle',
+        source: 'outdoors',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step', ['get', 'point_count'],
+            OUTDOOR_CLUSTER_COLORS[0], 10,
+            OUTDOOR_CLUSTER_COLORS[1], 50,
+            OUTDOOR_CLUSTER_COLORS[2]
+          ],
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            18, 10,
+            26, 50,
+            34
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Outdoor Cluster Count Layer
+    if (!map.getLayer('outdoor-cluster-count')) {
+      map.addLayer({
+        id: 'outdoor-cluster-count',
+        type: 'symbol',
+        source: 'outdoors',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 11
+        },
+        paint: {
+          'text-color': '#ffffff'
+        }
+      });
+    }
+
+    // Outdoor Individual Points Layer
+    if (!map.getLayer('outdoor-points')) {
+      map.addLayer({
+        id: 'outdoor-points',
+        type: 'circle',
+        source: 'outdoors',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match', ['get', 'status'],
+            'operational', STATUS_COLORS.operational,
+            'non_operational', STATUS_COLORS.non_operational,
+            'pending_evaluation', STATUS_COLORS.pending_evaluation,
+            STATUS_COLORS.pending_evaluation
+          ],
+          'circle-radius': 8,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+  }, [pdvGeoJSON, outdoorGeoJSON]);
+
+  // Show popup for PDV
+  const showPDVPopup = useCallback((coordinates: [number, number], pdv: MapPDV) => {
+    if (!mapRef.current) return;
+    
+    if (popupRef.current) popupRef.current.remove();
+    if (popupRootRef.current) popupRootRef.current.unmount();
+    
+    const popupContainer = document.createElement('div');
+    const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
+      .setLngLat(coordinates)
+      .setDOMContent(popupContainer)
+      .addTo(mapRef.current);
+
+    popup.on('close', () => {
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+        popupRootRef.current = null;
+      }
+    });
+
+    popupRef.current = popup;
+    
+    const root = createRoot(popupContainer);
+    popupRootRef.current = root;
+    root.render(
+      <PDVPopup 
+        pdv={pdv} 
+        onClose={() => popup.remove()} 
+        onNavigate={navigate} 
+      />
+    );
+  }, [navigate]);
+
+  // Show popup for Outdoor
+  const showOutdoorPopup = useCallback((coordinates: [number, number], outdoor: MapOutdoor) => {
+    if (!mapRef.current) return;
+    
+    if (popupRef.current) popupRef.current.remove();
+    if (popupRootRef.current) popupRootRef.current.unmount();
+    
+    const popupContainer = document.createElement('div');
+    const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
+      .setLngLat(coordinates)
+      .setDOMContent(popupContainer)
+      .addTo(mapRef.current);
+
+    popup.on('close', () => {
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+        popupRootRef.current = null;
+      }
+    });
+
+    popupRef.current = popup;
+    
+    const root = createRoot(popupContainer);
+    popupRootRef.current = root;
+    root.render(
+      <OutdoorPopup 
+        outdoor={outdoor} 
+        onClose={() => popup.remove()} 
+        onNavigate={navigate} 
+      />
+    );
+  }, [navigate]);
+
   // Initialize Mapbox map
   useEffect(() => {
     if (!mapContainerRef.current || !mapboxToken || mapRef.current) return;
@@ -360,7 +594,7 @@ export default function StrategicMapMapbox() {
     
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: `mapbox://styles/mapbox/${mapTheme}-v11`,
       center: defaultCenter,
       zoom: persistedState.zoom,
       pitch: 0,
@@ -370,6 +604,12 @@ export default function StrategicMapMapbox() {
 
     map.on('load', () => {
       setMapLoaded(true);
+      addSourcesAndLayers(map);
+    });
+
+    // Re-add layers after style change (theme toggle)
+    map.on('style.load', () => {
+      addSourcesAndLayers(map);
     });
 
     map.on('moveend', () => {
@@ -377,9 +617,9 @@ export default function StrategicMapMapbox() {
       const zoom = map.getZoom();
       updateCenter([center.lng, center.lat]);
       updateZoom(zoom);
-      setCurrentZoom(zoom);
     });
 
+    // Context menu on right-click
     map.on('contextmenu', (e) => {
       if (!isSuperAdmin) return;
       setContextMenu({
@@ -391,14 +631,92 @@ export default function StrategicMapMapbox() {
       });
     });
 
-    map.on('click', () => {
-      setSelectedPDV(null);
-      setSelectedOutdoor(null);
-      if (popupRef.current) {
-        popupRef.current.remove();
-        popupRef.current = null;
+    // Close popup on map click (not on markers)
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['pdv-points', 'pdv-clusters', 'outdoor-points', 'outdoor-clusters']
+      });
+      if (features.length === 0) {
+        if (popupRef.current) {
+          popupRef.current.remove();
+          popupRef.current = null;
+        }
       }
     });
+
+    // PDV cluster click - zoom in
+    map.on('click', 'pdv-clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['pdv-clusters'] });
+      if (!features.length) return;
+      
+      const clusterId = features[0].properties?.cluster_id;
+      const source = map.getSource('pdvs') as mapboxgl.GeoJSONSource;
+      
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || zoom === undefined) return;
+        const geometry = features[0].geometry as GeoJSON.Point;
+        map.easeTo({
+          center: geometry.coordinates as [number, number],
+          zoom: zoom
+        });
+      });
+    });
+
+    // PDV point click - show popup
+    map.on('click', 'pdv-points', (e) => {
+      if (!e.features?.length) return;
+      const feature = e.features[0];
+      const geometry = feature.geometry as GeoJSON.Point;
+      const coords = geometry.coordinates as [number, number];
+      
+      // Find the PDV object
+      const pdv = pdvsWithCoords.find(p => p.id === feature.properties?.id);
+      if (pdv) {
+        showPDVPopup(coords, pdv);
+      }
+    });
+
+    // Outdoor cluster click - zoom in
+    map.on('click', 'outdoor-clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['outdoor-clusters'] });
+      if (!features.length) return;
+      
+      const clusterId = features[0].properties?.cluster_id;
+      const source = map.getSource('outdoors') as mapboxgl.GeoJSONSource;
+      
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || zoom === undefined) return;
+        const geometry = features[0].geometry as GeoJSON.Point;
+        map.easeTo({
+          center: geometry.coordinates as [number, number],
+          zoom: zoom
+        });
+      });
+    });
+
+    // Outdoor point click - show popup
+    map.on('click', 'outdoor-points', (e) => {
+      if (!e.features?.length) return;
+      const feature = e.features[0];
+      const geometry = feature.geometry as GeoJSON.Point;
+      const coords = geometry.coordinates as [number, number];
+      
+      // Find the Outdoor object
+      const outdoor = outdoorsWithCoords.find(o => o.id === feature.properties?.id);
+      if (outdoor) {
+        showOutdoorPopup(coords, outdoor);
+      }
+    });
+
+    // Cursor styling
+    map.on('mouseenter', 'pdv-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'pdv-clusters', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'pdv-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'pdv-points', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'outdoor-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'outdoor-clusters', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'outdoor-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'outdoor-points', () => { map.getCanvas().style.cursor = ''; });
 
     mapRef.current = map;
 
@@ -406,182 +724,102 @@ export default function StrategicMapMapbox() {
       map.remove();
       mapRef.current = null;
     };
-  }, [mapboxToken, defaultCenter, persistedState.zoom, isSuperAdmin, updateCenter, updateZoom]);
+  }, [mapboxToken]);
 
-  // Update markers when data changes
+  // Update GeoJSON data when it changes
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
+    
+    const pdvSource = mapRef.current.getSource('pdvs') as mapboxgl.GeoJSONSource;
+    if (pdvSource) {
+      pdvSource.setData(pdvGeoJSON);
+    }
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
+    const outdoorSource = mapRef.current.getSource('outdoors') as mapboxgl.GeoJSONSource;
+    if (outdoorSource) {
+      outdoorSource.setData(outdoorGeoJSON);
+    }
+  }, [pdvGeoJSON, outdoorGeoJSON, mapLoaded]);
 
+  // Toggle layer visibility
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
 
-    // Add PDV markers
-    if (showPDVs) {
+    const pdvLayers = ['pdv-clusters', 'pdv-cluster-count', 'pdv-points'];
+    const outdoorLayers = ['outdoor-clusters', 'outdoor-cluster-count', 'outdoor-points'];
+
+    pdvLayers.forEach(layer => {
+      if (map.getLayer(layer)) {
+        map.setLayoutProperty(layer, 'visibility', showPDVs ? 'visible' : 'none');
+      }
+    });
+
+    outdoorLayers.forEach(layer => {
+      if (map.getLayer(layer)) {
+        map.setLayoutProperty(layer, 'visibility', showOutdoors ? 'visible' : 'none');
+      }
+    });
+  }, [showPDVs, showOutdoors, mapLoaded]);
+
+  // Admin mode - draggable markers for PDVs
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const map = mapRef.current;
+
+    // Clean up previous admin markers
+    adminMarkersRef.current.forEach(m => m.remove());
+    adminMarkersRef.current = [];
+
+    if (adminMode && isSuperAdmin) {
+      // Hide PDV points layer
+      if (map.getLayer('pdv-points')) {
+        map.setLayoutProperty('pdv-points', 'visibility', 'none');
+      }
+
+      // Create draggable markers
       pdvsWithCoords.forEach(pdv => {
         const color = STATUS_COLORS[pdv.evaluationStatus] || STATUS_COLORS.ok;
         
-        // Create marker element
         const el = document.createElement('div');
         el.style.width = '20px';
         el.style.height = '20px';
         el.style.borderRadius = '50%';
         el.style.backgroundColor = color;
-        el.style.border = '2px solid white';
-        el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        el.style.cursor = 'pointer';
+        el.style.border = '3px solid white';
+        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+        el.style.cursor = 'grab';
 
-        const marker = new mapboxgl.Marker({
-          element: el,
-          draggable: adminMode && isSuperAdmin,
-        })
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
           .setLngLat([pdv.lng!, pdv.lat!])
           .addTo(map);
 
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          setSelectedOutdoor(null);
-          setSelectedPDV(pdv);
-
-          // Create popup
-          if (popupRef.current) popupRef.current.remove();
-          
-          const popupContainer = document.createElement('div');
-          const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
-            .setLngLat([pdv.lng!, pdv.lat!])
-            .setDOMContent(popupContainer)
-            .addTo(map);
-
-          popup.on('close', () => {
-            setSelectedPDV(null);
-            if (popupRootRef.current) {
-              popupRootRef.current.unmount();
-              popupRootRef.current = null;
-            }
-          });
-
-          popupRef.current = popup;
-          
-          // Render React component into popup
-          const root = createRoot(popupContainer);
-          popupRootRef.current = root;
-          root.render(
-            <PDVPopup 
-              pdv={pdv} 
-              onClose={() => {
-                popup.remove();
-                setSelectedPDV(null);
-              }} 
-              onNavigate={navigate} 
-            />
-          );
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
         });
 
         el.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (isSuperAdmin) {
-            setContextMenu({
-              show: true,
-              x: e.clientX,
-              y: e.clientY,
-              type: 'pdv',
-              item: pdv,
-            });
-          }
-        });
-
-        if (adminMode && isSuperAdmin) {
-          marker.on('dragend', () => {
-            const lngLat = marker.getLngLat();
-            handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
+          setContextMenu({
+            show: true,
+            x: e.clientX,
+            y: e.clientY,
+            type: 'pdv',
+            item: pdv,
           });
-        }
-
-        markersRef.current.push(marker);
-      });
-    }
-
-    // Add Outdoor markers
-    if (showOutdoors) {
-      spreadOutdoors.forEach(outdoor => {
-        const color = STATUS_COLORS[outdoor.status] || STATUS_COLORS.pending_evaluation;
-        
-        // Create marker element
-        const el = document.createElement('div');
-        el.style.width = '16px';
-        el.style.height = '16px';
-        el.style.borderRadius = '50%';
-        el.style.backgroundColor = color;
-        el.style.border = '2px solid white';
-        el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        el.style.cursor = 'pointer';
-
-        const marker = new mapboxgl.Marker({
-          element: el,
-        })
-          .setLngLat([outdoor.displayLng, outdoor.displayLat])
-          .addTo(map);
-
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          setSelectedPDV(null);
-          setSelectedOutdoor(outdoor);
-
-          // Create popup
-          if (popupRef.current) popupRef.current.remove();
-          
-          const popupContainer = document.createElement('div');
-          const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
-            .setLngLat([outdoor.displayLng, outdoor.displayLat])
-            .setDOMContent(popupContainer)
-            .addTo(map);
-
-          popup.on('close', () => {
-            setSelectedOutdoor(null);
-            if (popupRootRef.current) {
-              popupRootRef.current.unmount();
-              popupRootRef.current = null;
-            }
-          });
-
-          popupRef.current = popup;
-          
-          // Render React component into popup
-          const root = createRoot(popupContainer);
-          popupRootRef.current = root;
-          root.render(
-            <OutdoorPopup 
-              outdoor={outdoor} 
-              onClose={() => {
-                popup.remove();
-                setSelectedOutdoor(null);
-              }} 
-              onNavigate={navigate} 
-            />
-          );
         });
 
-        el.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (isSuperAdmin) {
-            setContextMenu({
-              show: true,
-              x: e.clientX,
-              y: e.clientY,
-              type: 'outdoor',
-              item: outdoor,
-            });
-          }
-        });
-
-        markersRef.current.push(marker);
+        adminMarkersRef.current.push(marker);
       });
+    } else {
+      // Show PDV points layer again
+      if (map.getLayer('pdv-points') && showPDVs) {
+        map.setLayoutProperty('pdv-points', 'visibility', 'visible');
+      }
     }
-  }, [mapLoaded, pdvsWithCoords, spreadOutdoors, showPDVs, showOutdoors, adminMode, isSuperAdmin, navigate, handlePDVCoordinateUpdate]);
+  }, [adminMode, isSuperAdmin, pdvsWithCoords, mapLoaded, handlePDVCoordinateUpdate, showPDVs]);
 
   // Loading state
   if (tokenLoading || pdvsLoading) {
@@ -611,7 +849,7 @@ export default function StrategicMapMapbox() {
       {/* Full-screen Map */}
       <div ref={mapContainerRef} className="absolute inset-0" />
 
-      {/* Floating Header - Row 1: Navigation + Refresh */}
+      {/* Floating Header - Row 1: Navigation + Refresh + Theme Toggle */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none">
         <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/modules')} title="Voltar aos Módulos">
@@ -619,7 +857,10 @@ export default function StrategicMapMapbox() {
           </Button>
           <Map className="h-5 w-5 text-primary" />
           <h1 className="font-semibold text-sm">Mapa Estratégico</h1>
-          <Button variant="ghost" size="icon" className="h-8 w-8 ml-2" onClick={handleRefresh}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleThemeToggle} title={mapTheme === 'light' ? 'Tema Escuro' : 'Tema Claro'}>
+            {mapTheme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} title="Atualizar dados">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
