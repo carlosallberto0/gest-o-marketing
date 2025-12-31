@@ -12,11 +12,12 @@ import { OutdoorPopup } from '@/components/map/OutdoorPopup';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { BulkEditDialog } from '@/components/map/BulkEditDialog';
 import { QuickPDVDialog } from '@/components/map/QuickPDVDialog';
+import { PDVRecalibrateDialog } from '@/components/map/PDVRecalibrateDialog';
 import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { MapLegend } from '@/components/map/MapLegend';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRoot, Root } from 'react-dom/client';
@@ -87,6 +88,10 @@ export default function StrategicMapMapbox() {
   const [quickPDVDialog, setQuickPDVDialog] = useState<{ open: boolean; lat: number; lng: number }>({ 
     open: false, lat: 0, lng: 0 
   });
+  const [recalibrateDialog, setRecalibrateDialog] = useState<{ 
+    open: boolean; 
+    pdv: MapPDV | null 
+  }>({ open: false, pdv: null });
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -339,7 +344,7 @@ export default function StrategicMapMapbox() {
     
     if (contextMenu.type === 'pdv' && contextMenu.item) {
       const pdv = contextMenu.item as MapPDV;
-      return [
+      const items = [
         {
           label: 'Ver detalhes',
           icon: <Map className="h-4 w-4" />,
@@ -357,6 +362,20 @@ export default function StrategicMapMapbox() {
           },
         },
       ];
+      
+      // Add recalibrate option for super_admin only
+      if (isSuperAdmin) {
+        items.push({
+          label: 'Recalibrar por Link',
+          icon: <MapPin className="h-4 w-4" />,
+          onClick: () => {
+            setRecalibrateDialog({ open: true, pdv });
+            setContextMenu(null);
+          },
+        });
+      }
+      
+      return items;
     }
     
     if (contextMenu.type === 'outdoor' && contextMenu.item) {
@@ -374,7 +393,7 @@ export default function StrategicMapMapbox() {
     }
     
     return [];
-  }, [contextMenu, navigate, handleTogglePDVStatus]);
+  }, [contextMenu, navigate, handleTogglePDVStatus, isSuperAdmin]);
 
   // Add sources and layers to map - uses refs to avoid stale closures
   const addSourcesAndLayers = useCallback((map: mapboxgl.Map) => {
@@ -799,33 +818,52 @@ export default function StrategicMapMapbox() {
         }
       });
 
+      // Disable map drag during marker drag for smoother experience
+      let activeMarkerDrag = false;
+      
       // Create draggable markers for all PDVs
       pdvsWithCoords.forEach(pdv => {
         const color = STATUS_COLORS[pdv.evaluationStatus] || STATUS_COLORS.ok;
-        let isDragging = false;
         
-        const el = document.createElement('div');
-        el.style.width = '24px';
-        el.style.height = '24px';
-        el.style.borderRadius = '50%';
-        el.style.backgroundColor = color;
-        el.style.border = '3px solid white';
-        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-        el.style.cursor = 'grab';
-        el.style.transition = 'all 0.15s ease';
-        el.style.transformOrigin = 'center center';
-        el.title = pdv.name || pdv.code || 'PDV';
+        // Create wrapper element (controlled by Mapbox - DO NOT apply transform)
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '32px';
+        wrapper.style.height = '32px';
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.justifyContent = 'center';
+        wrapper.style.cursor = 'grab';
+        wrapper.title = pdv.name || pdv.code || 'PDV';
+        
+        // Create inner circle element (for visual effects - safe to apply transform)
+        const inner = document.createElement('div');
+        inner.style.width = '20px';
+        inner.style.height = '20px';
+        inner.style.borderRadius = '50%';
+        inner.style.backgroundColor = color;
+        inner.style.border = '3px solid white';
+        inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+        inner.style.transition = 'all 0.15s ease';
+        inner.style.pointerEvents = 'none'; // Let wrapper handle events
+        
+        wrapper.appendChild(inner);
 
-        // Visual feedback on hover (disabled during drag)
-        el.onmouseenter = () => { 
-          if (!isDragging) el.style.transform = 'scale(1.1)'; 
+        // Visual feedback on hover (only on inner element)
+        wrapper.onmouseenter = () => { 
+          if (!activeMarkerDrag) {
+            inner.style.transform = 'scale(1.2)';
+            inner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
+          }
         };
-        el.onmouseleave = () => { 
-          if (!isDragging) el.style.transform = 'scale(1)'; 
+        wrapper.onmouseleave = () => { 
+          if (!activeMarkerDrag) {
+            inner.style.transform = 'scale(1)';
+            inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+          }
         };
 
         const marker = new mapboxgl.Marker({ 
-          element: el, 
+          element: wrapper, 
           draggable: true,
           anchor: 'center'
         })
@@ -833,24 +871,29 @@ export default function StrategicMapMapbox() {
           .addTo(map);
 
         marker.on('dragstart', () => {
-          isDragging = true;
-          el.style.cursor = 'grabbing';
-          el.style.transform = 'scale(1)';
-          el.style.boxShadow = '0 4px 16px rgba(59,130,246,0.6)';
-          el.style.border = '4px solid #3b82f6';
+          activeMarkerDrag = true;
+          wrapper.style.cursor = 'grabbing';
+          // Blue glow feedback during drag (no scale to maintain precision)
+          inner.style.transform = 'scale(1)';
+          inner.style.boxShadow = '0 0 0 4px rgba(59,130,246,0.5), 0 4px 16px rgba(59,130,246,0.6)';
+          inner.style.border = '3px solid #3b82f6';
+          // Disable map panning during marker drag
+          map.dragPan.disable();
         });
 
         marker.on('dragend', () => {
-          isDragging = false;
-          el.style.cursor = 'grab';
-          el.style.transform = 'scale(1)';
-          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-          el.style.border = '3px solid white';
+          activeMarkerDrag = false;
+          wrapper.style.cursor = 'grab';
+          inner.style.transform = 'scale(1)';
+          inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+          inner.style.border = '3px solid white';
+          // Re-enable map panning
+          map.dragPan.enable();
           const lngLat = marker.getLngLat();
           handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
         });
 
-        el.addEventListener('contextmenu', (e) => {
+        wrapper.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           e.stopPropagation();
           setContextMenu({
@@ -1019,6 +1062,15 @@ export default function StrategicMapMapbox() {
         initialLng={quickPDVDialog.lng}
         onSuccess={handleImportSuccess}
       />
+
+      {recalibrateDialog.pdv && (
+        <PDVRecalibrateDialog
+          open={recalibrateDialog.open}
+          onOpenChange={(open) => setRecalibrateDialog({ ...recalibrateDialog, open })}
+          pdv={recalibrateDialog.pdv}
+          onSuccess={handleImportSuccess}
+        />
+      )}
     </div>
   );
 }

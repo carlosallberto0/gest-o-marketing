@@ -32,11 +32,15 @@ export function toGoogleMapsUrl(input?: string | null): string | null {
 
 /**
  * Extrai coordenadas de uma URL do Google Maps.
- * Formatos suportados:
- * - https://www.google.com/maps/@-23.5505,-46.6333,15z
- * - https://www.google.com/maps/place/.../@-23.5505,-46.6333,15z
- * - https://www.google.com/maps?q=-23.5505,-46.6333
- * - https://google.com/maps/place/...!3d-23.5505!4d-46.6333
+ * IMPORTANTE: Prioriza !3d/!4d (ponto exato do lugar) sobre @lat,lng (viewport do mapa)
+ * 
+ * Formatos suportados (em ordem de prioridade):
+ * 1. !3d-23.5505!4d-46.6333 (ponto do lugar - mais preciso)
+ * 2. !8m2!3d-23.5505!4d-46.6333 (variante do ponto do lugar)
+ * 3. /maps/search/-23.5505,-46.6333 (URLs expandidas de links curtos)
+ * 4. ?q=-23.5505,-46.6333 (query parameter)
+ * 5. /place/-23.5505,-46.6333 (place URL)
+ * 6. @-23.5505,-46.6333 (viewport - menos preciso, usado como fallback)
  */
 export function extractCoordsFromGoogleMapsUrl(url: string): { lat: number; lng: number } | null {
   if (!url) return null;
@@ -44,27 +48,7 @@ export function extractCoordsFromGoogleMapsUrl(url: string): { lat: number; lng:
   // Decode URL to handle %2C and + as commas/spaces
   const decodedUrl = decodeURIComponent(url.trim()).replace(/\+/g, '');
 
-  // Pattern: /maps/search/-16.455045,-49.054816 (expanded short URLs)
-  const searchPattern = /\/maps\/search\/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/;
-  const searchMatch = decodedUrl.match(searchPattern);
-  if (searchMatch) {
-    return { lat: parseFloat(searchMatch[1]), lng: parseFloat(searchMatch[2]) };
-  }
-
-  // Pattern: /@-23.5505,-46.6333,
-  const atPattern = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-  const atMatch = decodedUrl.match(atPattern);
-  if (atMatch) {
-    return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
-  }
-
-  // Pattern: ?q=-23.5505,-46.6333 or &q=
-  const qPattern = /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-  const qMatch = decodedUrl.match(qPattern);
-  if (qMatch) {
-    return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
-  }
-
+  // PRIORITY 1: !3d...!4d... (ponto exato do lugar - mais preciso)
   // Pattern: !3d-23.5505!4d-46.6333 (embedded maps)
   const embedPattern = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
   const embedMatch = decodedUrl.match(embedPattern);
@@ -72,18 +56,39 @@ export function extractCoordsFromGoogleMapsUrl(url: string): { lat: number; lng:
     return { lat: parseFloat(embedMatch[1]), lng: parseFloat(embedMatch[2]) };
   }
 
-  // Pattern: !8m2!3d-23.5505!4d-46.6333
+  // PRIORITY 2: !8m2!3d...!4d... (variante)
   const dataPattern = /!8m2!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
   const dataMatch = decodedUrl.match(dataPattern);
   if (dataMatch) {
     return { lat: parseFloat(dataMatch[1]), lng: parseFloat(dataMatch[2]) };
   }
 
-  // Pattern: /place/-23.5505,-46.6333
+  // PRIORITY 3: /maps/search/-16.455045,-49.054816 (expanded short URLs)
+  const searchPattern = /\/maps\/search\/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/;
+  const searchMatch = decodedUrl.match(searchPattern);
+  if (searchMatch) {
+    return { lat: parseFloat(searchMatch[1]), lng: parseFloat(searchMatch[2]) };
+  }
+
+  // PRIORITY 4: ?q=-23.5505,-46.6333 or &q=
+  const qPattern = /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const qMatch = decodedUrl.match(qPattern);
+  if (qMatch) {
+    return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+  }
+
+  // PRIORITY 5: /place/-23.5505,-46.6333
   const placePattern = /\/place\/(-?\d+\.?\d*),(-?\d+\.?\d*)/;
   const placeMatch = decodedUrl.match(placePattern);
   if (placeMatch) {
     return { lat: parseFloat(placeMatch[1]), lng: parseFloat(placeMatch[2]) };
+  }
+
+  // PRIORITY 6 (FALLBACK): /@-23.5505,-46.6333 (viewport - menos preciso)
+  const atPattern = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const atMatch = decodedUrl.match(atPattern);
+  if (atMatch) {
+    return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
   }
 
   return null;
