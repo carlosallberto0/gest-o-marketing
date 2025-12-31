@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { ChecklistSettingsManager } from '@/components/settings/ChecklistSettingsManager';
+import { LoginScreenSettings } from '@/components/settings/LoginScreenSettings';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { 
@@ -23,7 +24,8 @@ import {
   CalendarClock,
   History,
   Settings2,
-  ClipboardCheck
+  ClipboardCheck,
+  LogIn
 } from 'lucide-react';
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { toast } from 'sonner';
@@ -238,11 +240,17 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-4xl", isSuperAdmin ? "grid-cols-6" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-4xl", isSuperAdmin ? "grid-cols-7" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="login-screen">
+                <LogIn className="h-4 w-4 mr-2" />
+                Tela Inicial
+              </TabsTrigger>
+            )}
             <TabsTrigger value="appearance">
               <Palette className="h-4 w-4 mr-2" />
               Aparência
@@ -353,6 +361,13 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Login Screen Tab (Super Admin only) */}
+          {isSuperAdmin && (
+            <TabsContent value="login-screen" className="space-y-6">
+              <LoginScreenSettings />
+            </TabsContent>
+          )}
 
           {/* Appearance Tab */}
           <TabsContent value="appearance" className="space-y-6">
