@@ -27,9 +27,11 @@ import {
   Settings2,
   ClipboardCheck,
   LogIn,
-  MessageSquare
+  MessageSquare,
+  LayoutGrid
 } from 'lucide-react';
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
+import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearanceSettings';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -242,7 +244,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-8" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-9" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -251,6 +253,12 @@ export default function Settings() {
               <TabsTrigger value="login-screen">
                 <LogIn className="h-4 w-4 mr-2" />
                 Tela Inicial
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="modules">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Módulos
               </TabsTrigger>
             )}
             <TabsTrigger value="appearance">
@@ -374,6 +382,13 @@ export default function Settings() {
           {isSuperAdmin && (
             <TabsContent value="login-screen" className="space-y-6">
               <LoginScreenSettings />
+            </TabsContent>
+          )}
+
+          {/* Module Appearance Tab (Super Admin only) */}
+          {isSuperAdmin && (
+            <TabsContent value="modules" className="space-y-6">
+              <ModuleAppearanceSettings />
             </TabsContent>
           )}
 
