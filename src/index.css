@@ -4,6 +4,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mapbox GL JS overrides - ensure map renders correctly */
+.mapboxgl-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.mapboxgl-canvas-container,
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 @layer base {
   :root {
     /* Nazox Design System - Light Theme */
