@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { useLoginScreenSettings } from '@/hooks/useLoginScreenSettings';
+import { ImageSlider } from '@/components/ui/image-slider';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -20,6 +22,30 @@ const signupSchema = loginSchema.extend({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   role: z.string().min(1, 'Selecione um cargo'),
 });
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+} as const;
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 100,
+      damping: 12,
+    },
+  },
+};
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -87,7 +113,6 @@ export default function Auth() {
           return;
         }
 
-        // Determine modules based on role
         const modules = formData.role === 'manager' ? ['media', 'merchandising'] : ['merchandising'];
 
         const { error } = await supabase.auth.signUp({
@@ -122,74 +147,120 @@ export default function Auth() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Side - Branding (Hidden on mobile) */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        style={{
-          backgroundColor: loginSettings?.background_type === 'color' 
-            ? loginSettings.background_color 
-            : undefined,
-          backgroundImage: loginSettings?.background_type === 'image' && loginSettings.background_image 
-            ? `url(${loginSettings.background_image})` 
-            : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        {loginSettings?.background_type === 'color' && (
-          <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-transparent to-black/20" />
-        )}
-        {loginSettings?.background_type === 'image' && loginSettings.background_image && (
-          <div 
+  const renderBackground = () => {
+    if (loginSettings?.background_type === 'slider' && loginSettings.slider_images?.length > 0) {
+      return (
+        <>
+          <ImageSlider
+            images={loginSettings.slider_images}
+            interval={loginSettings.slider_interval || 5000}
+            className="absolute inset-0"
+          />
+          <div
+            className="absolute inset-0 bg-black/40 z-[1]"
+            style={{ opacity: (loginSettings.overlay_opacity || 40) / 100 }}
+          />
+        </>
+      );
+    }
+
+    if (loginSettings?.background_type === 'image' && loginSettings.background_image) {
+      return (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${loginSettings.background_image})` }}
+          />
+          <div
             className="absolute inset-0 bg-black"
             style={{ opacity: (loginSettings.overlay_opacity || 50) / 100 }}
           />
-        )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: loginSettings?.background_color || '#2563eb' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-transparent to-black/20" />
+      </>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side - Branding with Slider */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {renderBackground()}
+        
+        {/* Content Overlay */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
-          <div className="w-20 h-20 rounded-lg bg-white/10 flex items-center justify-center mb-8">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-8 border border-white/20"
+          >
             <Fuel className="h-10 w-10" />
-          </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">
+          </motion.div>
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="text-4xl font-bold mb-4 text-center"
+          >
             {loginSettings?.title || 'Gestão & Marketing'}
-          </h1>
-          <p className="text-lg text-white/80 text-center max-w-md">
+          </motion.h1>
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="text-lg text-white/80 text-center max-w-md"
+          >
             {loginSettings?.subtitle || 'Sistema completo para gestão de merchandising e mídia externa'}
-          </p>
+          </motion.p>
         </div>
-        {/* Decorative circles */}
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full border border-white/10" />
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full border border-white/10" />
-        <div className="absolute bottom-20 right-20 w-64 h-64 rounded-full border border-white/10" />
+
+        {/* Decorative elements */}
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full border border-white/10 z-10" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full border border-white/10 z-10" />
+        <div className="absolute bottom-20 right-20 w-64 h-64 rounded-full border border-white/10 z-10" />
       </div>
 
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-md"
+        >
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded bg-primary mb-4">
+          <motion.div variants={itemVariants} className="lg:hidden text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary mb-4">
               <Fuel className="h-7 w-7 text-primary-foreground" />
             </div>
             <h1 className="text-xl font-bold text-foreground">Gestão & Marketing</h1>
-          </div>
+          </motion.div>
 
           {/* Form Header */}
-          <div className="mb-8">
+          <motion.div variants={itemVariants} className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground">
-              {isLogin ? 'Bem-vindo!' : 'Criar Conta'}
+              {isLogin ? 'Bem-vindo de volta' : 'Criar Conta'}
             </h2>
-            <p className="text-muted-foreground mt-1">
-              {isLogin ? 'Entre com suas credenciais para acessar o sistema.' : 'Preencha os dados para criar sua conta.'}
+            <p className="text-muted-foreground mt-2">
+              {isLogin ? 'Entre com suas credenciais para acessar sua conta.' : 'Preencha os dados para criar sua conta.'}
             </p>
-          </div>
+          </motion.div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <>
-                <div className="space-y-2">
+                <motion.div variants={itemVariants} className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -199,13 +270,13 @@ export default function Auth() {
                       placeholder="Digite seu nome"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="pl-10 h-10"
+                      className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
                       required={!isLogin}
                     />
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="space-y-2">
+                <motion.div variants={itemVariants} className="space-y-2">
                   <Label htmlFor="role" className="text-sm font-medium">Qual o seu cargo?</Label>
                   <div className="relative">
                     <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
@@ -213,7 +284,7 @@ export default function Auth() {
                       value={formData.role} 
                       onValueChange={(value) => setFormData({ ...formData, role: value })}
                     >
-                      <SelectTrigger className="pl-10 h-10">
+                      <SelectTrigger className="pl-10 h-11 rounded-lg">
                         <SelectValue placeholder="Selecione seu cargo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -226,65 +297,66 @@ export default function Auth() {
                   <p className="text-xs text-muted-foreground">
                     O administrador confirmará seu cargo após a aprovação
                   </p>
-                </div>
+                </motion.div>
               </>
             )}
 
-            <div className="space-y-2">
+            <motion.div variants={itemVariants} className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Digite seu email"
+                  placeholder="seu@email.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 h-10"
+                  className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
                   required
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+            <motion.div variants={itemVariants} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Digite sua senha"
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 h-10"
+                  className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
                   required
                 />
               </div>
-            </div>
+            </motion.div>
 
-            {isLogin && (
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded border-input" />
-                  <span className="text-muted-foreground">Lembrar-me</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Esqueceu a senha?
-                </button>
-              </div>
-            )}
-
-            <Button type="submit" className="w-full h-10" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {isLogin ? 'Entrar' : 'Criar conta'}
-            </Button>
+            <motion.div variants={itemVariants}>
+              <Button 
+                type="submit" 
+                className="w-full h-11 rounded-lg font-medium shadow-sm shadow-black/5" 
+                disabled={loading}
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {isLogin ? 'Entrar' : 'Criar conta'}
+              </Button>
+            </motion.div>
           </form>
 
-          <div className="mt-6 text-center">
+          <motion.div variants={itemVariants} className="mt-6 text-center">
             <span className="text-sm text-muted-foreground">
               {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
             </span>
@@ -295,13 +367,16 @@ export default function Auth() {
             >
               {isLogin ? 'Cadastre-se' : 'Entre'}
             </button>
-          </div>
+          </motion.div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-8">
+          <motion.p
+            variants={itemVariants}
+            className="text-center text-xs text-muted-foreground mt-8"
+          >
             © {new Date().getFullYear()} Gestão & Marketing. Todos os direitos reservados.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       </div>
 
       <ForgotPasswordDialog 
