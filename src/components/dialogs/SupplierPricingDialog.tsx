@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, DollarSign, Save, Wrench, Package, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, DollarSign, Save, Wrench, Package, Trash2, Building } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupplierPricing, useUpsertSupplierPricing, SupplierPricing } from '@/hooks/useSupplierPricing';
 import { formatCurrency } from '@/lib/costCalculator';
@@ -23,6 +24,7 @@ const serviceTypes = [
   { value: 'maintenance', label: 'Manutenção', icon: Wrench },
   { value: 'removal', label: 'Remoção', icon: Trash2 },
   { value: 'replacement', label: 'Substituição', icon: Package },
+  { value: 'construction', label: 'Construção', icon: Building },
 ];
 
 interface PricingForm {
@@ -31,6 +33,12 @@ interface PricingForm {
   custo_hora_trabalho: number;
   tempo_estimado_horas: number;
   observacoes: string;
+  // Novos campos de produção
+  custo_impressao_m2: number;
+  custo_envio_base: number;
+  inclui_material: boolean;
+  custo_construcao_base: number;
+  custo_construcao_m2: number;
 }
 
 const emptyForm: PricingForm = {
@@ -39,6 +47,11 @@ const emptyForm: PricingForm = {
   custo_hora_trabalho: 0,
   tempo_estimado_horas: 4,
   observacoes: '',
+  custo_impressao_m2: 0,
+  custo_envio_base: 0,
+  inclui_material: false,
+  custo_construcao_base: 0,
+  custo_construcao_m2: 0,
 };
 
 export function SupplierPricingDialog({ 
@@ -67,6 +80,11 @@ export function SupplierPricingDialog({
             custo_hora_trabalho: existing.custo_hora_trabalho,
             tempo_estimado_horas: existing.tempo_estimado_horas,
             observacoes: existing.observacoes || '',
+            custo_impressao_m2: existing.custo_impressao_m2 || 0,
+            custo_envio_base: existing.custo_envio_base || 0,
+            inclui_material: existing.inclui_material || false,
+            custo_construcao_base: existing.custo_construcao_base || 0,
+            custo_construcao_m2: existing.custo_construcao_m2 || 0,
           };
         } else {
           initialForms[type.value] = { ...emptyForm };
@@ -83,12 +101,16 @@ export function SupplierPricingDialog({
     }
   }, [pricing]);
 
-  const handleChange = (serviceType: string, field: keyof PricingForm, value: string | number) => {
+  const handleChange = (serviceType: string, field: keyof PricingForm, value: string | number | boolean) => {
     setForms(prev => ({
       ...prev,
       [serviceType]: {
         ...prev[serviceType],
-        [field]: typeof value === 'string' && field !== 'observacoes' ? parseFloat(value) || 0 : value,
+        [field]: field === 'observacoes' 
+          ? value 
+          : field === 'inclui_material' 
+            ? value 
+            : typeof value === 'string' ? parseFloat(value) || 0 : value,
       },
     }));
   };
@@ -144,7 +166,7 @@ export function SupplierPricingDialog({
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               {serviceTypes.map(type => {
                 const Icon = type.icon;
                 return (
@@ -156,71 +178,159 @@ export function SupplierPricingDialog({
               })}
             </TabsList>
 
-            {serviceTypes.map(type => (
+            {serviceTypes.map(type => {
+              const form = forms[type.value] || emptyForm;
+              const previewConstrucao = type.value === 'installation' || type.value === 'construction'
+                ? form.custo_construcao_base + (previewArea * form.custo_construcao_m2)
+                : 0;
+              const previewServico = form.custo_base + (previewArea * form.custo_por_m2) + (form.tempo_estimado_horas * form.custo_hora_trabalho);
+              const previewProducao = form.custo_impressao_m2 * previewArea;
+              const previewEnvio = form.custo_envio_base;
+              const previewTotalCompleto = previewServico + previewConstrucao + previewProducao + previewEnvio;
+              
+              return (
               <TabsContent key={type.value} value={type.value} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`${type.value}-base`}>Custo Base (R$)</Label>
-                    <Input
-                      id={`${type.value}-base`}
-                      type="number"
-                      step="0.01"
-                      value={forms[type.value]?.custo_base ?? 0}
-                      onChange={(e) => handleChange(type.value, 'custo_base', e.target.value)}
-                      placeholder="0,00"
-                    />
-                    <p className="text-xs text-muted-foreground">Valor fixo do serviço</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`${type.value}-m2`}>Custo por m² (R$)</Label>
-                    <Input
-                      id={`${type.value}-m2`}
-                      type="number"
-                      step="0.01"
-                      value={forms[type.value]?.custo_por_m2 ?? 0}
-                      onChange={(e) => handleChange(type.value, 'custo_por_m2', e.target.value)}
-                      placeholder="0,00"
-                    />
-                    <p className="text-xs text-muted-foreground">Proporcional à área do outdoor</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`${type.value}-hora`}>Custo Hora Trabalho (R$)</Label>
-                    <Input
-                      id={`${type.value}-hora`}
-                      type="number"
-                      step="0.01"
-                      value={forms[type.value]?.custo_hora_trabalho ?? 0}
-                      onChange={(e) => handleChange(type.value, 'custo_hora_trabalho', e.target.value)}
-                      placeholder="0,00"
-                    />
-                    <p className="text-xs text-muted-foreground">Mão de obra por hora</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`${type.value}-tempo`}>Tempo Estimado (horas)</Label>
-                    <Input
-                      id={`${type.value}-tempo`}
-                      type="number"
-                      step="0.5"
-                      value={forms[type.value]?.tempo_estimado_horas ?? 4}
-                      onChange={(e) => handleChange(type.value, 'tempo_estimado_horas', e.target.value)}
-                      placeholder="4"
-                    />
-                    <p className="text-xs text-muted-foreground">Duração média do serviço</p>
+                {/* Custos Básicos do Serviço */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Custos do Serviço</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-base`}>Custo Base (R$)</Label>
+                      <Input
+                        id={`${type.value}-base`}
+                        type="number"
+                        step="0.01"
+                        value={form.custo_base}
+                        onChange={(e) => handleChange(type.value, 'custo_base', e.target.value)}
+                        placeholder="0,00"
+                      />
+                      <p className="text-xs text-muted-foreground">Valor fixo do serviço</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-m2`}>Custo por m² (R$)</Label>
+                      <Input
+                        id={`${type.value}-m2`}
+                        type="number"
+                        step="0.01"
+                        value={form.custo_por_m2}
+                        onChange={(e) => handleChange(type.value, 'custo_por_m2', e.target.value)}
+                        placeholder="0,00"
+                      />
+                      <p className="text-xs text-muted-foreground">Proporcional à área do outdoor</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-hora`}>Custo Hora Trabalho (R$)</Label>
+                      <Input
+                        id={`${type.value}-hora`}
+                        type="number"
+                        step="0.01"
+                        value={form.custo_hora_trabalho}
+                        onChange={(e) => handleChange(type.value, 'custo_hora_trabalho', e.target.value)}
+                        placeholder="0,00"
+                      />
+                      <p className="text-xs text-muted-foreground">Mão de obra por hora</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-tempo`}>Tempo Estimado (horas)</Label>
+                      <Input
+                        id={`${type.value}-tempo`}
+                        type="number"
+                        step="0.5"
+                        value={form.tempo_estimado_horas}
+                        onChange={(e) => handleChange(type.value, 'tempo_estimado_horas', e.target.value)}
+                        placeholder="4"
+                      />
+                      <p className="text-xs text-muted-foreground">Duração média do serviço</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                {/* Custos de Construção (apenas para instalação/construção) */}
+                {(type.value === 'installation' || type.value === 'construction') && (
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Construção do Outdoor</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`${type.value}-construcao-base`}>Custo Base Construção (R$)</Label>
+                        <Input
+                          id={`${type.value}-construcao-base`}
+                          type="number"
+                          step="0.01"
+                          value={form.custo_construcao_base}
+                          onChange={(e) => handleChange(type.value, 'custo_construcao_base', e.target.value)}
+                          placeholder="0,00"
+                        />
+                        <p className="text-xs text-muted-foreground">Valor fixo para construir estrutura</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`${type.value}-construcao-m2`}>Custo Construção por m² (R$)</Label>
+                        <Input
+                          id={`${type.value}-construcao-m2`}
+                          type="number"
+                          step="0.01"
+                          value={form.custo_construcao_m2}
+                          onChange={(e) => handleChange(type.value, 'custo_construcao_m2', e.target.value)}
+                          placeholder="0,00"
+                        />
+                        <p className="text-xs text-muted-foreground">Proporcional à área da estrutura</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custos de Produção */}
+                <div className="space-y-2 border-t pt-4">
+                  <h4 className="text-sm font-medium text-muted-foreground">Produção e Envio</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-impressao`}>Impressão da Lona (R$/m²)</Label>
+                      <Input
+                        id={`${type.value}-impressao`}
+                        type="number"
+                        step="0.01"
+                        value={form.custo_impressao_m2}
+                        onChange={(e) => handleChange(type.value, 'custo_impressao_m2', e.target.value)}
+                        placeholder="0,00"
+                      />
+                      <p className="text-xs text-muted-foreground">Se 0, usa custo global</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`${type.value}-envio`}>Custo Base Envio (R$)</Label>
+                      <Input
+                        id={`${type.value}-envio`}
+                        type="number"
+                        step="0.01"
+                        value={form.custo_envio_base}
+                        onChange={(e) => handleChange(type.value, 'custo_envio_base', e.target.value)}
+                        placeholder="0,00"
+                      />
+                      <p className="text-xs text-muted-foreground">Se 0, usa custo global</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Checkbox
+                      id={`${type.value}-material`}
+                      checked={form.inclui_material}
+                      onCheckedChange={(checked) => handleChange(type.value, 'inclui_material', checked === true)}
+                    />
+                    <Label htmlFor={`${type.value}-material`} className="text-sm">
+                      Fornecedor inclui material (lona) no preço
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t pt-4">
                   <Label htmlFor={`${type.value}-obs`}>Observações</Label>
                   <Textarea
                     id={`${type.value}-obs`}
-                    value={forms[type.value]?.observacoes ?? ''}
+                    value={form.observacoes}
                     onChange={(e) => handleChange(type.value, 'observacoes', e.target.value)}
                     placeholder="Informações adicionais sobre precificação..."
                     rows={2}
                   />
                 </div>
 
-                {/* Preview */}
+                {/* Preview Completo */}
                 <Card className="bg-muted/50">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm">Simulação de Custo</CardTitle>
@@ -229,28 +339,38 @@ export function SupplierPricingDialog({
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="grid grid-cols-4 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground text-xs">Base</p>
-                        <p className="font-medium">{formatCurrency(currentForm.custo_base)}</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Serviço (base + área + mão de obra)</span>
+                        <span className="font-medium">{formatCurrency(previewServico)}</span>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Área ({previewArea}m²)</p>
-                        <p className="font-medium">{formatCurrency(previewArea * currentForm.custo_por_m2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Mão de obra ({previewHours}h)</p>
-                        <p className="font-medium">{formatCurrency(previewHours * currentForm.custo_hora_trabalho)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Total Estimado</p>
-                        <p className="font-bold text-primary">{formatCurrency(previewTotal)}</p>
+                      {previewConstrucao > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Construção</span>
+                          <span className="font-medium">{formatCurrency(previewConstrucao)}</span>
+                        </div>
+                      )}
+                      {previewProducao > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Impressão ({previewArea}m²)</span>
+                          <span className="font-medium">{formatCurrency(previewProducao)}</span>
+                        </div>
+                      )}
+                      {previewEnvio > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Envio Base</span>
+                          <span className="font-medium">{formatCurrency(previewEnvio)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t pt-2">
+                        <span className="font-medium">Total Fornecedor</span>
+                        <span className="font-bold text-primary">{formatCurrency(previewTotalCompleto)}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
-            ))}
+            )})}
           </Tabs>
         )}
 

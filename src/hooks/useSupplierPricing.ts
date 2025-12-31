@@ -13,6 +13,12 @@ export interface SupplierPricing {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
+  // Novos campos de produção
+  custo_impressao_m2: number;
+  custo_envio_base: number;
+  inclui_material: boolean;
+  custo_construcao_base: number;
+  custo_construcao_m2: number;
 }
 
 export function useSupplierPricing(supplierId?: string) {
@@ -44,6 +50,12 @@ export interface UpsertSupplierPricingInput {
   custo_hora_trabalho: number;
   tempo_estimado_horas: number;
   observacoes?: string;
+  // Novos campos de produção
+  custo_impressao_m2?: number;
+  custo_envio_base?: number;
+  inclui_material?: boolean;
+  custo_construcao_base?: number;
+  custo_construcao_m2?: number;
 }
 
 export function useUpsertSupplierPricing() {

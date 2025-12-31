@@ -1637,9 +1637,14 @@ export type Database = {
         Row: {
           created_at: string
           custo_base: number
+          custo_construcao_base: number | null
+          custo_construcao_m2: number | null
+          custo_envio_base: number | null
           custo_hora_trabalho: number
+          custo_impressao_m2: number | null
           custo_por_m2: number
           id: string
+          inclui_material: boolean | null
           observacoes: string | null
           service_type: string
           supplier_id: string
@@ -1649,9 +1654,14 @@ export type Database = {
         Insert: {
           created_at?: string
           custo_base?: number
+          custo_construcao_base?: number | null
+          custo_construcao_m2?: number | null
+          custo_envio_base?: number | null
           custo_hora_trabalho?: number
+          custo_impressao_m2?: number | null
           custo_por_m2?: number
           id?: string
+          inclui_material?: boolean | null
           observacoes?: string | null
           service_type: string
           supplier_id: string
@@ -1661,9 +1671,14 @@ export type Database = {
         Update: {
           created_at?: string
           custo_base?: number
+          custo_construcao_base?: number | null
+          custo_construcao_m2?: number | null
+          custo_envio_base?: number | null
           custo_hora_trabalho?: number
+          custo_impressao_m2?: number | null
           custo_por_m2?: number
           id?: string
+          inclui_material?: boolean | null
           observacoes?: string | null
           service_type?: string
           supplier_id?: string
