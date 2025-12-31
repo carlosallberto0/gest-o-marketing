@@ -6,6 +6,7 @@ const DEBOUNCE_MS = 500; // Debounce saves to localStorage
 interface MapPersistenceState {
   center: [number, number];
   zoom: number;
+  theme: 'light' | 'dark';
   filters: {
     searchTerm: string;
     selectedState: string;
@@ -22,6 +23,7 @@ interface MapPersistenceState {
 const defaultState: MapPersistenceState = {
   center: [-49.0, -15.5],
   zoom: 4,
+  theme: 'light',
   filters: {
     searchTerm: '',
     selectedState: 'all',
@@ -94,6 +96,10 @@ export function useMapPersistence() {
     }));
   }, []);
 
+  const updateTheme = useCallback((theme: 'light' | 'dark') => {
+    setState(prev => ({ ...prev, theme }));
+  }, []);
+
   const resetState = useCallback(() => {
     setState(defaultState);
     localStorage.removeItem(STORAGE_KEY);
@@ -105,6 +111,7 @@ export function useMapPersistence() {
     updateZoom,
     updateFilters,
     updateLayers,
+    updateTheme,
     resetState,
   };
 }
