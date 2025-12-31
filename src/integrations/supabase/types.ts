@@ -1282,6 +1282,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           manager_id: string | null
+          maps_url: string | null
           name: string
           photo_url: string | null
           state: string
@@ -1302,6 +1303,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
+          maps_url?: string | null
           name: string
           photo_url?: string | null
           state: string
@@ -1322,6 +1324,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
+          maps_url?: string | null
           name?: string
           photo_url?: string | null
           state?: string
