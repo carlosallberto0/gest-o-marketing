@@ -191,11 +191,41 @@ export function NewServiceOrderDialog({ open, onOpenChange }: NewServiceOrderDia
                     {/* Super Admin sees full breakdown */}
                     {isSuperAdmin && (
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Fornecedor</span>
-                          <span className="font-medium">{formatCurrency(costBreakdown.custo_fornecedor)}</span>
+                        {/* Material e Produção */}
+                        {(costBreakdown.detalhamento.material.custo_lona > 0 || 
+                          costBreakdown.detalhamento.producao.total > 0 || 
+                          costBreakdown.detalhamento.envio.total > 0) && (
+                          <>
+                            <div className="flex justify-between text-muted-foreground text-xs font-medium pt-1">
+                              <span>MATERIAL E PRODUÇÃO</span>
+                            </div>
+                            {costBreakdown.detalhamento.material.custo_lona > 0 && (
+                              <div className="flex justify-between pl-2">
+                                <span className="text-muted-foreground">Lona ({costBreakdown.detalhamento.material.fonte})</span>
+                                <span>{formatCurrency(costBreakdown.detalhamento.material.custo_lona)}</span>
+                              </div>
+                            )}
+                            {costBreakdown.detalhamento.producao.total > 0 && (
+                              <div className="flex justify-between pl-2">
+                                <span className="text-muted-foreground">Impressão</span>
+                                <span>{formatCurrency(costBreakdown.detalhamento.producao.total)}</span>
+                              </div>
+                            )}
+                            {costBreakdown.detalhamento.envio.total > 0 && (
+                              <div className="flex justify-between pl-2">
+                                <span className="text-muted-foreground">Envio</span>
+                                <span>{formatCurrency(costBreakdown.detalhamento.envio.total)}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Fornecedor */}
+                        <div className="flex justify-between text-muted-foreground text-xs font-medium pt-2">
+                          <span>SERVIÇO DO FORNECEDOR</span>
+                          <span>{formatCurrency(costBreakdown.custo_fornecedor)}</span>
                         </div>
-                        <div className="pl-4 space-y-1 text-xs text-muted-foreground">
+                        <div className="pl-2 space-y-1 text-xs text-muted-foreground">
                           <div className="flex justify-between">
                             <span>Base</span>
                             <span>{formatCurrency(costBreakdown.detalhamento.fornecedor.custo_base)}</span>
@@ -208,13 +238,20 @@ export function NewServiceOrderDialog({ open, onOpenChange }: NewServiceOrderDia
                             <span>Mão de obra</span>
                             <span>{formatCurrency(costBreakdown.detalhamento.fornecedor.custo_mao_obra)}</span>
                           </div>
+                          {costBreakdown.detalhamento.fornecedor.custo_construcao > 0 && (
+                            <div className="flex justify-between">
+                              <span>Construção</span>
+                              <span>{formatCurrency(costBreakdown.detalhamento.fornecedor.custo_construcao)}</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Operacionais</span>
-                          <span className="font-medium">{formatCurrency(costBreakdown.custos_operacionais)}</span>
+                        {/* Operacionais */}
+                        <div className="flex justify-between text-muted-foreground text-xs font-medium pt-2">
+                          <span>CUSTOS OPERACIONAIS</span>
+                          <span>{formatCurrency(costBreakdown.custos_operacionais)}</span>
                         </div>
-                        <div className="pl-4 space-y-1 text-xs text-muted-foreground">
+                        <div className="pl-2 space-y-1 text-xs text-muted-foreground">
                           <div className="flex justify-between">
                             <span>Hospedagem</span>
                             <span>{formatCurrency(costBreakdown.detalhamento.operacionais.hospedagem)}</span>
@@ -229,7 +266,7 @@ export function NewServiceOrderDialog({ open, onOpenChange }: NewServiceOrderDia
                           </div>
                         </div>
 
-                        <div className="flex justify-between text-xs">
+                        <div className="flex justify-between text-xs pt-1">
                           <span className="text-muted-foreground">
                             Multiplicador ({costBreakdown.detalhamento.regional.estado})
                           </span>
