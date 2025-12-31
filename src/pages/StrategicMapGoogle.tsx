@@ -689,48 +689,47 @@ function StrategicMapContent() {
         </GoogleMap>
       </div>
 
-      {/* Floating Header */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
-        {/* Left: Back + Title */}
+      {/* Floating Header - Row 1: Navigation + Refresh */}
+      <div className="absolute top-4 left-4 z-10 pointer-events-none">
         <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/modules')} title="Voltar aos Módulos">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Map className="h-5 w-5 text-primary" />
           <h1 className="font-semibold text-sm">Mapa Estratégico</h1>
-        </div>
-        
-        {/* Right: Admin Buttons */}
-        <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
-          {isSuperAdmin && (
-            <>
-              <Button
-                variant={adminMode ? 'default' : 'ghost'}
-                size="sm"
-                className="h-8 text-xs"
-                onClick={() => setAdminMode(!adminMode)}
-              >
-                <Move className="h-3.5 w-3.5 mr-1.5" />
-                {adminMode ? 'Admin ON' : 'Modo Admin'}
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowBulkEditDialog(true)}>
-                <Edit className="h-3.5 w-3.5 mr-1.5" />
-                Editar em Lote
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowImportDialog(true)}>
-                <Upload className="h-3.5 w-3.5 mr-1.5" />
-                Importar
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 ml-2" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
+      {/* Admin Bar - Row 2: Below header, only for super_admin */}
+      {isSuperAdmin && (
+        <div className="absolute top-[72px] left-4 z-10 pointer-events-none">
+          <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-lg border border-border pointer-events-auto">
+            <Button
+              variant={adminMode ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setAdminMode(!adminMode)}
+            >
+              <Move className="h-3.5 w-3.5 mr-1.5" />
+              {adminMode ? 'Admin ON' : 'Modo Admin'}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowBulkEditDialog(true)}>
+              <Edit className="h-3.5 w-3.5 mr-1.5" />
+              Lote
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowImportDialog(true)}>
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              Importar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Left Panel: Filters + KPIs */}
-      <div className="absolute top-20 left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+      <div className="absolute top-20 left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto" style={{ top: isSuperAdmin ? '112px' : '80px' }}>
         <MapSearchFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -745,8 +744,8 @@ function StrategicMapContent() {
         <MapKPIPanel kpis={kpis} />
       </div>
 
-      {/* Right Panel: Layer Controls */}
-      <div className="absolute top-20 right-4 z-10 w-52">
+      {/* Right Panel: Layer Controls - positioned lower to avoid Google Maps controls */}
+      <div className="absolute top-36 right-4 z-10 w-52">
         <MapLayerControls
           showPDVs={showPDVs}
           showOutdoors={showOutdoors}
@@ -757,8 +756,8 @@ function StrategicMapContent() {
         />
       </div>
 
-      {/* Bottom Left: Counter Badge + Legend */}
-      <div className="absolute bottom-4 left-4 z-10 space-y-3">
+      {/* Bottom Left: Legend + Counter Badge inline */}
+      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
         <MapLegend />
         <div className="bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
           <span className="text-primary">{filteredPDVs.length}</span>
