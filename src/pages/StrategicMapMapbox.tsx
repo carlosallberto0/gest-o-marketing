@@ -45,6 +45,10 @@ export default function StrategicMapMapbox() {
   const adminMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const popupRootRef = useRef<Root | null>(null);
+  
+  // Refs for GeoJSON data to avoid stale closures in map callbacks
+  const pdvGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const outdoorGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
 
   const { data: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
   const { data: pdvs, isLoading: pdvsLoading, refetch: refetchPDVs } = useMapPDVs();
@@ -237,6 +241,15 @@ export default function StrategicMapMapbox() {
     }))
   }), [outdoorsWithCoords]);
 
+  // Keep refs updated for use in map callbacks (avoids stale closures)
+  useEffect(() => {
+    pdvGeoJSONRef.current = pdvGeoJSON;
+  }, [pdvGeoJSON]);
+
+  useEffect(() => {
+    outdoorGeoJSONRef.current = outdoorGeoJSON;
+  }, [outdoorGeoJSON]);
+
   // Handle PDV coordinate update (drag end in admin mode)
   const handlePDVCoordinateUpdate = useCallback(async (pdvId: string, lat: number, lng: number) => {
     try {
@@ -363,13 +376,13 @@ export default function StrategicMapMapbox() {
     return [];
   }, [contextMenu, navigate, handleTogglePDVStatus]);
 
-  // Add sources and layers to map
+  // Add sources and layers to map - uses refs to avoid stale closures
   const addSourcesAndLayers = useCallback((map: mapboxgl.Map) => {
     // PDV Source with clustering
     if (!map.getSource('pdvs')) {
       map.addSource('pdvs', {
         type: 'geojson',
-        data: pdvGeoJSON,
+        data: pdvGeoJSONRef.current,
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 50,
@@ -446,7 +459,7 @@ export default function StrategicMapMapbox() {
     if (!map.getSource('outdoors')) {
       map.addSource('outdoors', {
         type: 'geojson',
-        data: outdoorGeoJSON,
+        data: outdoorGeoJSONRef.current,
         cluster: true,
         clusterMaxZoom: 15,
         clusterRadius: 40,
@@ -518,7 +531,7 @@ export default function StrategicMapMapbox() {
         }
       });
     }
-  }, [pdvGeoJSON, outdoorGeoJSON]);
+  }, []); // No dependencies - uses refs for data
 
   // Show popup for PDV
   const showPDVPopup = useCallback((coordinates: [number, number], pdv: MapPDV) => {
@@ -605,6 +618,10 @@ export default function StrategicMapMapbox() {
     map.on('load', () => {
       setMapLoaded(true);
       addSourcesAndLayers(map);
+      // Force resize to ensure correct dimensions
+      setTimeout(() => {
+        map.resize();
+      }, 100);
     });
 
     // Re-add layers after style change (theme toggle)
@@ -846,8 +863,12 @@ export default function StrategicMapMapbox() {
 
   return (
     <div className="h-screen w-screen relative overflow-hidden">
-      {/* Full-screen Map */}
-      <div ref={mapContainerRef} className="absolute inset-0" />
+      {/* Full-screen Map - explicit dimensions for Mapbox */}
+      <div 
+        ref={mapContainerRef} 
+        className="absolute inset-0 w-full h-full"
+        style={{ minHeight: '100vh', minWidth: '100vw' }}
+      />
 
       {/* Floating Header - Row 1: Navigation + Refresh + Theme Toggle */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none">
