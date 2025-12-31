@@ -41,7 +41,7 @@ import MaintenanceApproval from "./pages/MaintenanceApproval";
 import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs from "./pages/AuditLogs";
-import StrategicMapGoogle from "./pages/StrategicMapGoogle";
+import StrategicMapMapbox from "./pages/StrategicMapMapbox";
 import OutdoorReviews from "./pages/OutdoorReviews";
 import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
@@ -128,7 +128,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <StrategicMapGoogle />
+            <StrategicMapMapbox />
           </RequireRole>
         </ProtectedRoute>
       } 
