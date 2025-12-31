@@ -296,6 +296,44 @@ export type Database = {
           },
         ]
       }
+      config_custos_operacionais: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          descricao: string | null
+          id: string
+          parametro: string
+          unidade: string
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          descricao?: string | null
+          id?: string
+          parametro: string
+          unidade?: string
+          valor?: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          descricao?: string | null
+          id?: string
+          parametro?: string
+          unidade?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_custos_operacionais_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           annual_value: number
@@ -360,6 +398,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      custos_regionais: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          multiplicador: number
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado: string
+          id?: string
+          multiplicador?: number
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          multiplicador?: number
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       evaluation_answers: {
         Row: {
@@ -1450,8 +1515,12 @@ export type Database = {
           approved_at: string | null
           completed_at: string | null
           created_at: string
+          custo_fornecedor: number | null
+          custos_operacionais: number | null
           description: string
+          detalhamento_custos: Json | null
           id: string
+          multiplicador_regional: number | null
           number: string
           outdoor_id: string
           pdf_url: string | null
@@ -1464,8 +1533,12 @@ export type Database = {
           approved_at?: string | null
           completed_at?: string | null
           created_at?: string
+          custo_fornecedor?: number | null
+          custos_operacionais?: number | null
           description: string
+          detalhamento_custos?: Json | null
           id?: string
+          multiplicador_regional?: number | null
           number: string
           outdoor_id: string
           pdf_url?: string | null
@@ -1478,8 +1551,12 @@ export type Database = {
           approved_at?: string | null
           completed_at?: string | null
           created_at?: string
+          custo_fornecedor?: number | null
+          custos_operacionais?: number | null
           description?: string
+          detalhamento_custos?: Json | null
           id?: string
+          multiplicador_regional?: number | null
           number?: string
           outdoor_id?: string
           pdf_url?: string | null
@@ -1552,6 +1629,53 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_pricing: {
+        Row: {
+          created_at: string
+          custo_base: number
+          custo_hora_trabalho: number
+          custo_por_m2: number
+          id: string
+          observacoes: string | null
+          service_type: string
+          supplier_id: string
+          tempo_estimado_horas: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_base?: number
+          custo_hora_trabalho?: number
+          custo_por_m2?: number
+          id?: string
+          observacoes?: string | null
+          service_type: string
+          supplier_id: string
+          tempo_estimado_horas?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_base?: number
+          custo_hora_trabalho?: number
+          custo_por_m2?: number
+          id?: string
+          observacoes?: string | null
+          service_type?: string
+          supplier_id?: string
+          tempo_estimado_horas?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_pricing_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
