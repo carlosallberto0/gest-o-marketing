@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ModuleProvider } from "@/contexts/ModuleContext";
 import { SystemProvider } from "@/contexts/SystemContext";
+import { AlertToastProvider } from "@/contexts/AlertToastContext";
+import { AlertToastContainer } from "@/components/ui/alert-toast-container";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
@@ -398,13 +400,16 @@ const App = () => (
     <AuthProvider>
       <ModuleProvider>
         <SystemProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
+          <AlertToastProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <AlertToastContainer />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </AlertToastProvider>
         </SystemProvider>
       </ModuleProvider>
     </AuthProvider>
