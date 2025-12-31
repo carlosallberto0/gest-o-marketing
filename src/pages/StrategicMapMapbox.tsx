@@ -802,6 +802,7 @@ export default function StrategicMapMapbox() {
       // Create draggable markers for all PDVs
       pdvsWithCoords.forEach(pdv => {
         const color = STATUS_COLORS[pdv.evaluationStatus] || STATUS_COLORS.ok;
+        let isDragging = false;
         
         const el = document.createElement('div');
         el.style.width = '24px';
@@ -811,24 +812,40 @@ export default function StrategicMapMapbox() {
         el.style.border = '3px solid white';
         el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
         el.style.cursor = 'grab';
-        el.style.transition = 'transform 0.15s ease';
+        el.style.transition = 'all 0.15s ease';
+        el.style.transformOrigin = 'center center';
+        el.title = pdv.name || pdv.code || 'PDV';
 
-        // Visual feedback on hover
-        el.onmouseenter = () => { el.style.transform = 'scale(1.2)'; };
-        el.onmouseleave = () => { el.style.transform = 'scale(1)'; };
+        // Visual feedback on hover (disabled during drag)
+        el.onmouseenter = () => { 
+          if (!isDragging) el.style.transform = 'scale(1.1)'; 
+        };
+        el.onmouseleave = () => { 
+          if (!isDragging) el.style.transform = 'scale(1)'; 
+        };
 
-        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+        const marker = new mapboxgl.Marker({ 
+          element: el, 
+          draggable: true,
+          anchor: 'center'
+        })
           .setLngLat([pdv.lng!, pdv.lat!])
           .addTo(map);
 
         marker.on('dragstart', () => {
+          isDragging = true;
           el.style.cursor = 'grabbing';
-          el.style.transform = 'scale(1.3)';
+          el.style.transform = 'scale(1)';
+          el.style.boxShadow = '0 4px 16px rgba(59,130,246,0.6)';
+          el.style.border = '4px solid #3b82f6';
         });
 
         marker.on('dragend', () => {
+          isDragging = false;
           el.style.cursor = 'grab';
           el.style.transform = 'scale(1)';
+          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+          el.style.border = '3px solid white';
           const lngLat = marker.getLngLat();
           handlePDVCoordinateUpdate(pdv.id, lngLat.lat, lngLat.lng);
         });
