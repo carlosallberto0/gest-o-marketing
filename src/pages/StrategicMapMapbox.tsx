@@ -16,11 +16,15 @@ import { PDVRecalibrateDialog } from '@/components/map/PDVRecalibrateDialog';
 import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { MapLegend } from '@/components/map/MapLegend';
+import { MapErrorBoundary } from '@/components/map/MapErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRoot, Root } from 'react-dom/client';
+
+// Debug logging for development
+const DEBUG = import.meta.env.DEV;
 
 // Status colors
 const STATUS_COLORS = {
@@ -51,10 +55,37 @@ export default function StrategicMapMapbox() {
   const pdvGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
   const outdoorGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
 
-  const { data: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
-  const { data: pdvs, isLoading: pdvsLoading, refetch: refetchPDVs } = useMapPDVs();
-  const { data: outdoors, isLoading: outdoorsLoading, refetch: refetchOutdoors } = useMapOutdoors();
+  const { data: mapboxToken, isLoading: tokenLoading, error: tokenError, refetch: refetchToken } = useMapboxToken();
+  const { data: pdvs, isLoading: pdvsLoading, error: pdvsError, refetch: refetchPDVs } = useMapPDVs();
+  const { data: outdoors, isLoading: outdoorsLoading, error: outdoorsError, refetch: refetchOutdoors } = useMapOutdoors();
   const kpis = useMapKPIs();
+
+  // Map initialization error state
+  const [mapInitError, setMapInitError] = useState<string | null>(null);
+  
+  // Loading timeout state
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    if (DEBUG) {
+      console.log('[Map] Token loaded:', !!mapboxToken, 'Loading:', tokenLoading, 'Error:', tokenError?.message);
+      console.log('[Map] PDVs loaded:', pdvs?.length, 'Loading:', pdvsLoading, 'Error:', pdvsError?.message);
+      console.log('[Map] Outdoors loaded:', outdoors?.length, 'Loading:', outdoorsLoading, 'Error:', outdoorsError?.message);
+    }
+  }, [mapboxToken, tokenLoading, tokenError, pdvs, pdvsLoading, pdvsError, outdoors, outdoorsLoading, outdoorsError]);
+
+  // Loading timeout to prevent infinite loading
+  useEffect(() => {
+    if (tokenLoading || pdvsLoading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+        console.warn('[Map] Loading timeout reached after 30 seconds');
+      }, 30000);
+      return () => clearTimeout(timeout);
+    }
+    setLoadingTimeout(false);
+  }, [tokenLoading, pdvsLoading]);
 
   // Map persistence hook
   const { 
@@ -622,26 +653,50 @@ export default function StrategicMapMapbox() {
   useEffect(() => {
     if (!mapContainerRef.current || !mapboxToken || mapRef.current) return;
 
-    mapboxgl.accessToken = mapboxToken;
-    
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: `mapbox://styles/mapbox/${mapTheme}-v11`,
-      center: defaultCenter,
-      zoom: persistedState.zoom,
-      pitch: 0,
-    });
+    // Validate token before using
+    if (!mapboxToken.startsWith('pk.')) {
+      console.error('[Map] Invalid Mapbox token format');
+      setMapInitError('Token do Mapbox inválido. O token deve começar com "pk."');
+      return;
+    }
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    if (DEBUG) {
+      console.log('[Map] Initializing Mapbox with token:', mapboxToken.substring(0, 10) + '...');
+    }
 
-    map.on('load', () => {
-      setMapLoaded(true);
-      addSourcesAndLayers(map);
-      // Force resize to ensure correct dimensions
-      setTimeout(() => {
-        map.resize();
-      }, 100);
-    });
+    try {
+      mapboxgl.accessToken = mapboxToken;
+      
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: `mapbox://styles/mapbox/${mapTheme}-v11`,
+        center: defaultCenter,
+        zoom: persistedState.zoom,
+        pitch: 0,
+      });
+
+      // Handle Mapbox errors
+      map.on('error', (e) => {
+        console.error('[Map] Mapbox error:', e);
+        // Check if it's an authentication error
+        const errorEvent = e as mapboxgl.ErrorEvent & { error?: { status?: number } };
+        if (errorEvent.error?.status === 401) {
+          setMapInitError('Token do Mapbox inválido ou expirado');
+        }
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      map.on('load', () => {
+        if (DEBUG) console.log('[Map] Map loaded successfully');
+        setMapLoaded(true);
+        setMapInitError(null);
+        addSourcesAndLayers(map);
+        // Force multiple resize to ensure correct dimensions
+        setTimeout(() => map.resize(), 100);
+        setTimeout(() => map.resize(), 500);
+        setTimeout(() => map.resize(), 1000);
+      });
 
     // Re-add layers after style change (theme toggle)
     map.on('style.load', () => {
@@ -754,12 +809,17 @@ export default function StrategicMapMapbox() {
     map.on('mouseenter', 'outdoor-points', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'outdoor-points', () => { map.getCanvas().style.cursor = ''; });
 
-    mapRef.current = map;
+      mapRef.current = map;
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+      return () => {
+        if (DEBUG) console.log('[Map] Cleaning up map instance');
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch (error) {
+      console.error('[Map] Failed to initialize Mapbox:', error);
+      setMapInitError(error instanceof Error ? error.message : 'Erro ao inicializar o mapa');
+    }
   }, [mapboxToken]);
 
   // Update GeoJSON data when it changes
@@ -917,37 +977,96 @@ export default function StrategicMapMapbox() {
     }
   }, [adminMode, isSuperAdmin, pdvsWithCoords, mapLoaded, handlePDVCoordinateUpdate, showPDVs]);
 
-  // Loading state
-  if (tokenLoading || pdvsLoading) {
+  // Handle retry
+  const handleRetry = useCallback(() => {
+    setMapInitError(null);
+    setLoadingTimeout(false);
+    refetchToken();
+    refetchPDVs();
+    refetchOutdoors();
+  }, [refetchToken, refetchPDVs, refetchOutdoors]);
+
+  // Loading state with timeout handling
+  if ((tokenLoading || pdvsLoading) && !loadingTimeout) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
+        <span className="text-muted-foreground">Carregando mapa...</span>
+        {(tokenLoading && pdvsLoading) && (
+          <span className="text-xs text-muted-foreground">Carregando token e dados...</span>
+        )}
       </div>
     );
   }
 
-  // Error state
-  if (tokenError) {
+  // Timeout state
+  if (loadingTimeout) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
-        <p className="text-destructive">Erro ao carregar o mapa</p>
-        <Button onClick={() => window.location.reload()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Tentar novamente
-        </Button>
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4 p-6">
+        <AlertTriangle className="h-12 w-12 text-amber-500" />
+        <h2 className="text-lg font-semibold">Carregamento lento</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          O carregamento está demorando mais do que o esperado. Isso pode ser devido à conexão de rede.
+        </p>
+        <div className="flex gap-3">
+          <Button onClick={handleRetry} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/modules')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - comprehensive
+  const hasError = tokenError || pdvsError || outdoorsError || mapInitError;
+  if (hasError) {
+    const errorMessage = tokenError?.message || pdvsError?.message || outdoorsError?.message || mapInitError;
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4 p-6">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="text-lg font-semibold text-foreground">Erro ao carregar o mapa</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          {errorMessage || 'Ocorreu um erro inesperado ao carregar o mapa estratégico.'}
+        </p>
+        {DEBUG && (
+          <details className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md max-w-md">
+            <summary className="cursor-pointer">Debug Info</summary>
+            <pre className="mt-2 whitespace-pre-wrap break-words">
+              Token Error: {tokenError?.message || 'none'}{'\n'}
+              PDVs Error: {pdvsError?.message || 'none'}{'\n'}
+              Outdoors Error: {outdoorsError?.message || 'none'}{'\n'}
+              Map Init Error: {mapInitError || 'none'}
+            </pre>
+          </details>
+        )}
+        <div className="flex gap-3 mt-2">
+          <Button onClick={handleRetry} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/modules')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar aos Módulos
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen relative overflow-hidden">
-      {/* Full-screen Map - explicit dimensions for Mapbox */}
-      <div 
-        ref={mapContainerRef} 
-        className="absolute inset-0 w-full h-full"
-        style={{ minHeight: '100vh', minWidth: '100vw' }}
-      />
+    <MapErrorBoundary onNavigateBack={() => navigate('/modules')}>
+      <div className="h-screen w-screen relative overflow-hidden">
+        {/* Full-screen Map - explicit dimensions for Mapbox */}
+        <div 
+          ref={mapContainerRef} 
+          className="absolute inset-0 w-full h-full"
+          style={{ minHeight: '100vh', minWidth: '100vw' }}
+        />
 
       {/* Floating Header - Row 1: Navigation + Refresh + Theme Toggle */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none">
@@ -1071,6 +1190,7 @@ export default function StrategicMapMapbox() {
           onSuccess={handleImportSuccess}
         />
       )}
-    </div>
+      </div>
+    </MapErrorBoundary>
   );
 }
