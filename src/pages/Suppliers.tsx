@@ -14,33 +14,30 @@ import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier, 
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign } from 'lucide-react';
 import { SupplierPricingDialog } from '@/components/dialogs/SupplierPricingDialog';
-
-type ServiceType = 'installation' | 'maintenance' | 'removal' | 'replacement';
-
-const serviceTypeOptions: { value: ServiceType; label: string }[] = [
-  { value: 'installation', label: 'Instalação' },
-  { value: 'maintenance', label: 'Manutenção Geral' },
-  { value: 'removal', label: 'Remoção' },
-  { value: 'replacement', label: 'Substituição de Lona' },
-];
-
-const additionalServiceOptions = [
-  { id: 'printing', label: 'Impressão de Lona' },
-  { id: 'lighting', label: 'Iluminação de Outdoor' },
-  { id: 'painting', label: 'Pintura/Estrutura' },
-  { id: 'cleaning', label: 'Limpeza Profissional' },
-  { id: 'structure_repair', label: 'Conserto de Estrutura' },
-  { id: 'led_installation', label: 'Instalação de LED' },
-];
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 export default function Suppliers() {
   const { data: suppliers, isLoading } = useSuppliers();
+  const { data: serviceTypeOptions = [], isLoading: isLoadingServiceTypes } = useSystemOptions('supplier_service_type');
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();
   const { profile } = useAuth();
   
   const isSuperAdmin = profile?.role === 'super_admin';
+
+  const getServiceTypeLabel = (type: string) => {
+    return serviceTypeOptions.find(opt => opt.option_key === type)?.option_label || type;
+  };
+
+  const handleServiceTypeChange = (type: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      service_types: checked
+        ? [...prev.service_types, type]
+        : prev.service_types.filter(t => t !== type),
+    }));
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -110,25 +107,12 @@ export default function Suppliers() {
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
-      service_types: supplier.service_types as ServiceType[],
+      service_types: supplier.service_types as string[],
     });
     setEditingSupplier(supplier);
   };
 
-  const handleServiceTypeChange = (type: ServiceType, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      service_types: checked
-        ? [...prev.service_types, type]
-        : prev.service_types.filter(t => t !== type),
-    }));
-  };
-
-  const getServiceTypeLabel = (type: string) => {
-    return serviceTypeOptions.find(opt => opt.value === type)?.label || type;
-  };
-
-  if (isLoading) {
+  if (isLoading || isLoadingServiceTypes) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
@@ -192,13 +176,13 @@ export default function Suppliers() {
         <Label>Tipos de Serviço *</Label>
         <div className="grid grid-cols-2 gap-2">
           {serviceTypeOptions.map(option => (
-            <div key={option.value} className="flex items-center space-x-2">
+            <div key={option.option_key} className="flex items-center space-x-2">
               <Checkbox
-                id={option.value}
-                checked={formData.service_types.includes(option.value)}
-                onCheckedChange={(checked) => handleServiceTypeChange(option.value, checked as boolean)}
+                id={option.option_key}
+                checked={formData.service_types.includes(option.option_key)}
+                onCheckedChange={(checked) => handleServiceTypeChange(option.option_key, checked as boolean)}
               />
-              <label htmlFor={option.value} className="text-sm">{option.label}</label>
+              <label htmlFor={option.option_key} className="text-sm">{option.option_label}</label>
             </div>
           ))}
         </div>

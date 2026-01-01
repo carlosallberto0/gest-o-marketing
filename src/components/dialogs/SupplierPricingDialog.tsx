@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, DollarSign, Save, Wrench, Package, Trash2, Building } from 'lucide-react';
+import { Loader2, DollarSign, Save, Wrench, Package, Trash2, Building, LucideIcon, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupplierPricing, useUpsertSupplierPricing, SupplierPricing } from '@/hooks/useSupplierPricing';
 import { formatCurrency } from '@/lib/costCalculator';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 interface SupplierPricingDialogProps {
   open: boolean;
@@ -19,13 +20,17 @@ interface SupplierPricingDialogProps {
   supplierName: string;
 }
 
-const serviceTypes = [
-  { value: 'installation', label: 'Instalação', icon: Package },
-  { value: 'maintenance', label: 'Manutenção', icon: Wrench },
-  { value: 'removal', label: 'Remoção', icon: Trash2 },
-  { value: 'replacement', label: 'Substituição', icon: Package },
-  { value: 'construction', label: 'Construção', icon: Building },
-];
+// Helper to get icon for service type
+const getIconForServiceType = (key: string): LucideIcon => {
+  const iconMap: Record<string, LucideIcon> = {
+    installation: Package,
+    maintenance: Wrench,
+    removal: Trash2,
+    replacement: Package,
+    construction: Building,
+  };
+  return iconMap[key] || Settings;
+};
 
 interface PricingForm {
   custo_base: number;
@@ -60,46 +65,58 @@ export function SupplierPricingDialog({
   supplierId, 
   supplierName 
 }: SupplierPricingDialogProps) {
-  const { data: pricing = [], isLoading } = useSupplierPricing(supplierId);
+  const { data: pricing = [], isLoading: isLoadingPricing } = useSupplierPricing(supplierId);
+  const { data: dynamicServiceTypes = [], isLoading: isLoadingTypes } = useSystemOptions('supplier_service_type');
   const upsertPricing = useUpsertSupplierPricing();
   
-  const [activeTab, setActiveTab] = useState('installation');
+  const isLoading = isLoadingPricing || isLoadingTypes;
+
+  // Convert dynamic options to component format
+  const serviceTypes = useMemo(() => {
+    return dynamicServiceTypes.map(opt => ({
+      value: opt.option_key,
+      label: opt.option_label,
+      icon: getIconForServiceType(opt.option_key),
+    }));
+  }, [dynamicServiceTypes]);
+  
+  const [activeTab, setActiveTab] = useState('');
   const [forms, setForms] = useState<Record<string, PricingForm>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // Set default active tab when service types load
+  useEffect(() => {
+    if (serviceTypes.length > 0 && !activeTab) {
+      setActiveTab(serviceTypes[0].value);
+    }
+  }, [serviceTypes, activeTab]);
+
   // Initialize forms from fetched data
   useEffect(() => {
-    if (pricing.length > 0) {
-      const initialForms: Record<string, PricingForm> = {};
-      serviceTypes.forEach(type => {
-        const existing = pricing.find(p => p.service_type === type.value);
-        if (existing) {
-          initialForms[type.value] = {
-            custo_base: existing.custo_base,
-            custo_por_m2: existing.custo_por_m2,
-            custo_hora_trabalho: existing.custo_hora_trabalho,
-            tempo_estimado_horas: existing.tempo_estimado_horas,
-            observacoes: existing.observacoes || '',
-            custo_impressao_m2: existing.custo_impressao_m2 || 0,
-            custo_envio_base: existing.custo_envio_base || 0,
-            inclui_material: existing.inclui_material || false,
-            custo_construcao_base: existing.custo_construcao_base || 0,
-            custo_construcao_m2: existing.custo_construcao_m2 || 0,
-          };
-        } else {
-          initialForms[type.value] = { ...emptyForm };
-        }
-      });
-      setForms(initialForms);
-    } else {
-      // Initialize with empty forms
-      const initialForms: Record<string, PricingForm> = {};
-      serviceTypes.forEach(type => {
+    if (serviceTypes.length === 0) return;
+    
+    const initialForms: Record<string, PricingForm> = {};
+    serviceTypes.forEach(type => {
+      const existing = pricing.find(p => p.service_type === type.value);
+      if (existing) {
+        initialForms[type.value] = {
+          custo_base: existing.custo_base,
+          custo_por_m2: existing.custo_por_m2,
+          custo_hora_trabalho: existing.custo_hora_trabalho,
+          tempo_estimado_horas: existing.tempo_estimado_horas,
+          observacoes: existing.observacoes || '',
+          custo_impressao_m2: existing.custo_impressao_m2 || 0,
+          custo_envio_base: existing.custo_envio_base || 0,
+          inclui_material: existing.inclui_material || false,
+          custo_construcao_base: existing.custo_construcao_base || 0,
+          custo_construcao_m2: existing.custo_construcao_m2 || 0,
+        };
+      } else {
         initialForms[type.value] = { ...emptyForm };
-      });
-      setForms(initialForms);
-    }
-  }, [pricing]);
+      }
+    });
+    setForms(initialForms);
+  }, [pricing, serviceTypes]);
 
   const handleChange = (serviceType: string, field: keyof PricingForm, value: string | number | boolean) => {
     setForms(prev => ({
@@ -166,7 +183,7 @@ export function SupplierPricingDialog({
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className={`grid w-full ${serviceTypes.length <= 5 ? `grid-cols-${serviceTypes.length}` : 'grid-cols-5 overflow-x-auto'}`} style={{ gridTemplateColumns: `repeat(${Math.min(serviceTypes.length, 5)}, minmax(0, 1fr))` }}>
               {serviceTypes.map(type => {
                 const Icon = type.icon;
                 return (
