@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,125 +121,126 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col max-h-[90vh]">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Novo Material</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Imagem do Material</Label>
-            <PhotoUpload
-              value={formData.imageUrl || null}
-              onChange={(url) => setFormData({ ...formData, imageUrl: url || '' })}
-              folder="materials"
-              placeholder="Arraste ou clique para adicionar foto"
-            />
-            <p className="text-xs text-muted-foreground">Ajuda a identificar o material visualmente</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <form id="new-material-form" onSubmit={handleSubmit} className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="code">Código</Label>
-              <Input
-                id="code"
-                value={generatedCode}
-                disabled
-                className="bg-muted"
-                placeholder="Gerando..."
+              <Label>Imagem do Material</Label>
+              <PhotoUpload
+                value={formData.imageUrl || null}
+                onChange={(url) => setFormData({ ...formData, imageUrl: url || '' })}
+                folder="materials"
+                placeholder="Arraste ou clique para adicionar foto"
               />
-              <p className="text-xs text-muted-foreground">Gerado automaticamente</p>
+              <p className="text-xs text-muted-foreground">Ajuda a identificar o material visualmente</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo *</Label>
-              <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materialTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Código</Label>
+                <Input
+                  id="code"
+                  value={generatedCode}
+                  disabled
+                  className="bg-muted"
+                  placeholder="Gerando..."
+                />
+                <p className="text-xs text-muted-foreground">Gerado automaticamente</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo *</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materialTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Nome do material"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              placeholder="Ex: Bebidas, Alimentos..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descrição do material"
-              rows={2}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
+            
             <div className="space-y-2">
-              <Label htmlFor="unitCost">Custo Unit. (R$)</Label>
+              <Label htmlFor="name">Nome</Label>
               <Input
-                id="unitCost"
-                type="number"
-                step="0.01"
-                value={formData.unitCost}
-                onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                placeholder="0,00"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nome do material"
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="minimumStock">Estoque Mín.</Label>
-              <Input
-                id="minimumStock"
-                type="number"
-                value={formData.minimumStock}
-                onChange={(e) => setFormData({ ...formData, minimumStock: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currentStock">Estoque Atual</Label>
-              <Input
-                id="currentStock"
-                type="number"
-                value={formData.currentStock}
-                onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Criar Material
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="Ex: Bebidas, Alimentos..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Descrição do material"
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="unitCost">Custo Unit. (R$)</Label>
+                <Input
+                  id="unitCost"
+                  type="number"
+                  step="0.01"
+                  value={formData.unitCost}
+                  onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minimumStock">Estoque Mín.</Label>
+                <Input
+                  id="minimumStock"
+                  type="number"
+                  value={formData.minimumStock}
+                  onChange={(e) => setFormData({ ...formData, minimumStock: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentStock">Estoque Atual</Label>
+                <Input
+                  id="currentStock"
+                  type="number"
+                  value={formData.currentStock}
+                  onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          </form>
+        </ScrollArea>
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="new-material-form" disabled={isLoading}>
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Criar Material
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
