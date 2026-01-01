@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 
 interface NewMaterialDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
     unitCost: '',
     minimumStock: '',
     currentStock: '',
+    imageUrl: '',
   });
 
   // Generate next code when dialog opens
@@ -90,6 +92,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
           unit_cost: parseFloat(formData.unitCost) || 0,
           minimum_stock: parseInt(formData.minimumStock) || 0,
           current_stock: parseInt(formData.currentStock) || 0,
+          image_url: formData.imageUrl || null,
         });
 
       if (error) throw error;
@@ -105,6 +108,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
         unitCost: '',
         minimumStock: '',
         currentStock: '',
+        imageUrl: '',
       });
       setGeneratedCode('');
     } catch (error: any) {
@@ -121,6 +125,17 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
           <DialogTitle>Novo Material</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Imagem do Material</Label>
+            <PhotoUpload
+              value={formData.imageUrl || null}
+              onChange={(url) => setFormData({ ...formData, imageUrl: url || '' })}
+              folder="materials"
+              placeholder="Arraste ou clique para adicionar foto"
+            />
+            <p className="text-xs text-muted-foreground">Ajuda a identificar o material visualmente</p>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>

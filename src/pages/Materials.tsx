@@ -41,6 +41,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NewMaterialDialog } from '@/components/dialogs/NewMaterialDialog';
 import { WithdrawMaterialDialog } from '@/components/dialogs/WithdrawMaterialDialog';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -118,6 +119,7 @@ export default function Materials() {
           current_stock: editMaterial.current_stock,
           minimum_stock: editMaterial.minimum_stock,
           unit_cost: editMaterial.unit_cost,
+          image_url: editMaterial.image_url || null,
         })
         .eq('id', editMaterial.id);
 
@@ -244,8 +246,16 @@ export default function Materials() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground" />
+                        <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden flex items-center justify-center">
+                          {material.image_url ? (
+                            <img 
+                              src={material.image_url} 
+                              alt={material.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium">{material.name}</p>
@@ -327,8 +337,16 @@ export default function Materials() {
           {viewMaterial && (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
-                  <Package className="h-8 w-8 text-muted-foreground" />
+                <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex items-center justify-center">
+                  {viewMaterial.image_url ? (
+                    <img 
+                      src={viewMaterial.image_url} 
+                      alt={viewMaterial.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{viewMaterial.name}</h3>
@@ -384,6 +402,15 @@ export default function Materials() {
           </DialogHeader>
           {editMaterial && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Imagem</Label>
+                <PhotoUpload
+                  value={editMaterial.image_url || null}
+                  onChange={(url) => setEditMaterial({ ...editMaterial, image_url: url })}
+                  folder="materials"
+                  placeholder="Adicionar ou alterar imagem"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Código</Label>
                 <Input
