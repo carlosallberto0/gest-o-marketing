@@ -1,6 +1,6 @@
 import { CostBreakdown, formatCurrency } from './costCalculator';
 
-export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras';
+export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras' | 'convenience_coordinator';
 
 export interface VisibleCostData {
   showFullDetails: boolean;

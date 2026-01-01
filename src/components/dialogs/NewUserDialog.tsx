@@ -21,6 +21,8 @@ const roles = [
   { value: 'manager', label: 'Gerente' },
   { value: 'collaborator', label: 'Colaborador' },
   { value: 'supplier', label: 'Fornecedor' },
+  { value: 'coordenador_compras', label: 'Coordenador de Compras' },
+  { value: 'convenience_coordinator', label: 'Coordenador de Conveniência' },
 ];
 
 export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
@@ -31,7 +33,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
     name: '',
     email: '',
     cpf: '',
-    role: '' as 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | '',
+    role: '' as 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras' | 'convenience_coordinator' | '',
     pdvId: '',
     modules: [] as ('media' | 'merchandising')[],
   });

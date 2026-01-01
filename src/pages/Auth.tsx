@@ -57,7 +57,7 @@ export default function Auth() {
     name: '',
     email: '',
     password: '',
-    role: 'collaborator',
+    role: 'manager',
   });
 
   useEffect(() => {
@@ -288,9 +288,9 @@ export default function Auth() {
                         <SelectValue placeholder="Selecione seu cargo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="collaborator">Colaborador</SelectItem>
                         <SelectItem value="manager">Gerente</SelectItem>
                         <SelectItem value="director">Diretor</SelectItem>
+                        <SelectItem value="convenience_coordinator">Coordenador de Conveniência</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

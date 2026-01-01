@@ -1,5 +1,5 @@
 // =============== USER TYPES ===============
-export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
+export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras' | 'convenience_coordinator';
 
 export type ModuleAccess = 'media' | 'merchandising';
 

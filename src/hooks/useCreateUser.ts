@@ -6,7 +6,7 @@ interface CreateUserInput {
   name: string;
   email: string;
   cpf?: string;
-  role: 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
+  role: 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras' | 'convenience_coordinator';
   modules: ('media' | 'merchandising')[];
   pdvId?: string;
 }

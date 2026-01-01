@@ -35,7 +35,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   cpf: z.string().optional(),
-  role: z.enum(['super_admin', 'admin', 'director', 'manager', 'collaborator', 'supplier', 'coordenador_compras']),
+  role: z.enum(['super_admin', 'admin', 'director', 'manager', 'collaborator', 'supplier', 'coordenador_compras', 'convenience_coordinator']),
   modules: z.array(z.enum(['media', 'merchandising'])).min(1, 'Selecione pelo menos um módulo'),
   pdv_id: z.string().nullable(),
   status: z.enum(['active', 'pending', 'inactive']),
@@ -111,6 +111,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
     { value: 'collaborator', label: 'Colaborador' },
     { value: 'supplier', label: 'Fornecedor' },
     { value: 'coordenador_compras', label: 'Coordenador de Compras' },
+    { value: 'convenience_coordinator', label: 'Coordenador de Conveniência' },
   ];
 
   const statuses = [

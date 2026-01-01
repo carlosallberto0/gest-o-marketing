@@ -73,6 +73,7 @@ export function getRoleLabel(role: string): string {
     collaborator: 'Colaborador',
     supplier: 'Fornecedor',
     coordenador_compras: 'Coordenador de Compras',
+    convenience_coordinator: 'Coordenador de Conveniência',
   };
   return labels[role] || role;
 }
