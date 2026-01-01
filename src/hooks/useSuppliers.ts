@@ -52,7 +52,7 @@ export interface CreateSupplierInput {
   email: string;
   phone: string;
   address: string;
-  service_types: ('installation' | 'maintenance' | 'removal' | 'replacement')[];
+  service_types: string[];
 }
 
 export function useCreateSupplier() {
@@ -62,7 +62,7 @@ export function useCreateSupplier() {
     mutationFn: async (input: CreateSupplierInput) => {
       const { data, error } = await supabase
         .from('suppliers')
-        .insert(input)
+        .insert(input as any)
         .select()
         .single();
 
@@ -87,7 +87,7 @@ export interface UpdateSupplierInput {
   email?: string;
   phone?: string;
   address?: string;
-  service_types?: ('installation' | 'maintenance' | 'removal' | 'replacement')[];
+  service_types?: string[];
   status?: 'active' | 'inactive';
 }
 
@@ -98,7 +98,7 @@ export function useUpdateSupplier() {
     mutationFn: async ({ id, ...updates }: UpdateSupplierInput) => {
       const { data, error } = await supabase
         .from('suppliers')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();

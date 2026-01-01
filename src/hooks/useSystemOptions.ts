@@ -24,6 +24,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   material_request_status: 'Status de Requisição de Material',
   maintenance_request_status: 'Status de Manutenção',
   campaign_status: 'Status de Campanha',
+  supplier_service_type: 'Tipos de Serviço (Fornecedor)',
 };
 
 // Buscar opções de uma categoria específica
