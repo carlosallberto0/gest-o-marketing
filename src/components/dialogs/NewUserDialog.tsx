@@ -111,7 +111,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
   const handleWhatsApp = () => {
     if (!createdUser?.accessLink) return;
     const message = encodeURIComponent(
-      `Olá ${createdUser.userName}! 👋\n\nAqui está seu link de acesso ao sistema SR Off Trade Marketing:\n\n${createdUser.accessLink}\n\nClique no link acima para entrar no sistema. Este link é pessoal e não deve ser compartilhado.`
+      `Olá ${createdUser.userName}! 👋\n\nAqui está seu link de acesso ao sistema Gestão & Marketing:\n\n${createdUser.accessLink}\n\nClique no link acima para entrar no sistema. Este link é pessoal e não deve ser compartilhado.`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
