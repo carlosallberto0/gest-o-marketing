@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          tipo_acesso: string
+          token_usado: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          tipo_acesso: string
+          token_usado?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          tipo_acesso?: string
+          token_usado?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       action_plans: {
         Row: {
           answer_id: string
@@ -1410,6 +1448,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_token: string | null
           cpf: string | null
           created_at: string
           email: string
@@ -1421,9 +1460,13 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           status: string
           temp_password: string | null
+          token_gerado_em: string | null
+          token_valido_ate: string | null
+          ultimo_acesso_via_link: string | null
           updated_at: string
         }
         Insert: {
+          access_token?: string | null
           cpf?: string | null
           created_at?: string
           email: string
@@ -1435,9 +1478,13 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           temp_password?: string | null
+          token_gerado_em?: string | null
+          token_valido_ate?: string | null
+          ultimo_acesso_via_link?: string | null
           updated_at?: string
         }
         Update: {
+          access_token?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
@@ -1449,6 +1496,9 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           temp_password?: string | null
+          token_gerado_em?: string | null
+          token_valido_ate?: string | null
+          ultimo_acesso_via_link?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1861,6 +1911,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1879,11 +1950,19 @@ export type Database = {
         }
         Returns: string
       }
+      generate_access_token: { Args: never; Returns: string }
       generate_contract_alerts: { Args: never; Returns: undefined }
       generate_outdoor_alerts: { Args: never; Returns: undefined }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      has_app_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_module_access: {
         Args: {
@@ -1926,6 +2005,15 @@ export type Database = {
     }
     Enums: {
       answer_value: "yes" | "no" | "na"
+      app_role:
+        | "super_admin"
+        | "admin"
+        | "director"
+        | "manager"
+        | "collaborator"
+        | "supplier"
+        | "coordenador_compras"
+        | "convenience_coordinator"
       campaign_type:
         | "promotional"
         | "institutional"
@@ -2095,6 +2183,16 @@ export const Constants = {
   public: {
     Enums: {
       answer_value: ["yes", "no", "na"],
+      app_role: [
+        "super_admin",
+        "admin",
+        "director",
+        "manager",
+        "collaborator",
+        "supplier",
+        "coordenador_compras",
+        "convenience_coordinator",
+      ],
       campaign_type: [
         "promotional",
         "institutional",

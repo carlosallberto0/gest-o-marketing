@@ -11,11 +11,22 @@ interface CreateUserInput {
   pdvId?: string;
 }
 
+interface CreateUserResult {
+  success: boolean;
+  userId?: string;
+  role: string;
+  message: string;
+  tempPassword?: string;
+  accessLink?: string;
+  accessToken?: string;
+  expiresAt?: string;
+}
+
 export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateUserInput) => {
+    mutationFn: async (input: CreateUserInput): Promise<CreateUserResult> => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -34,14 +45,13 @@ export function useCreateUser() {
         throw new Error(response.data.error || 'Failed to create user');
       }
 
-      return response.data;
+      return response.data as CreateUserResult;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Usuário criado com sucesso!', {
-        description: `Senha temporária: ${data.tempPassword}`,
-        duration: 10000,
-      });
+      queryClient.invalidateQueries({ queryKey: ['access-link-users'] });
+      
+      // Don't show toast here - let the dialog handle the UI feedback
     },
     onError: (error: Error) => {
       console.error('Error creating user:', error);

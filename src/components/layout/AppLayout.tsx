@@ -31,7 +31,8 @@ import {
   Upload,
   Bell,
   Maximize2,
-  CheckCircle
+  CheckCircle,
+  Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -151,6 +152,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const adminItems: MenuItem[] = [
     { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin', 'admin'] },
     { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin', 'admin'] },
+    { icon: Link2, label: 'Controle de Acessos', path: '/admin/controle-de-acessos', roles: ['super_admin'] },
     { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
