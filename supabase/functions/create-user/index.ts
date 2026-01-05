@@ -103,7 +103,10 @@ serve(async (req) => {
         expiresAt.setDate(expiresAt.getDate() + 365); // 1 year validity
         tokenExpiresAt = expiresAt.toISOString();
         
-        const baseUrl = Deno.env.get('SITE_URL') || 'https://sr-off-trade-marketing.lovable.app';
+        // Use SITE_URL if configured, otherwise use request origin
+        const siteUrl = Deno.env.get('SITE_URL');
+        const requestOrigin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '');
+        const baseUrl = siteUrl || requestOrigin || 'https://gestao-e-marketing.lovable.app';
         accessLink = `${baseUrl}/acesso/${accessToken}`;
         
         console.log('Access link generated for user:', email);
