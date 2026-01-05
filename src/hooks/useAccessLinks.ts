@@ -134,7 +134,7 @@ export function useAccessLinks() {
 // Utility functions
 export function generateWhatsAppLink(accessLink: string, userName: string): string {
   const message = encodeURIComponent(
-    `Olá ${userName}! 👋\n\nAqui está seu link de acesso ao sistema SR Off Trade Marketing:\n\n${accessLink}\n\nClique no link acima para entrar no sistema. Este link é pessoal e não deve ser compartilhado.`
+    `Olá ${userName}! 👋\n\nAqui está seu link de acesso ao sistema Gestão & Marketing:\n\n${accessLink}\n\nClique no link acima para entrar no sistema. Este link é pessoal e não deve ser compartilhado.`
   );
   return `https://wa.me/?text=${message}`;
 }
