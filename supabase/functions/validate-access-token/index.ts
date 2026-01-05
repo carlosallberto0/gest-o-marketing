@@ -89,10 +89,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate a magic link / session for the user
+    // Determine base URL for redirect
+    const siteUrl = Deno.env.get('SITE_URL');
+    const requestOrigin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '');
+    const baseUrl = siteUrl || requestOrigin || 'https://gestao-e-marketing.lovable.app';
+
+    // Determine redirect based on role
+    const redirectByRole: Record<string, string> = {
+      'manager': '/modules',
+      'director': '/modules',
+      'coordenador_compras': '/merchandising/materials',
+      'convenience_coordinator': '/modules',
+      'admin': '/admin',
+      'collaborator': '/modules',
+      'supplier': '/media/service-orders',
+    };
+
+    const redirectPath = redirectByRole[profile.role] || '/modules';
+
+    // Generate a magic link / session for the user with redirect to correct domain
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: profile.email,
+      options: {
+        redirectTo: `${baseUrl}${redirectPath}`,
+      },
     });
 
     if (sessionError) {
@@ -120,20 +141,7 @@ Deno.serve(async (req) => {
         user_agent: userAgent || null,
       });
 
-    // Determine redirect based on role
-    const redirectByRole: Record<string, string> = {
-      'manager': '/modules',
-      'director': '/modules',
-      'coordenador_compras': '/merchandising/materials',
-      'convenience_coordinator': '/modules',
-      'admin': '/admin',
-      'collaborator': '/modules',
-      'supplier': '/media/service-orders',
-    };
-
-    const redirectTo = redirectByRole[profile.role] || '/modules';
-
-    console.log(`Token validated for user ${profile.email}, redirecting to ${redirectTo}`);
+    console.log(`Token validated for user ${profile.email}, redirecting to ${redirectPath}`);
 
     return new Response(
       JSON.stringify({
@@ -146,7 +154,7 @@ Deno.serve(async (req) => {
           role: profile.role,
           modules: profile.modules,
         },
-        redirectTo,
+        redirectTo: redirectPath,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
