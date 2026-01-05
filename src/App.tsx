@@ -11,6 +11,8 @@ import { AlertToastContainer } from "@/components/ui/alert-toast-container";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
+import AccessLink from "./pages/AccessLink";
+import AccessControl from "./pages/AccessControl";
 import Dashboard from "./pages/Dashboard";
 import ModuleSelection from "./pages/ModuleSelection";
 import MerchDashboard from "./pages/MerchDashboard";
@@ -74,6 +76,7 @@ const AppRoutes = () => (
     <Route path="/" element={<Index />} />
     <Route path="/login" element={<Login />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/acesso/:token" element={<AccessLink />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route 
       path="/pending-approval" 
@@ -317,6 +320,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin']}>
             <AuditLogs />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/controle-de-acessos" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <AccessControl />
           </RequireRole>
         </ProtectedRoute>
       } 

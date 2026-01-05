@@ -5,8 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Fuel, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Fuel, Mail, Lock, Loader2, Shield, Users, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
@@ -16,11 +16,6 @@ import { ImageSlider } from '@/components/ui/image-slider';
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-});
-
-const signupSchema = loginSchema.extend({
-  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  role: z.string().min(1, 'Selecione um cargo'),
 });
 
 const containerVariants = {
@@ -50,26 +45,44 @@ const itemVariants = {
 export default function Auth() {
   const navigate = useNavigate();
   const { data: loginSettings } = useLoginScreenSettings();
-  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
-    role: 'manager',
   });
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        navigate('/modules');
+        // Check if user is super_admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role === 'super_admin') {
+          navigate('/modules');
+        } else {
+          // Non super_admin users should use access links
+          await supabase.auth.signOut();
+          toast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
+        }
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        navigate('/modules');
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role === 'super_admin') {
+          navigate('/modules');
+        }
       }
     });
 
@@ -81,64 +94,44 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const validation = loginSchema.safeParse(formData);
-        if (!validation.success) {
-          toast.error(validation.error.errors[0].message);
-          setLoading(false);
-          return;
+      const validation = loginSchema.safeParse(formData);
+      if (!validation.success) {
+        toast.error(validation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha inválidos');
+        } else {
+          toast.error(error.message);
         }
+        setLoading(false);
+        return;
+      }
 
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
+      // Check if user is super_admin
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
 
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Email ou senha inválidos');
-          } else {
-            toast.error(error.message);
-          }
+        if (profile?.role !== 'super_admin') {
+          await supabase.auth.signOut();
+          toast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
           setLoading(false);
           return;
         }
 
         toast.success('Login realizado com sucesso!');
-      } else {
-        const validation = signupSchema.safeParse(formData);
-        if (!validation.success) {
-          toast.error(validation.error.errors[0].message);
-          setLoading(false);
-          return;
-        }
-
-        const modules = formData.role === 'manager' ? ['media', 'merchandising'] : ['merchandising'];
-
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              name: formData.name,
-              role: formData.role,
-              modules: modules,
-            },
-          },
-        });
-
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Este email já está cadastrado');
-          } else {
-            toast.error(error.message);
-          }
-          setLoading(false);
-          return;
-        }
-
-        toast.success('Conta criada com sucesso!');
       }
     } catch (error) {
       toast.error('Ocorreu um erro. Tente novamente.');
@@ -236,7 +229,7 @@ export default function Auth() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="w-full max-w-md"
+          className="w-full max-w-md space-y-6"
         >
           {/* Mobile Logo */}
           <motion.div variants={itemVariants} className="lg:hidden text-center mb-8">
@@ -246,133 +239,104 @@ export default function Auth() {
             <h1 className="text-xl font-bold text-foreground">Gestão & Marketing</h1>
           </motion.div>
 
-          {/* Form Header */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <h2 className="text-2xl font-semibold text-foreground">
-              {isLogin ? 'Bem-vindo de volta' : 'Criar Conta'}
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              {isLogin ? 'Entre com suas credenciais para acessar sua conta.' : 'Preencha os dados para criar sua conta.'}
-            </p>
+          {/* Super Admin Login Card */}
+          <motion.div variants={itemVariants}>
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-foreground">Acesso Administrativo</h2>
+                    <p className="text-xs text-muted-foreground">Exclusivo para Super Admin</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">Email corporativo</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="admin@empresa.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="pl-10 h-11"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="pl-10 h-11"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11" 
+                    disabled={loading}
+                  >
+                    {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Entrar como Super Admin
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </motion.div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <>
-                <motion.div variants={itemVariants} className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Digite seu nome"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
-                      required={!isLogin}
-                    />
+          {/* Info Card for Other Users */}
+          <motion.div variants={itemVariants}>
+            <Card className="bg-muted/50 border-muted">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-muted-foreground" />
                   </div>
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="space-y-2">
-                  <Label htmlFor="role" className="text-sm font-medium">Qual o seu cargo?</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                    <Select 
-                      value={formData.role} 
-                      onValueChange={(value) => setFormData({ ...formData, role: value })}
-                    >
-                      <SelectTrigger className="pl-10 h-11 rounded-lg">
-                        <SelectValue placeholder="Selecione seu cargo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manager">Gerente</SelectItem>
-                        <SelectItem value="director">Diretor</SelectItem>
-                        <SelectItem value="convenience_coordinator">Coordenador de Conveniência</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-foreground">Demais Usuários</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Gerentes, Diretores e Coordenadores acessam o sistema através de um{' '}
+                      <span className="font-medium text-foreground">link pessoal</span>{' '}
+                      enviado pelo administrador.
+                    </p>
+                    <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
+                      <Link2 className="h-4 w-4" />
+                      <span>Não tem seu link? Entre em contato com o administrador.</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    O administrador confirmará seu cargo após a aprovação
-                  </p>
-                </motion.div>
-              </>
-            )}
-
-            <motion.div variants={itemVariants} className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
-                  required
-                />
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
-                {isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Esqueceu a senha?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 h-11 rounded-lg border-input bg-background shadow-sm shadow-black/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
-                  required
-                />
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <Button 
-                type="submit" 
-                className="w-full h-11 rounded-lg font-medium shadow-sm shadow-black/5" 
-                disabled={loading}
-              >
-                {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {isLogin ? 'Entrar' : 'Criar conta'}
-              </Button>
-            </motion.div>
-          </form>
-
-          <motion.div variants={itemVariants} className="mt-6 text-center">
-            <span className="text-sm text-muted-foreground">
-              {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary font-medium hover:underline"
-            >
-              {isLogin ? 'Cadastre-se' : 'Entre'}
-            </button>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           {/* Footer */}
           <motion.p
             variants={itemVariants}
-            className="text-center text-xs text-muted-foreground mt-8"
+            className="text-center text-xs text-muted-foreground"
           >
             © {new Date().getFullYear()} Gestão & Marketing. Todos os direitos reservados.
           </motion.p>

@@ -66,7 +66,7 @@ serve(async (req) => {
 
     console.log('Creating user:', { name, email, role, modules });
 
-    // Generate a random temporary password
+    // Generate a random temporary password (still needed for auth)
     const tempPassword = crypto.randomUUID().slice(0, 12);
 
     // Create auth user
@@ -88,15 +88,49 @@ serve(async (req) => {
 
     console.log('Auth user created:', authData.user?.id);
 
-    // Update profile with additional info including temp_password
+    // For non-super_admin users, generate an access token
+    let accessToken = null;
+    let accessLink = null;
+    let tokenExpiresAt = null;
+
+    if (authData.user && role !== 'super_admin') {
+      // Generate unique access token
+      const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc('generate_access_token');
+      
+      if (!tokenError && tokenData) {
+        accessToken = tokenData;
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 365); // 1 year validity
+        tokenExpiresAt = expiresAt.toISOString();
+        
+        const baseUrl = Deno.env.get('SITE_URL') || 'https://sr-off-trade-marketing.lovable.app';
+        accessLink = `${baseUrl}/acesso/${accessToken}`;
+        
+        console.log('Access link generated for user:', email);
+      }
+    }
+
+    // Update profile with additional info
     if (authData.user) {
+      const updateData: Record<string, unknown> = {
+        cpf: cpf || null,
+        pdv_id: pdvId && pdvId !== 'none' ? pdvId : null,
+        status: 'active', // New users are active by default now
+      };
+
+      // For super_admin, store temp password
+      if (role === 'super_admin') {
+        updateData.temp_password = tempPassword;
+      } else {
+        // For other roles, store access token
+        updateData.access_token = accessToken;
+        updateData.token_gerado_em = new Date().toISOString();
+        updateData.token_valido_ate = tokenExpiresAt;
+      }
+
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
-        .update({
-          cpf: cpf || null,
-          pdv_id: pdvId && pdvId !== 'none' ? pdvId : null,
-          temp_password: tempPassword,
-        })
+        .update(updateData)
         .eq('id', authData.user.id);
 
       if (updateError) {
@@ -104,13 +138,25 @@ serve(async (req) => {
       }
     }
 
+    // Build response based on role
+    const response: Record<string, unknown> = {
+      success: true,
+      userId: authData.user?.id,
+      role,
+    };
+
+    if (role === 'super_admin') {
+      response.message = 'Super Admin criado. Use a senha temporária para fazer login.';
+      response.tempPassword = tempPassword;
+    } else {
+      response.message = 'Usuário criado. Compartilhe o link de acesso.';
+      response.accessLink = accessLink;
+      response.accessToken = accessToken;
+      response.expiresAt = tokenExpiresAt;
+    }
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        userId: authData.user?.id,
-        message: 'User created successfully. They can login with their email.',
-        tempPassword, // In production, send this via email instead
-      }),
+      JSON.stringify(response),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

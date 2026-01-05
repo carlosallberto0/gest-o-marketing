@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Copy, MessageCircle, ExternalLink, Check, Link2, Shield, Key } from 'lucide-react';
 import { usePDVs } from '@/hooks/usePDVs';
 import { useCreateUser } from '@/hooks/useCreateUser';
+import { toast } from 'sonner';
 
 interface NewUserDialogProps {
   open: boolean;
@@ -25,6 +28,13 @@ const roles = [
   { value: 'convenience_coordinator', label: 'Coordenador de Conveniência' },
 ];
 
+interface CreatedUserResult {
+  role: string;
+  accessLink?: string;
+  tempPassword?: string;
+  userName: string;
+}
+
 export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
   const { data: pdvs } = usePDVs();
   const createUser = useCreateUser();
@@ -37,6 +47,9 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
     pdvId: '',
     modules: [] as ('media' | 'merchandising')[],
   });
+
+  const [createdUser, setCreatedUser] = useState<CreatedUserResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleModuleChange = (module: 'media' | 'merchandising', checked: boolean) => {
     if (checked) {
@@ -53,7 +66,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
       return;
     }
 
-    await createUser.mutateAsync({
+    const result = await createUser.mutateAsync({
       name: formData.name,
       email: formData.email,
       cpf: formData.cpf || undefined,
@@ -62,7 +75,19 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
       pdvId: formData.pdvId && formData.pdvId !== 'none' ? formData.pdvId : undefined,
     });
     
+    // Show the result dialog instead of closing
+    setCreatedUser({
+      role: formData.role,
+      accessLink: result.accessLink,
+      tempPassword: result.tempPassword,
+      userName: formData.name,
+    });
+  };
+
+  const handleClose = () => {
     onOpenChange(false);
+    setCreatedUser(null);
+    setCopied(false);
     setFormData({
       name: '',
       email: '',
@@ -73,8 +98,151 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
     });
   };
 
+  const handleCopy = async () => {
+    const textToCopy = createdUser?.accessLink || createdUser?.tempPassword;
+    if (!textToCopy) return;
+    
+    await navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    toast.success('Copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsApp = () => {
+    if (!createdUser?.accessLink) return;
+    const message = encodeURIComponent(
+      `Olá ${createdUser.userName}! 👋\n\nAqui está seu link de acesso ao sistema SR Off Trade Marketing:\n\n${createdUser.accessLink}\n\nClique no link acima para entrar no sistema. Este link é pessoal e não deve ser compartilhado.`
+    );
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const handleOpenLink = () => {
+    if (!createdUser?.accessLink) return;
+    window.open(createdUser.accessLink, '_blank');
+  };
+
+  // Show result dialog after user creation
+  if (createdUser) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {createdUser.role === 'super_admin' ? (
+                <Key className="h-5 w-5 text-primary" />
+              ) : (
+                <Link2 className="h-5 w-5 text-primary" />
+              )}
+              Usuário Criado
+            </DialogTitle>
+            <DialogDescription>
+              {createdUser.role === 'super_admin' 
+                ? 'Compartilhe a senha temporária com o novo Super Admin'
+                : 'Compartilhe o link de acesso com o usuário'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    {createdUser.role === 'super_admin' ? (
+                      <Shield className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Link2 className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{createdUser.userName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {roles.find(r => r.value === createdUser.role)?.label}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator className="mb-4" />
+
+                <div className="space-y-3">
+                  <Label>
+                    {createdUser.role === 'super_admin' ? 'Senha Temporária' : 'Link de Acesso'}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={createdUser.accessLink || createdUser.tempPassword || ''} 
+                      readOnly 
+                      className="text-xs font-mono"
+                    />
+                    <Button 
+                      size="icon" 
+                      variant="outline"
+                      onClick={handleCopy}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {createdUser.accessLink && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopy}
+                        className="flex-col h-auto py-3"
+                      >
+                        <Copy className="h-4 w-4 mb-1" />
+                        <span className="text-xs">Copiar</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleWhatsApp}
+                        className="flex-col h-auto py-3"
+                      >
+                        <MessageCircle className="h-4 w-4 mb-1" />
+                        <span className="text-xs">WhatsApp</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleOpenLink}
+                        className="flex-col h-auto py-3"
+                      >
+                        <ExternalLink className="h-4 w-4 mb-1" />
+                        <span className="text-xs">Testar</span>
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <p className="text-xs text-muted-foreground text-center">
+              {createdUser.role === 'super_admin' 
+                ? 'O usuário deve trocar a senha após o primeiro login.'
+                : 'O link é válido por 1 ano e pode ser renovado a qualquer momento.'}
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleClose} className="w-full">
+              Concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Novo Usuário</DialogTitle>
@@ -147,6 +315,37 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
             </div>
           </div>
 
+          {/* Info about access method based on role */}
+          {formData.role && (
+            <Card className="bg-muted/50 border-muted">
+              <CardContent className="pt-4 pb-3">
+                <div className="flex items-start gap-3">
+                  {formData.role === 'super_admin' ? (
+                    <>
+                      <Key className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-medium">Acesso por senha</p>
+                        <p className="text-muted-foreground text-xs">
+                          Super Admins fazem login com email e senha na tela de autenticação.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-medium">Acesso por link pessoal</p>
+                        <p className="text-muted-foreground text-xs">
+                          Este usuário receberá um link de acesso único para entrar no sistema sem senha.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="space-y-3">
             <Label>Módulos de Acesso</Label>
             <div className="flex gap-4">
@@ -170,7 +369,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={createUser.isPending}>

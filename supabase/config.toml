@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.resolve-google-maps-url]
 verify_jwt = false
+
+[functions.generate-access-link]
+verify_jwt = false
+
+[functions.validate-access-token]
+verify_jwt = false
+
+[functions.revoke-access-token]
+verify_jwt = false
