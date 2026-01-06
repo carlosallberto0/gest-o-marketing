@@ -58,6 +58,9 @@ export function useLoginScreenSettings() {
         subtitle: (value.subtitle as string) || defaultSettings.subtitle,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    placeholderData: defaultSettings,
+    staleTime: 1000 * 60 * 5,
   });
 }
+
+export { defaultSettings };

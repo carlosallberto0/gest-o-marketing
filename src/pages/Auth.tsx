@@ -10,7 +10,7 @@ import { Fuel, Mail, Lock, Loader2, Shield, Users, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
-import { useLoginScreenSettings } from '@/hooks/useLoginScreenSettings';
+import { useLoginScreenSettings, defaultSettings } from '@/hooks/useLoginScreenSettings';
 import { ImageSlider } from '@/components/ui/image-slider';
 
 const loginSchema = z.object({
@@ -44,7 +44,7 @@ const itemVariants = {
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { data: loginSettings } = useLoginScreenSettings();
+  const { data: loginSettings = defaultSettings } = useLoginScreenSettings();
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
