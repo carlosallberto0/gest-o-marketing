@@ -23,7 +23,11 @@ import {
   Upload,
   Trash2,
   X,
-  ImagePlus
+  ImagePlus,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -45,11 +49,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { usePDVs } from '@/hooks/usePDVs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
 
 export default function Outdoors() {
   const navigate = useNavigate();
@@ -61,8 +72,11 @@ export default function Outdoors() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bulkStatusAction, setBulkStatusAction] = useState<'operational' | 'non_operational' | 'pending_evaluation' | null>(null);
+  const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
 
   const { profile } = useAuth();
+  const bulkActionMutation = useBulkOutdoorActions();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
   const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
@@ -127,6 +141,21 @@ export default function Outdoors() {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleBulkStatusChange = async () => {
+    if (!bulkStatusAction || selectedOutdoors.size === 0) return;
+    
+    await bulkActionMutation.mutateAsync({
+      outdoorIds: Array.from(selectedOutdoors),
+      action: bulkStatusAction,
+      validadeHoras: 24,
+    });
+    
+    setSelectedOutdoors(new Set());
+    setBulkStatusAction(null);
+    setShowStatusConfirmDialog(false);
+    refetch();
   };
 
   if (isLoading) {
@@ -207,6 +236,37 @@ export default function Outdoors() {
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Alterar Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover border border-border">
+                  <DropdownMenuItem onClick={() => {
+                    setBulkStatusAction('operational');
+                    setShowStatusConfirmDialog(true);
+                  }}>
+                    <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                    Operacional
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setBulkStatusAction('non_operational');
+                    setShowStatusConfirmDialog(true);
+                  }}>
+                    <XCircle className="h-4 w-4 mr-2 text-destructive" />
+                    Não Operacional
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setBulkStatusAction('pending_evaluation');
+                    setShowStatusConfirmDialog(true);
+                  }}>
+                    <Clock className="h-4 w-4 mr-2 text-warning" />
+                    Aguardando Avaliação
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" disabled={isDeleting}>
@@ -400,6 +460,34 @@ export default function Outdoors() {
 
       <NewOutdoorDialog open={isNewOutdoorOpen} onOpenChange={setIsNewOutdoorOpen} />
       <BulkImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} onSuccess={() => refetch()} />
+      
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={showStatusConfirmDialog} onOpenChange={setShowStatusConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Alteração de Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar o status de <strong>{selectedOutdoors.size}</strong> outdoor(s) para{' '}
+              <strong>
+                {bulkStatusAction === 'operational' && 'Operacional'}
+                {bulkStatusAction === 'non_operational' && 'Não Operacional'}
+                {bulkStatusAction === 'pending_evaluation' && 'Aguardando Avaliação'}
+              </strong>
+              . Esta ação será registrada no log de auditoria.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBulkStatusAction(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkStatusChange}
+              disabled={bulkActionMutation.isPending}
+            >
+              {bulkActionMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
