@@ -119,11 +119,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use SITE_URL if configured, otherwise use request origin
-    const siteUrl = Deno.env.get('SITE_URL');
-    const requestOrigin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '');
-    const baseUrl = siteUrl || requestOrigin || 'https://gestao-e-marketing.lovable.app';
-    const accessLink = `${baseUrl}/acesso/${accessToken}`;
+    // URL PÚBLICA CANÔNICA - SEMPRE usar este domínio, independente de onde o admin está
+    const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+    const accessLink = `${PUBLIC_APP_URL}/acesso/${accessToken}`;
 
     console.log(`Access link generated for user ${targetProfile.email}: ${accessLink}`);
 

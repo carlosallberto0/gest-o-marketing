@@ -89,10 +89,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Determine base URL for redirect
-    const siteUrl = Deno.env.get('SITE_URL');
-    const requestOrigin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '');
-    const baseUrl = siteUrl || requestOrigin || 'https://gestao-e-marketing.lovable.app';
+    // URL PÚBLICA CANÔNICA - SEMPRE usar este domínio para evitar redirecionamentos errados
+    const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
 
     // Determine redirect based on role
     const redirectByRole: Record<string, string> = {
@@ -107,12 +105,12 @@ Deno.serve(async (req) => {
 
     const redirectPath = redirectByRole[profile.role] || '/modules';
 
-    // Generate a magic link / session for the user with redirect to correct domain
+    // Generate a magic link / session for the user with redirect to CANONICAL domain
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: profile.email,
       options: {
-        redirectTo: `${baseUrl}${redirectPath}`,
+        redirectTo: `${PUBLIC_APP_URL}${redirectPath}`,
       },
     });
 

@@ -32,6 +32,7 @@ import {
   formatExpirationDate,
   formatLastAccess,
 } from '@/hooks/useAccessLinks';
+import { getPublicAppUrl } from '@/hooks/usePublicAppUrl';
 
 interface AccessLinkDialogProps {
   open: boolean;
@@ -57,7 +58,9 @@ export function AccessLinkDialog({
   if (!user) return null;
 
   const linkStatus = getAccessLinkStatus(user);
-  const currentLink = accessLink || (user.access_token ? `${window.location.origin}/acesso/${user.access_token}` : null);
+  // SEMPRE usar a URL pública canônica, nunca window.location.origin
+  const publicUrl = getPublicAppUrl();
+  const currentLink = accessLink || (user.access_token ? `${publicUrl}/acesso/${user.access_token}` : null);
 
   const handleCopy = async () => {
     if (!currentLink) return;

@@ -97,20 +97,21 @@ serve(async (req) => {
       // Generate unique access token
       const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc('generate_access_token');
       
-      if (!tokenError && tokenData) {
-        accessToken = tokenData;
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 365); // 1 year validity
-        tokenExpiresAt = expiresAt.toISOString();
-        
-        // Use SITE_URL if configured, otherwise use request origin
-        const siteUrl = Deno.env.get('SITE_URL');
-        const requestOrigin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '');
-        const baseUrl = siteUrl || requestOrigin || 'https://gestao-e-marketing.lovable.app';
-        accessLink = `${baseUrl}/acesso/${accessToken}`;
-        
-        console.log('Access link generated for user:', email);
+      if (tokenError || !tokenData) {
+        console.error('Error generating access token:', tokenError);
+        throw new Error('Failed to generate access token for user');
       }
+
+      accessToken = tokenData;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 365); // 1 year validity
+      tokenExpiresAt = expiresAt.toISOString();
+      
+      // URL PÚBLICA CANÔNICA - SEMPRE usar este domínio, independente de onde o admin está
+      const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+      accessLink = `${PUBLIC_APP_URL}/acesso/${accessToken}`;
+      
+      console.log('Access link generated for user:', email, 'URL:', accessLink);
     }
 
     // Update profile with additional info
