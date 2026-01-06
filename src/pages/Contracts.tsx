@@ -176,6 +176,7 @@ export default function Contracts() {
 
         {/* Contracts Table */}
         <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -269,6 +270,7 @@ export default function Contracts() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {filteredContracts.length === 0 && (

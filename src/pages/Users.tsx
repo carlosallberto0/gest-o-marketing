@@ -215,6 +215,7 @@ export default function Users() {
 
         {/* Users Table */}
         <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -326,6 +327,7 @@ export default function Users() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {filteredUsers.length === 0 && (
