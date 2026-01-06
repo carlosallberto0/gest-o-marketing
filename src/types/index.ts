@@ -82,6 +82,7 @@ export interface Outdoor {
   lng: number | null;
   validationRadiusMeters: number;
   descriptionType?: string;
+  avaliacaoValidaAte?: string;
 }
 
 // =============== CONTRACT TYPES ===============
