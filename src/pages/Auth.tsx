@@ -116,15 +116,34 @@ export default function Auth() {
         return;
       }
 
-      // Check if user is super_admin
+      // Check if user is super_admin with retry logic to handle race conditions
       if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
+        let profile = null;
+        let retries = 3;
+        
+        while (retries > 0 && !profile) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle();
+          
+          if (profileData) {
+            profile = profileData;
+            break;
+          }
+          
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+          
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
 
-        if (profile?.role !== 'super_admin') {
+        if (!profile || profile.role !== 'super_admin') {
           await supabase.auth.signOut();
           toast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
           setLoading(false);
@@ -133,9 +152,12 @@ export default function Auth() {
 
         toast.success('Login realizado com sucesso!');
         navigate('/modules');
+        return; // Prevent further execution after navigation
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Ocorreu um erro. Tente novamente.');
+    } finally {
       setLoading(false);
     }
   };
