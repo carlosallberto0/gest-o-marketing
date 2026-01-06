@@ -47,6 +47,18 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   consolidated: { label: 'Consolidada', color: 'bg-blue-500', icon: FileText },
 };
 
+const urgencyConfig: Record<string, { label: string; color: string }> = {
+  baixa: { label: '🟢 Baixa', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  normal: { label: '🟡 Normal', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+  alta: { label: '🟠 Alta', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+  emergencial: { label: '🔴 Emergencial', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+};
+
+const maintenanceTypeConfig: Record<string, { label: string; color: string }> = {
+  preventiva: { label: '🛡️ Preventiva', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  corretiva: { label: '🔧 Corretiva', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+};
+
 export default function MaintenanceRequests() {
   const { profile } = useAuth();
   const { data: allRequests, isLoading, refetch } = useMaintenanceRequests();
@@ -242,6 +254,20 @@ export default function MaintenanceRequests() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               <span className="font-medium">{request.outdoor?.code}</span>
+            </div>
+
+            {/* Urgency and Type badges */}
+            <div className="flex flex-wrap gap-1">
+              {request.urgency && urgencyConfig[request.urgency] && (
+                <Badge className={`text-[10px] px-1.5 py-0.5 ${urgencyConfig[request.urgency].color}`}>
+                  {urgencyConfig[request.urgency].label}
+                </Badge>
+              )}
+              {request.maintenance_type && maintenanceTypeConfig[request.maintenance_type] && (
+                <Badge className={`text-[10px] px-1.5 py-0.5 ${maintenanceTypeConfig[request.maintenance_type].color}`}>
+                  {maintenanceTypeConfig[request.maintenance_type].label}
+                </Badge>
+              )}
             </div>
 
             {request.outdoor?.pdv && (
