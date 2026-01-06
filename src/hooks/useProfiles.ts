@@ -24,10 +24,12 @@ export function useProfiles() {
   return useQuery({
     queryKey: ['profiles'],
     queryFn: async (): Promise<Profile[]> => {
+      // Selecionar apenas campos necessários, excluindo temp_password, access_token, etc.
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
-          *,
+          id, name, email, cpf, role, modules, pdv_id, status,
+          pode_aprovar_os, created_at, updated_at,
           pdvs:pdv_id (name)
         `)
         .order('created_at', { ascending: false });
@@ -45,7 +47,7 @@ export function useProfiles() {
         pdv_name: profile.pdvs?.name || null,
         status: profile.status,
         pode_aprovar_os: profile.pode_aprovar_os ?? false,
-        temp_password: profile.temp_password || null,
+        temp_password: null, // Não buscar do banco por segurança
         created_at: profile.created_at,
         updated_at: profile.updated_at,
       }));
