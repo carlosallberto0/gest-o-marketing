@@ -223,6 +223,7 @@ export default function Materials() {
 
         {/* Materials Table */}
         <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -316,6 +317,7 @@ export default function Materials() {
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {filteredMaterials.length === 0 && (

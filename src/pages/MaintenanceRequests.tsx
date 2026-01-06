@@ -338,7 +338,7 @@ export default function MaintenanceRequests() {
             </div>
             
             <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Mês" />
               </SelectTrigger>
@@ -353,7 +353,7 @@ export default function MaintenanceRequests() {
             </Select>
             
             <Select value={requesterFilter} onValueChange={setRequesterFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full md:w-[200px]">
                 <User className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Solicitante" />
               </SelectTrigger>
@@ -368,7 +368,7 @@ export default function MaintenanceRequests() {
             </Select>
 
             <Select value={outdoorFilter} onValueChange={setOutdoorFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full md:w-[200px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Outdoor" />
               </SelectTrigger>
@@ -386,7 +386,7 @@ export default function MaintenanceRequests() {
 
         {/* Floating Action Bar for batch operations */}
         {isSuperAdmin && selectedIds.size > 0 && (
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-background border border-border shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 z-50">
+          <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-auto bg-background border border-border shadow-xl rounded-lg px-4 py-3 flex flex-wrap items-center justify-center gap-3 z-50">
             <span className="text-sm font-medium">
               {selectedIds.size} selecionada(s)
             </span>
@@ -410,7 +410,7 @@ export default function MaintenanceRequests() {
 
         {/* Tabs */}
         <Tabs defaultValue="all">
-          <TabsList>
+          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start h-auto p-1">
             <TabsTrigger value="all">Todas</TabsTrigger>
             <TabsTrigger value="pending_review">Pendentes ({stats.pending})</TabsTrigger>
             <TabsTrigger value="approved">Aprovadas ({stats.approved})</TabsTrigger>

@@ -246,6 +246,7 @@ export default function ServiceOrders() {
                 <p>Nenhuma ordem de serviço encontrada</p>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -365,6 +366,7 @@ export default function ServiceOrders() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
