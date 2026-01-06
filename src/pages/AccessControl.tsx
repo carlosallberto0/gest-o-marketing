@@ -36,6 +36,7 @@ import {
   generateWhatsAppLink,
 } from '@/hooks/useAccessLinks';
 import { AccessLinkDialog } from '@/components/dialogs/AccessLinkDialog';
+import { getPublicAppUrl } from '@/hooks/usePublicAppUrl';
 
 export default function AccessControl() {
   const { 
@@ -85,14 +86,18 @@ export default function AccessControl() {
 
   const handleQuickCopy = async (user: AccessLinkUser) => {
     if (!user.access_token) return;
-    const link = `${window.location.origin}/acesso/${user.access_token}`;
+    // SEMPRE usar a URL pública canônica, nunca window.location.origin
+    const publicUrl = getPublicAppUrl();
+    const link = `${publicUrl}/acesso/${user.access_token}`;
     await navigator.clipboard.writeText(link);
     toast.success('Link copiado!');
   };
 
   const handleQuickWhatsApp = (user: AccessLinkUser) => {
     if (!user.access_token) return;
-    const link = `${window.location.origin}/acesso/${user.access_token}`;
+    // SEMPRE usar a URL pública canônica, nunca window.location.origin
+    const publicUrl = getPublicAppUrl();
+    const link = `${publicUrl}/acesso/${user.access_token}`;
     window.open(generateWhatsAppLink(link, user.name), '_blank');
   };
 
