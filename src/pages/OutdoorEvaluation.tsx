@@ -2,12 +2,15 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors, useCreateMediaEvaluation } from '@/hooks/useOutdoorData';
+import { useCreateMaintenanceRequest } from '@/hooks/useMaintenanceRequests';
+import { useAuth } from '@/hooks/useAuth';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { GeoPhotoUpload, GeoPhotoData } from '@/components/ui/geo-photo-upload';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { 
   Select,
   SelectContent,
@@ -28,7 +31,9 @@ import {
   Loader2,
   Building,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Wrench,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -66,9 +71,15 @@ export default function OutdoorEvaluation() {
   const [photos, setPhotos] = useState<GeoPhotoData[]>([]);
   const [measuresConfirmed, setMeasuresConfirmed] = useState(false);
   const [observations, setObservations] = useState('');
+  
+  // Maintenance request states
+  const [requestMaintenance, setRequestMaintenance] = useState(false);
+  const [maintenanceObservations, setMaintenanceObservations] = useState('');
 
   const { data: outdoors = [], isLoading } = useOutdoors();
   const createEvaluation = useCreateMediaEvaluation();
+  const createMaintenanceRequest = useCreateMaintenanceRequest();
+  const { profile } = useAuth();
 
   // Group outdoors by PDV and filter only those needing evaluation
   const pdvsWithPendingOutdoors = useMemo(() => {
@@ -116,14 +127,17 @@ export default function OutdoorEvaluation() {
   const canSubmit = selectedOutdoor && status && photos.length > 0 && 
     (status !== 'non_operational' || nonOperationalReason) && measuresConfirmed;
 
+  const isSubmitting = createEvaluation.isPending || createMaintenanceRequest.isPending;
+
   const handleSubmit = async () => {
-    if (!canSubmit || !outdoor || !status) {
+    if (!canSubmit || !outdoor || !status || !profile) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
     try {
-      await createEvaluation.mutateAsync({
+      // 1. Create the evaluation
+      const evaluation = await createEvaluation.mutateAsync({
         outdoorId: outdoor.id,
         pdvId: outdoor.pdvId,
         status: status as OutdoorStatus,
@@ -132,7 +146,22 @@ export default function OutdoorEvaluation() {
         measuresConfirmed,
         observations: observations || undefined,
       });
-      toast.success('Avaliação enviada com sucesso!');
+
+      // 2. If maintenance was requested, create the maintenance request
+      if (requestMaintenance && status === 'non_operational') {
+        await createMaintenanceRequest.mutateAsync({
+          outdoor_id: outdoor.id,
+          evaluation_id: evaluation?.id,
+          reason: nonOperationalReason,
+          observations: maintenanceObservations || observations || undefined,
+          photos: photos.map(p => p.url),
+          current_photo_url: photos[0]?.url,
+        });
+        toast.success('Avaliação enviada e manutenção solicitada!');
+      } else {
+        toast.success('Avaliação enviada com sucesso!');
+      }
+      
       navigate('/outdoors');
     } catch (error) {
       toast.error('Erro ao enviar avaliação');
@@ -350,6 +379,57 @@ export default function OutdoorEvaluation() {
               )}
             </div>
 
+            {/* Maintenance Request Section */}
+            {status === 'non_operational' && (
+              <div className="bg-orange-50 dark:bg-orange-950/20 rounded-xl p-5 border border-orange-200 dark:border-orange-900 shadow-sm animate-slide-up">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-orange-600" />
+                    <h3 className="font-semibold text-foreground">Solicitar Manutenção</h3>
+                  </div>
+                  <Switch
+                    checked={requestMaintenance}
+                    onCheckedChange={setRequestMaintenance}
+                  />
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ao ativar, uma solicitação de manutenção será criada automaticamente 
+                  para análise do Super Admin.
+                </p>
+                
+                {requestMaintenance && (
+                  <div className="space-y-4 animate-slide-up">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-foreground">
+                        Descrição do Problema (opcional)
+                      </label>
+                      <Textarea
+                        value={maintenanceObservations}
+                        onChange={(e) => setMaintenanceObservations(e.target.value)}
+                        placeholder="Descreva detalhes adicionais sobre o problema que requer manutenção..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                    </div>
+                    
+                    <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <p className="font-medium">O que acontecerá:</p>
+                        <ul className="list-disc list-inside mt-1 text-xs space-y-0.5">
+                          <li>A avaliação será registrada com status "Não Operacional"</li>
+                          <li>Uma solicitação de manutenção será criada automaticamente</li>
+                          <li>O Super Admin será notificado em tempo real</li>
+                          <li>As fotos da avaliação serão anexadas à solicitação</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Photo Upload */}
             {status && (
               <div className="bg-card rounded-xl p-5 border border-border shadow-sm animate-slide-up">
@@ -411,20 +491,30 @@ export default function OutdoorEvaluation() {
                   variant="outline" 
                   className="flex-1"
                   onClick={() => navigate('/outdoors')}
+                  disabled={isSubmitting}
                 >
                   Cancelar
                 </Button>
                 <Button 
-                  className="flex-1 bg-success hover:bg-success/90"
+                  className={cn(
+                    "flex-1",
+                    requestMaintenance && status === 'non_operational'
+                      ? "bg-orange-600 hover:bg-orange-700"
+                      : "bg-success hover:bg-success/90"
+                  )}
                   onClick={handleSubmit}
-                  disabled={!canSubmit || createEvaluation.isPending}
+                  disabled={!canSubmit || isSubmitting}
                 >
-                  {createEvaluation.isPending ? (
+                  {isSubmitting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : requestMaintenance && status === 'non_operational' ? (
+                    <Wrench className="h-4 w-4 mr-2" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}
-                  Enviar Avaliação
+                  {requestMaintenance && status === 'non_operational'
+                    ? 'Enviar + Solicitar Manutenção'
+                    : 'Enviar Avaliação'}
                 </Button>
               </div>
             )}
