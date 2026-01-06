@@ -18,6 +18,8 @@ export interface MaintenanceRequest {
   service_order_id: string | null;
   created_at: string;
   updated_at: string;
+  urgency: 'baixa' | 'normal' | 'alta' | 'emergencial' | null;
+  maintenance_type: 'preventiva' | 'corretiva' | null;
   // Joined data
   outdoor?: {
     code: string;
@@ -111,6 +113,8 @@ export interface CreateMaintenanceRequestInput {
   observations?: string;
   photos?: string[];
   current_photo_url?: string;
+  urgency?: 'baixa' | 'normal' | 'alta' | 'emergencial';
+  maintenance_type?: 'preventiva' | 'corretiva';
 }
 
 export function useCreateMaintenanceRequest() {
@@ -127,6 +131,8 @@ export function useCreateMaintenanceRequest() {
           ...input,
           requester_id: user.id,
           photos: input.photos || [],
+          urgency: input.urgency || 'normal',
+          maintenance_type: input.maintenance_type || 'corretiva',
         })
         .select()
         .single();
@@ -138,14 +144,24 @@ export function useCreateMaintenanceRequest() {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
       toast.success('Solicitação de manutenção criada!');
       
+      // Build urgency label for notification
+      const urgencyLabels: Record<string, string> = {
+        baixa: '🟢 Baixa',
+        normal: '🟡 Normal',
+        alta: '🟠 Alta',
+        emergencial: '🔴 Emergencial',
+      };
+      const urgencyLabel = urgencyLabels[variables.urgency || 'normal'];
+      const typeLabel = variables.maintenance_type === 'preventiva' ? 'Preventiva' : 'Corretiva';
+      
       // Notify super_admin about new maintenance request
       try {
         await notificarPorRole(
           'super_admin',
           'maintenance_request',
           'media',
-          'Nova Solicitação de Manutenção',
-          `Gerente solicitou manutenção para outdoor. Motivo: ${variables.reason}`,
+          `Nova Solicitação [${urgencyLabel}]`,
+          `Manutenção ${typeLabel}: ${variables.reason}`,
           '/maintenance-requests',
           data.id,
           'maintenance_request'

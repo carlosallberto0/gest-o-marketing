@@ -75,6 +75,20 @@ export default function OutdoorEvaluation() {
   // Maintenance request states
   const [requestMaintenance, setRequestMaintenance] = useState(false);
   const [maintenanceObservations, setMaintenanceObservations] = useState('');
+  const [maintenanceUrgency, setMaintenanceUrgency] = useState<'baixa' | 'normal' | 'alta' | 'emergencial'>('normal');
+  const [maintenanceType, setMaintenanceType] = useState<'preventiva' | 'corretiva'>('corretiva');
+
+  const urgencyOptions = [
+    { value: 'baixa' as const, label: 'Baixa', description: '7 dias', color: 'bg-green-100 border-green-400 text-green-800 dark:bg-green-950 dark:text-green-300' },
+    { value: 'normal' as const, label: 'Normal', description: '3 dias', color: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300' },
+    { value: 'alta' as const, label: 'Alta', description: '24h', color: 'bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-950 dark:text-orange-300' },
+    { value: 'emergencial' as const, label: 'Emergencial', description: 'Imediato', color: 'bg-red-100 border-red-400 text-red-800 dark:bg-red-950 dark:text-red-300' },
+  ];
+
+  const maintenanceTypeOptions = [
+    { value: 'preventiva' as const, label: 'Preventiva', icon: '🛡️', description: 'Evitar problemas' },
+    { value: 'corretiva' as const, label: 'Corretiva', icon: '🔧', description: 'Corrigir problema' },
+  ];
 
   const { data: outdoors = [], isLoading } = useOutdoors();
   const createEvaluation = useCreateMediaEvaluation();
@@ -156,6 +170,8 @@ export default function OutdoorEvaluation() {
           observations: maintenanceObservations || observations || undefined,
           photos: photos.map(p => p.url),
           current_photo_url: photos[0]?.url,
+          urgency: maintenanceUrgency,
+          maintenance_type: maintenanceType,
         });
         toast.success('Avaliação enviada e manutenção solicitada!');
       } else {
@@ -400,6 +416,55 @@ export default function OutdoorEvaluation() {
                 
                 {requestMaintenance && (
                   <div className="space-y-4 animate-slide-up">
+                    {/* Maintenance Type */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-foreground">Tipo de Manutenção</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {maintenanceTypeOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setMaintenanceType(option.value)}
+                            className={cn(
+                              "p-3 rounded-lg border-2 text-center transition-all",
+                              maintenanceType === option.value 
+                                ? "border-primary bg-primary/10" 
+                                : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <div className="text-xl mb-1">{option.icon}</div>
+                            <div className="font-medium text-sm">{option.label}</div>
+                            <div className="text-xs text-muted-foreground">{option.description}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Urgency Level */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-foreground">Nível de Urgência</label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {urgencyOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setMaintenanceUrgency(option.value)}
+                            className={cn(
+                              "p-2 rounded-lg border-2 text-center transition-all",
+                              option.color,
+                              maintenanceUrgency === option.value 
+                                ? "ring-2 ring-offset-1 ring-primary border-transparent" 
+                                : "opacity-70 hover:opacity-100"
+                            )}
+                          >
+                            <div className="font-medium text-xs">{option.label}</div>
+                            <div className="text-[10px] opacity-80">{option.description}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Observations */}
                     <div>
                       <label className="text-sm font-medium mb-2 block text-foreground">
                         Descrição do Problema (opcional)
@@ -416,12 +481,12 @@ export default function OutdoorEvaluation() {
                     <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                       <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm text-blue-800 dark:text-blue-200">
-                        <p className="font-medium">O que acontecerá:</p>
+                        <p className="font-medium">Resumo da Solicitação:</p>
                         <ul className="list-disc list-inside mt-1 text-xs space-y-0.5">
-                          <li>A avaliação será registrada com status "Não Operacional"</li>
-                          <li>Uma solicitação de manutenção será criada automaticamente</li>
-                          <li>O Super Admin será notificado em tempo real</li>
-                          <li>As fotos da avaliação serão anexadas à solicitação</li>
+                          <li>Tipo: {maintenanceType === 'preventiva' ? '🛡️ Preventiva' : '🔧 Corretiva'}</li>
+                          <li>Urgência: {urgencyOptions.find(u => u.value === maintenanceUrgency)?.label} ({urgencyOptions.find(u => u.value === maintenanceUrgency)?.description})</li>
+                          <li>Status do outdoor será "Não Operacional"</li>
+                          <li>Super Admin será notificado em tempo real</li>
                         </ul>
                       </div>
                     </div>

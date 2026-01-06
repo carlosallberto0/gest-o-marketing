@@ -750,6 +750,7 @@ export type Database = {
           current_photo_url: string | null
           evaluation_id: string | null
           id: string
+          maintenance_type: string | null
           observations: string | null
           outdoor_id: string
           photos: string[] | null
@@ -758,6 +759,7 @@ export type Database = {
           service_order_id: string | null
           status: string
           updated_at: string
+          urgency: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -766,6 +768,7 @@ export type Database = {
           current_photo_url?: string | null
           evaluation_id?: string | null
           id?: string
+          maintenance_type?: string | null
           observations?: string | null
           outdoor_id: string
           photos?: string[] | null
@@ -774,6 +777,7 @@ export type Database = {
           service_order_id?: string | null
           status?: string
           updated_at?: string
+          urgency?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -782,6 +786,7 @@ export type Database = {
           current_photo_url?: string | null
           evaluation_id?: string | null
           id?: string
+          maintenance_type?: string | null
           observations?: string | null
           outdoor_id?: string
           photos?: string[] | null
@@ -790,6 +795,7 @@ export type Database = {
           service_order_id?: string | null
           status?: string
           updated_at?: string
+          urgency?: string | null
         }
         Relationships: [
           {
