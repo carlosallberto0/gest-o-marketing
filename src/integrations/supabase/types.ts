@@ -2001,14 +2001,24 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_outdoor_after_evaluation: {
-        Args: {
-          p_non_operational_reason?: string
-          p_outdoor_id: string
-          p_status: Database["public"]["Enums"]["outdoor_status"]
-        }
-        Returns: undefined
-      }
+      update_outdoor_after_evaluation:
+        | {
+            Args: {
+              p_non_operational_reason?: string
+              p_outdoor_id: string
+              p_status: Database["public"]["Enums"]["outdoor_status"]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_non_operational_reason?: string
+              p_outdoor_id: string
+              p_photo_url?: string
+              p_status: Database["public"]["Enums"]["outdoor_status"]
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       answer_value: "yes" | "no" | "na"
