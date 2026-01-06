@@ -48,6 +48,7 @@ import OutdoorReviews from "./pages/OutdoorReviews";
 import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
+import OutdoorStatusControl from "./pages/OutdoorStatusControl";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -400,6 +401,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin']}>
             <BulkImageUpload />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/controle-status-outdoors" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <OutdoorStatusControl />
           </RequireRole>
         </ProtectedRoute>
       } 

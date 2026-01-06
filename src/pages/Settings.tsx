@@ -29,12 +29,14 @@ import {
   LogIn,
   MessageSquare,
   LayoutGrid,
-  DollarSign
+  DollarSign,
+  RefreshCcw
 } from 'lucide-react';
 import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
 import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearanceSettings';
+import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -247,7 +249,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-10" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-5xl", isSuperAdmin ? "grid-cols-11" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -288,6 +290,12 @@ export default function Settings() {
               <TabsTrigger value="evaluations">
                 <CalendarClock className="h-4 w-4 mr-2" />
                 Avaliações
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="cycle">
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Ciclo
               </TabsTrigger>
             )}
             {isSuperAdmin && (
@@ -718,6 +726,13 @@ export default function Settings() {
                   Salvar Configurações de Avaliação
                 </Button>
               </div>
+            </TabsContent>
+          )}
+
+          {/* Cycle Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="cycle" className="space-y-6">
+              <OutdoorCycleSettings />
             </TabsContent>
           )}
 

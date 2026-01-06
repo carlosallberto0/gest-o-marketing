@@ -1272,6 +1272,7 @@ export type Database = {
       outdoors: {
         Row: {
           area: number | null
+          avaliacao_valida_ate: string | null
           code: string
           contract_id: string | null
           created_at: string
@@ -1298,6 +1299,7 @@ export type Database = {
         }
         Insert: {
           area?: number | null
+          avaliacao_valida_ate?: string | null
           code: string
           contract_id?: string | null
           created_at?: string
@@ -1324,6 +1326,7 @@ export type Database = {
         }
         Update: {
           area?: number | null
+          avaliacao_valida_ate?: string | null
           code?: string
           contract_id?: string | null
           created_at?: string
@@ -1953,6 +1956,10 @@ export type Database = {
       generate_access_token: { Args: never; Returns: string }
       generate_contract_alerts: { Args: never; Returns: undefined }
       generate_outdoor_alerts: { Args: never; Returns: undefined }
+      get_outdoor_verification_status: {
+        Args: { p_avaliacao_valida_ate: string; p_last_evaluation: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
