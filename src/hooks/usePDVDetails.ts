@@ -23,6 +23,7 @@ interface PDVOutdoor {
   height: number;
   status: string;
   description_type: string | null;
+  photo_url: string | null;
 }
 
 interface EvaluationHistory {
@@ -79,7 +80,7 @@ export function usePDVOutdoors(pdvId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('outdoors')
-        .select('id, code, location, width, height, status, description_type')
+        .select('id, code, location, width, height, status, description_type, photo_url')
         .eq('pdv_id', pdvId)
         .order('code');
 
