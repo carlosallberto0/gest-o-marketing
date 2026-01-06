@@ -118,6 +118,17 @@ export function useCreateMonthlyReview() {
         .single();
 
       if (error) throw error;
+
+      // Atualizar a foto principal do outdoor se uma nova foto foi enviada
+      if (input.current_photo_url) {
+        await supabase.rpc('update_outdoor_after_evaluation', {
+          p_outdoor_id: input.outdoor_id,
+          p_status: 'operational', // Revisão mensal mantém status operacional
+          p_non_operational_reason: null,
+          p_photo_url: input.current_photo_url,
+        });
+      }
+
       return data;
     },
     onSuccess: async (data, variables) => {

@@ -141,10 +141,14 @@ export function useCreateMediaEvaluation() {
         p_non_operational_reason: input.nonOperationalReason || null,
       });
 
+      // Passa a primeira foto para atualizar a foto principal do outdoor
+      const photoUrl = input.photos.length > 0 ? input.photos[0].url : null;
+
       const { data: rpcData, error: outdoorError } = await supabase.rpc('update_outdoor_after_evaluation', {
         p_outdoor_id: input.outdoorId,
         p_status: input.status,
         p_non_operational_reason: input.nonOperationalReason || null,
+        p_photo_url: photoUrl,
       });
 
       console.log('Resultado RPC update_outdoor_after_evaluation:', { rpcData, outdoorError });
