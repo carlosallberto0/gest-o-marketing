@@ -18,7 +18,9 @@ import {
   useRejectMaintenanceRequest,
   MaintenanceRequest,
 } from '@/hooks/useMaintenanceRequests';
+import { useAssignmentsByMaintenance } from '@/hooks/useSupplierAssignments';
 import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
+import { AssignSupplierDialog } from '@/components/dialogs/AssignSupplierDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Plus, 
@@ -34,7 +36,8 @@ import {
   AlertTriangle,
   Trash2,
   Filter,
-  Image
+  Image,
+  Building
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -73,6 +76,7 @@ export default function MaintenanceRequests() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
@@ -626,6 +630,22 @@ export default function MaintenanceRequests() {
                     </Button>
                   </div>
                 )}
+
+                {/* Assign supplier button for approved requests */}
+                {isSuperAdmin && selectedRequest.status === 'approved' && (
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button 
+                      className="flex-1"
+                      variant="outline"
+                      onClick={() => {
+                        setAssignDialogOpen(true);
+                      }}
+                    >
+                      <Building className="h-4 w-4 mr-2" />
+                      Atribuir Fornecedor
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
@@ -654,6 +674,20 @@ export default function MaintenanceRequests() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Assign Supplier Dialog */}
+        {selectedRequest && (
+          <AssignSupplierDialog
+            open={assignDialogOpen}
+            onOpenChange={(open) => {
+              setAssignDialogOpen(open);
+              if (!open) refetch();
+            }}
+            maintenanceRequestId={selectedRequest.id}
+            outdoorCode={selectedRequest.outdoor?.code}
+            reason={selectedRequest.reason}
+          />
+        )}
       </div>
     </AppLayout>
   );

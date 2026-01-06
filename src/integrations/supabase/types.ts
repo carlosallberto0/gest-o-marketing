@@ -1692,6 +1692,143 @@ export type Database = {
           },
         ]
       }
+      supplier_deadline_history: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          deadline_date: string
+          deadline_days: number
+          deadline_type: string
+          id: string
+          reason: string | null
+          set_by: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          deadline_date: string
+          deadline_days: number
+          deadline_type: string
+          id?: string
+          reason?: string | null
+          set_by?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          deadline_date?: string
+          deadline_days?: number
+          deadline_type?: string
+          id?: string
+          reason?: string | null
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_deadline_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_maintenance_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_deadline_history_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_maintenance_assignments: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_value: number | null
+          assigned_by: string | null
+          completed_at: string | null
+          created_at: string
+          deadline_date: string | null
+          deadline_days: number | null
+          id: string
+          maintenance_request_id: string
+          quoted_value: number | null
+          started_at: string | null
+          status: string
+          supplier_id: string
+          supplier_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_value?: number | null
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_date?: string | null
+          deadline_days?: number | null
+          id?: string
+          maintenance_request_id: string
+          quoted_value?: number | null
+          started_at?: string | null
+          status?: string
+          supplier_id: string
+          supplier_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_value?: number | null
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_date?: string | null
+          deadline_days?: number | null
+          id?: string
+          maintenance_request_id?: string
+          quoted_value?: number | null
+          started_at?: string | null
+          status?: string
+          supplier_id?: string
+          supplier_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_maintenance_assignments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_maintenance_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_maintenance_assignments_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_maintenance_assignments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_pricing: {
         Row: {
           created_at: string
@@ -1747,6 +1884,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supplier_pricing_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_reports: {
+        Row: {
+          created_at: string
+          email_sent: boolean | null
+          id: string
+          period_end: string
+          period_start: string
+          report_data: Json
+          sent_at: string | null
+          sent_by: string | null
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          period_end: string
+          period_start: string
+          report_data?: Json
+          sent_at?: string | null
+          sent_by?: string | null
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_data?: Json
+          sent_at?: string | null
+          sent_by?: string | null
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_reports_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_reports_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"

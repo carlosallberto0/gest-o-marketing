@@ -79,10 +79,10 @@ export default function OutdoorEvaluation() {
   const [maintenanceType, setMaintenanceType] = useState<'preventiva' | 'corretiva'>('corretiva');
 
   const urgencyOptions = [
-    { value: 'baixa' as const, label: 'Baixa', description: '7 dias', color: 'bg-green-100 border-green-400 text-green-800 dark:bg-green-950 dark:text-green-300' },
-    { value: 'normal' as const, label: 'Normal', description: '3 dias', color: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300' },
-    { value: 'alta' as const, label: 'Alta', description: '24h', color: 'bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-950 dark:text-orange-300' },
-    { value: 'emergencial' as const, label: 'Emergencial', description: 'Imediato', color: 'bg-red-100 border-red-400 text-red-800 dark:bg-red-950 dark:text-red-300' },
+    { value: 'baixa' as const, label: 'Baixa', description: 'Sem pressa, pode agendar', color: 'bg-green-100 border-green-400 text-green-800 dark:bg-green-950 dark:text-green-300' },
+    { value: 'normal' as const, label: 'Normal', description: 'Manutenção necessária', color: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300' },
+    { value: 'alta' as const, label: 'Alta', description: 'Prioridade operacional', color: 'bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-950 dark:text-orange-300' },
+    { value: 'emergencial' as const, label: 'Emergencial', description: 'Impacto crítico', color: 'bg-red-100 border-red-400 text-red-800 dark:bg-red-950 dark:text-red-300' },
   ];
 
   const maintenanceTypeOptions = [
@@ -462,6 +462,10 @@ export default function OutdoorEvaluation() {
                           </button>
                         ))}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1">
+                        <span className="text-primary">ℹ️</span>
+                        O prazo real será negociado pelo Super Admin com o fornecedor após aprovação.
+                      </p>
                     </div>
 
                     {/* Observations */}
