@@ -303,9 +303,19 @@ export default function PDVDetail() {
                     onClick={() => navigate(`/outdoor/${outdoor.id}`)}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Monitor className="h-5 w-5 text-primary" />
-                      </div>
+                      {outdoor.photo_url ? (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                          <img 
+                            src={outdoor.photo_url} 
+                            alt={outdoor.code} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Monitor className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="font-medium text-foreground truncate">{outdoor.code}</p>
                         <p className="text-sm text-muted-foreground truncate">{outdoor.location}</p>
