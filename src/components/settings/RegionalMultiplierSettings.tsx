@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Save, MapPin, Pencil, Check, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useRegionalCosts, useUpdateRegionalCost, RegionalCost } from '@/hooks/useOperationalCosts';
 import { Badge } from '@/components/ui/badge';
 
@@ -35,7 +35,7 @@ export function RegionalMultiplierSettings() {
         observacao: editObs,
       });
       setEditingState(null);
-      toast.success(`Multiplicador de ${estado} atualizado!`);
+      showToast.success(`Multiplicador de ${estado} atualizado!`);
     } catch (error) {
       console.error('Error updating regional cost:', error);
     }

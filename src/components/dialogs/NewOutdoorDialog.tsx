@@ -12,7 +12,7 @@ import { useCreateOutdoor } from '@/hooks/useCreateOutdoor';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { extractCoordsFromGoogleMapsUrl, isShortGoogleMapsUrl } from '@/lib/googleMaps';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 interface NewOutdoorDialogProps {
@@ -91,7 +91,7 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
         lat: coords.lat.toString(),
         lng: coords.lng.toString(),
       }));
-      toast.success('Coordenadas extraídas com sucesso!');
+      showToast.success('Coordenadas extraídas com sucesso!');
       return;
     }
 
@@ -111,7 +111,7 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
             lat: data.coords.lat.toString(),
             lng: data.coords.lng.toString(),
           }));
-          toast.success('Coordenadas extraídas com sucesso!');
+          showToast.success('Coordenadas extraídas com sucesso!');
         } else {
           setUrlError('Não foi possível extrair coordenadas desta URL.');
         }

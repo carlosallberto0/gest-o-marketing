@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadPhoto } from '@/lib/storage';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface PhotoUploadProps {
   value?: string | null;
@@ -28,12 +28,12 @@ export function PhotoUpload({
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem válida');
+      showToast.error('Por favor, selecione uma imagem válida');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 5MB');
+      showToast.error('A imagem deve ter no máximo 5MB');
       return;
     }
 
@@ -44,13 +44,13 @@ export function PhotoUpload({
       
       if (publicUrl) {
         onChange(publicUrl);
-        toast.success('Foto enviada com sucesso!');
+        showToast.success('Foto enviada com sucesso!');
       } else {
-        toast.error('Erro ao enviar foto');
+        showToast.error('Erro ao enviar foto');
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      toast.error('Erro ao enviar foto');
+      showToast.error('Erro ao enviar foto');
     } finally {
       setIsLoading(false);
       if (fileInputRef.current) {
@@ -228,11 +228,11 @@ export function MultiPhotoUpload({
 
       if (newPhotos.length > 0) {
         onChange([...value, ...newPhotos]);
-        toast.success(`${newPhotos.length} foto(s) enviada(s)`);
+        showToast.success(`${newPhotos.length} foto(s) enviada(s)`);
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
-      toast.error('Erro ao enviar fotos');
+      showToast.error('Erro ao enviar fotos');
     } finally {
       setIsLoading(false);
       if (fileInputRef.current) {

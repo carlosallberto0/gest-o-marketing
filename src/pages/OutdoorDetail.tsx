@@ -26,7 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -83,10 +83,10 @@ export default function OutdoorDetail() {
         .update({ status: newStatus, non_operational_reason: null })
         .eq('id', outdoor.id);
       if (error) throw error;
-      toast.success(`Outdoor ${newStatus === 'operational' ? 'ativado' : 'inativado'}!`);
+      showToast.success(`Outdoor ${newStatus === 'operational' ? 'ativado' : 'inativado'}!`);
       refetch();
     } catch (error: any) {
-      toast.error('Erro ao alterar status');
+      showToast.error('Erro ao alterar status');
     } finally {
       setIsTogglingStatus(false);
     }
@@ -104,10 +104,10 @@ export default function OutdoorDetail() {
         entity_id: outdoor.id,
         old_data: outdoor as any,
       });
-      toast.success('Outdoor excluído!');
+      showToast.success('Outdoor excluído!');
       navigate('/outdoors');
     } catch (error: any) {
-      toast.error('Erro ao excluir: ' + error.message);
+      showToast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsDeleting(false);
     }

@@ -35,7 +35,7 @@ import {
   Wrench,
   AlertTriangle
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { OutdoorStatus } from '@/types';
 
@@ -145,7 +145,7 @@ export default function OutdoorEvaluation() {
 
   const handleSubmit = async () => {
     if (!canSubmit || !outdoor || !status || !profile) {
-      toast.error('Preencha todos os campos obrigatórios');
+      showToast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
@@ -173,14 +173,14 @@ export default function OutdoorEvaluation() {
           urgency: maintenanceUrgency,
           maintenance_type: maintenanceType,
         });
-        toast.success('Avaliação enviada e manutenção solicitada!');
+        showToast.success('Avaliação enviada e manutenção solicitada!');
       } else {
-        toast.success('Avaliação enviada com sucesso!');
+        showToast.success('Avaliação enviada com sucesso!');
       }
       
       navigate('/outdoors');
     } catch (error) {
-      toast.error('Erro ao enviar avaliação');
+      showToast.error('Erro ao enviar avaliação');
       console.error(error);
     }
   };

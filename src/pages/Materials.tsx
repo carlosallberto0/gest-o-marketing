@@ -44,7 +44,7 @@ import { WithdrawMaterialDialog } from '@/components/dialogs/WithdrawMaterialDia
 import { PhotoUpload } from '@/components/ui/photo-upload';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useAuth } from '@/hooks/useAuth';
 
 const getMaterialTypeLabel = (type: string) => {
@@ -125,11 +125,11 @@ export default function Materials() {
 
       if (error) throw error;
       
-      toast.success('Material atualizado com sucesso!');
+      showToast.success('Material atualizado com sucesso!');
       setEditMaterial(null);
       refetch();
     } catch (error) {
-      toast.error('Erro ao atualizar material');
+      showToast.error('Erro ao atualizar material');
       console.error(error);
     }
   };

@@ -25,7 +25,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Calendar, Fuel, Send, ChevronLeft, ChevronRight, Camera, AlertCircle, Loader2, PenTool, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -149,7 +149,7 @@ export default function Checklist() {
       }
     }));
     if (photoUrl) {
-      toast.success('Foto adicionada com sucesso!');
+      showToast.success('Foto adicionada com sucesso!');
     }
   };
 
@@ -177,10 +177,10 @@ export default function Checklist() {
 
       setSignatureUrl(urlData.publicUrl);
       setShowSignatureDialog(false);
-      toast.success('Assinatura confirmada!');
+      showToast.success('Assinatura confirmada!');
     } catch (error) {
       console.error('Error uploading signature:', error);
-      toast.error('Erro ao salvar assinatura');
+      showToast.error('Erro ao salvar assinatura');
     } finally {
       setIsUploadingSignature(false);
     }
@@ -188,23 +188,23 @@ export default function Checklist() {
 
   const handleSubmit = async () => {
     if (!selectedPDV) {
-      toast.error('Selecione um PDV antes de enviar');
+      showToast.error('Selecione um PDV antes de enviar');
       return;
     }
     if (totalAnswered < totalQuestions) {
-      toast.warning(`Ainda faltam ${totalQuestions - totalAnswered} perguntas para responder`);
+      showToast.warning(`Ainda faltam ${totalQuestions - totalAnswered} perguntas para responder`);
       return;
     }
     if (missingRequiredPhotos.length > 0) {
-      toast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
+      showToast.error(`${missingRequiredPhotos.length} foto(s) obrigatória(s) não foram anexadas`);
       return;
     }
     if (missingRequiredComments.length > 0) {
-      toast.error(`${missingRequiredComments.length} comentário(s) obrigatório(s) não foram preenchidos`);
+      showToast.error(`${missingRequiredComments.length} comentário(s) obrigatório(s) não foram preenchidos`);
       return;
     }
     if (!signatureUrl) {
-      toast.error('É necessário assinar o checklist antes de enviar');
+      showToast.error('É necessário assinar o checklist antes de enviar');
       setShowSignatureDialog(true);
       return;
     }
@@ -216,13 +216,13 @@ export default function Checklist() {
         categories,
         signatureUrl,
       });
-      toast.success('Checklist enviado com sucesso!');
+      showToast.success('Checklist enviado com sucesso!');
       // Reset form
       setAnswers({});
       setSelectedPDV('');
       setSignatureUrl(null);
     } catch (error) {
-      toast.error('Erro ao enviar checklist');
+      showToast.error('Erro ao enviar checklist');
       console.error(error);
     }
   };

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { Fuel, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 type ErrorType = 'invalid_token' | 'expired_token' | 'inactive_account' | 'general_error';
 
@@ -63,7 +63,7 @@ export default function AccessLink() {
 
       // Success! Show success state briefly then redirect
       setState({ status: 'success' });
-      toast.success(`Bem-vindo, ${data.profile.name}!`);
+      showToast.success(`Bem-vindo, ${data.profile.name}!`);
 
       // Use magic link to authenticate
       if (data.magicLink) {

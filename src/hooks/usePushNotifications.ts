@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface NotificationData {
   url?: string;
@@ -22,7 +22,7 @@ export function usePushNotifications() {
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
-      toast.error('Notificações não são suportadas neste navegador');
+      showToast.error('Notificações não são suportadas neste navegador');
       return false;
     }
 
@@ -31,16 +31,16 @@ export function usePushNotifications() {
       setPermission(result);
       
       if (result === 'granted') {
-        toast.success('Notificações ativadas com sucesso!');
+        showToast.success('Notificações ativadas com sucesso!');
         return true;
       } else if (result === 'denied') {
-        toast.error('Permissão de notificações negada');
+        showToast.error('Permissão de notificações negada');
         return false;
       }
       return false;
     } catch (error) {
       console.error('Error requesting notification permission:', error);
-      toast.error('Erro ao solicitar permissão de notificações');
+      showToast.error('Erro ao solicitar permissão de notificações');
       return false;
     }
   }, [isSupported]);

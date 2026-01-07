@@ -48,7 +48,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 const getStatusConfig = (status: string) => {
   const configs: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
@@ -139,7 +139,7 @@ export default function MaterialRequests() {
           .eq('id', actionDialog.request.id);
 
         if (error) throw error;
-        toast.success('Solicitação atualizada!');
+        showToast.success('Solicitação atualizada!');
         refetch();
       } else if (actionDialog.action === 'separate') {
         // Handle separate action
@@ -152,7 +152,7 @@ export default function MaterialRequests() {
           .eq('id', actionDialog.request.id);
 
         if (error) throw error;
-        toast.success('Material marcado como separado!');
+        showToast.success('Material marcado como separado!');
         refetch();
       } else if (actionDialog.action === 'cancel') {
         // Handle cancel action
@@ -165,7 +165,7 @@ export default function MaterialRequests() {
           .eq('id', actionDialog.request.id);
 
         if (error) throw error;
-        toast.success('Solicitação cancelada!');
+        showToast.success('Solicitação cancelada!');
         refetch();
       } else {
         const statusMap = {
@@ -182,7 +182,7 @@ export default function MaterialRequests() {
       }
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erro ao processar ação');
+      showToast.error('Erro ao processar ação');
     }
 
     setActionDialog({ open: false, request: null, action: null });
