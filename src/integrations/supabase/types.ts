@@ -437,6 +437,137 @@ export type Database = {
           },
         ]
       }
+      custo_alocacao: {
+        Row: {
+          created_at: string | null
+          custo_externo_id: string
+          id: string
+          outdoor_id: string | null
+          percentual_alocacao: number
+          posto_id: string
+          valor_alocado: number
+        }
+        Insert: {
+          created_at?: string | null
+          custo_externo_id: string
+          id?: string
+          outdoor_id?: string | null
+          percentual_alocacao: number
+          posto_id: string
+          valor_alocado: number
+        }
+        Update: {
+          created_at?: string | null
+          custo_externo_id?: string
+          id?: string
+          outdoor_id?: string | null
+          percentual_alocacao?: number
+          posto_id?: string
+          valor_alocado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custo_alocacao_custo_externo_id_fkey"
+            columns: ["custo_externo_id"]
+            isOneToOne: false
+            referencedRelation: "custos_externos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custo_alocacao_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custo_alocacao_posto_id_fkey"
+            columns: ["posto_id"]
+            isOneToOne: false
+            referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custos_externos: {
+        Row: {
+          alocacao_tipo: string | null
+          comprovante_url: string
+          created_at: string | null
+          created_by: string
+          data_compra: string
+          deleted_at: string | null
+          descricao: string
+          fornecedor_id: string
+          id: string
+          perda_descricao: string | null
+          perda_valor: number | null
+          service_order_id: string | null
+          teve_perdas: boolean | null
+          tipo: string
+          updated_at: string | null
+          valor_total: number
+        }
+        Insert: {
+          alocacao_tipo?: string | null
+          comprovante_url: string
+          created_at?: string | null
+          created_by: string
+          data_compra: string
+          deleted_at?: string | null
+          descricao: string
+          fornecedor_id: string
+          id?: string
+          perda_descricao?: string | null
+          perda_valor?: number | null
+          service_order_id?: string | null
+          teve_perdas?: boolean | null
+          tipo: string
+          updated_at?: string | null
+          valor_total: number
+        }
+        Update: {
+          alocacao_tipo?: string | null
+          comprovante_url?: string
+          created_at?: string | null
+          created_by?: string
+          data_compra?: string
+          deleted_at?: string | null
+          descricao?: string
+          fornecedor_id?: string
+          id?: string
+          perda_descricao?: string | null
+          perda_valor?: number | null
+          service_order_id?: string | null
+          teve_perdas?: boolean | null
+          tipo?: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custos_externos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_externos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_externos_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custos_regionais: {
         Row: {
           created_at: string

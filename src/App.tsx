@@ -49,6 +49,9 @@ import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
 import OutdoorStatusControl from "./pages/OutdoorStatusControl";
 import SupplierManagement from "./pages/SupplierManagement";
+import CustosExternos from "./pages/CustosExternos";
+import RegistrarCusto from "./pages/RegistrarCusto";
+import AjustarRateio from "./pages/AjustarRateio";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -421,6 +424,36 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin']}>
             <SupplierManagement />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/custos-externos" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <CustosExternos />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/custos-externos/registrar" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <RegistrarCusto />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/custos-externos/:id/rateio" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <AjustarRateio />
           </RequireRole>
         </ProtectedRoute>
       } 
