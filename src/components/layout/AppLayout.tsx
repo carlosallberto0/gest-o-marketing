@@ -32,6 +32,7 @@ import {
   Bell,
   Maximize2,
   CheckCircle,
+  DollarSign,
   Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
     // Fornecedores e Relatórios
     { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
+    { icon: DollarSign, label: 'Custos Externos', path: '/custos-externos', roles: ['super_admin'] },
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
     // Director-only: Observações Enviadas
     { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
