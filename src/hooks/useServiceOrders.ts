@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 // New status flow for service orders (extended from DB enum)
 export type ServiceOrderStatus = 
@@ -247,11 +247,11 @@ export function useCreateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Ordem de serviço criada e enviada para aprovação!');
+      showToast.success('Ordem de serviço criada e enviada para aprovação!');
     },
     onError: (error) => {
       console.error('Error creating service order:', error);
-      toast.error('Erro ao criar ordem de serviço');
+      showToast.error('Erro ao criar ordem de serviço');
     },
   });
 }
@@ -287,11 +287,11 @@ export function useUpdateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Status atualizado com sucesso!');
+      showToast.success('Status atualizado com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating service order:', error);
-      toast.error('Erro ao atualizar ordem de serviço');
+      showToast.error('Erro ao atualizar ordem de serviço');
     },
   });
 }
@@ -310,11 +310,11 @@ export function useDeleteServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Ordem de serviço excluída!');
+      showToast.success('Ordem de serviço excluída!');
     },
     onError: (error) => {
       console.error('Error deleting service order:', error);
-      toast.error('Erro ao excluir ordem de serviço');
+      showToast.error('Erro ao excluir ordem de serviço');
     },
   });
 }
@@ -354,11 +354,11 @@ export function useAdminApproveServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('OS enviada para aprovação da diretoria!');
+      showToast.success('OS enviada para aprovação da diretoria!');
     },
     onError: (error) => {
       console.error('Error approving service order:', error);
-      toast.error('Erro ao aprovar ordem de serviço');
+      showToast.error('Erro ao aprovar ordem de serviço');
     },
   });
 }
@@ -403,11 +403,11 @@ export function useDirectorApproveServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('OS aprovada e enviada ao fornecedor!');
+      showToast.success('OS aprovada e enviada ao fornecedor!');
     },
     onError: (error) => {
       console.error('Error approving service order:', error);
-      toast.error('Erro ao aprovar ordem de serviço');
+      showToast.error('Erro ao aprovar ordem de serviço');
     },
   });
 }
@@ -430,11 +430,11 @@ export function useStartServiceOrderExecution() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Execução iniciada!');
+      showToast.success('Execução iniciada!');
     },
     onError: (error) => {
       console.error('Error starting execution:', error);
-      toast.error('Erro ao iniciar execução');
+      showToast.error('Erro ao iniciar execução');
     },
   });
 }
@@ -477,11 +477,11 @@ export function useCompleteServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('OS concluída - enviada para validação!');
+      showToast.success('OS concluída - enviada para validação!');
     },
     onError: (error) => {
       console.error('Error completing service order:', error);
-      toast.error('Erro ao concluir ordem de serviço');
+      showToast.error('Erro ao concluir ordem de serviço');
     },
   });
 }
@@ -521,11 +521,11 @@ export function useValidateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('OS validada com sucesso!');
+      showToast.success('OS validada com sucesso!');
     },
     onError: (error) => {
       console.error('Error validating service order:', error);
-      toast.error('Erro ao validar ordem de serviço');
+      showToast.error('Erro ao validar ordem de serviço');
     },
   });
 }
@@ -551,11 +551,11 @@ export function useRequestServiceOrderCorrection() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Correção solicitada!');
+      showToast.success('Correção solicitada!');
     },
     onError: (error) => {
       console.error('Error requesting correction:', error);
-      toast.error('Erro ao solicitar correção');
+      showToast.error('Erro ao solicitar correção');
     },
   });
 }

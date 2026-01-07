@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface SupplierAssignment {
   id: string;
@@ -193,13 +193,13 @@ export function useAssignSupplierToMaintenance() {
       return data;
     },
     onSuccess: () => {
-      toast.success('Fornecedor atribuído com sucesso!');
+      showToast.success('Fornecedor atribuído com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['supplier-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
     },
     onError: (error: Error) => {
       console.error('Error assigning supplier:', error);
-      toast.error('Erro ao atribuir fornecedor');
+      showToast.error('Erro ao atribuir fornecedor');
     },
   });
 }
@@ -246,12 +246,12 @@ export function useSetDeadline() {
       return data;
     },
     onSuccess: () => {
-      toast.success('Prazo definido com sucesso!');
+      showToast.success('Prazo definido com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['supplier-assignments'] });
     },
     onError: (error: Error) => {
       console.error('Error setting deadline:', error);
-      toast.error('Erro ao definir prazo');
+      showToast.error('Erro ao definir prazo');
     },
   });
 }
@@ -288,12 +288,12 @@ export function useUpdateAssignmentStatus() {
       return data;
     },
     onSuccess: () => {
-      toast.success('Status atualizado!');
+      showToast.success('Status atualizado!');
       queryClient.invalidateQueries({ queryKey: ['supplier-assignments'] });
     },
     onError: (error: Error) => {
       console.error('Error updating status:', error);
-      toast.error('Erro ao atualizar status');
+      showToast.error('Erro ao atualizar status');
     },
   });
 }
@@ -311,12 +311,12 @@ export function useDeleteAssignment() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Atribuição removida!');
+      showToast.success('Atribuição removida!');
       queryClient.invalidateQueries({ queryKey: ['supplier-assignments'] });
     },
     onError: (error: Error) => {
       console.error('Error deleting assignment:', error);
-      toast.error('Erro ao remover atribuição');
+      showToast.error('Erro ao remover atribuição');
     },
   });
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface SupplierPricing {
   id: string;
@@ -75,11 +75,11 @@ export function useUpsertSupplierPricing() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['supplier-pricing', variables.supplier_id] });
       queryClient.invalidateQueries({ queryKey: ['supplier-pricing'] });
-      toast.success('Preços atualizados com sucesso!');
+      showToast.success('Preços atualizados com sucesso!');
     },
     onError: (error) => {
       console.error('Error upserting supplier pricing:', error);
-      toast.error('Erro ao atualizar preços do fornecedor');
+      showToast.error('Erro ao atualizar preços do fornecedor');
     },
   });
 }
@@ -103,7 +103,7 @@ export function useDeleteSupplierPricing() {
     },
     onError: (error) => {
       console.error('Error deleting supplier pricing:', error);
-      toast.error('Erro ao remover preço');
+      showToast.error('Erro ao remover preço');
     },
   });
 }

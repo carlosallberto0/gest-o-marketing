@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface ModuleAppearance {
   title: string;
@@ -112,11 +112,11 @@ export function useUpdateModuleSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['module-appearance-settings'] });
-      toast.success('Configurações dos módulos salvas com sucesso!');
+      showToast.success('Configurações dos módulos salvas com sucesso!');
     },
     onError: (error) => {
       console.error('Error saving module settings:', error);
-      toast.error('Erro ao salvar configurações dos módulos');
+      showToast.error('Erro ao salvar configurações dos módulos');
     },
   });
 }

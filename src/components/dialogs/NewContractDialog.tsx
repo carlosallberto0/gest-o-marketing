@@ -9,7 +9,7 @@ import { Loader2, Upload, FileText, X } from 'lucide-react';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useCreateContract } from '@/hooks/useCreateContract';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface NewContractDialogProps {
   open: boolean;
@@ -40,7 +40,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('O arquivo deve ter no máximo 10MB');
+      showToast.error('O arquivo deve ter no máximo 10MB');
       return;
     }
 
@@ -68,10 +68,10 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
         documentUrl: publicUrl,
         documentName: file.name,
       });
-      toast.success('Documento enviado com sucesso!');
+      showToast.success('Documento enviado com sucesso!');
     } catch (error) {
       console.error('Error uploading document:', error);
-      toast.error('Erro ao enviar documento');
+      showToast.error('Erro ao enviar documento');
     } finally {
       setIsUploading(false);
     }

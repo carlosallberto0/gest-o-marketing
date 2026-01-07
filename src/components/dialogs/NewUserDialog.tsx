@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, Copy, MessageCircle, ExternalLink, Check, Link2, Shield, Key } from 'lucide-react';
 import { usePDVs } from '@/hooks/usePDVs';
 import { useCreateUser } from '@/hooks/useCreateUser';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface NewUserDialogProps {
   open: boolean;
@@ -104,7 +104,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
     
     await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
-    toast.success('Copiado!');
+    showToast.success('Copiado!');
     setTimeout(() => setCopied(false), 2000);
   };
 

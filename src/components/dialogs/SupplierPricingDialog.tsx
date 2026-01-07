@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, DollarSign, Save, Wrench, Package, Trash2, Building, LucideIcon, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useSupplierPricing, useUpsertSupplierPricing, SupplierPricing } from '@/hooks/useSupplierPricing';
 import { formatCurrency } from '@/lib/costCalculator';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
@@ -148,11 +148,11 @@ export function SupplierPricingDialog({
       });
 
       await Promise.all(updates);
-      toast.success('Preços salvos com sucesso!');
+      showToast.success('Preços salvos com sucesso!');
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving pricing:', error);
-      toast.error('Erro ao salvar preços');
+      showToast.error('Erro ao salvar preços');
     } finally {
       setIsSaving(false);
     }

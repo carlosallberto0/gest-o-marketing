@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { Json } from '@/integrations/supabase/types';
 
 export interface EvaluationFrequency {
@@ -90,11 +90,11 @@ export function useUpdateSystemSetting() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
       queryClient.invalidateQueries({ queryKey: ['system-settings', variables.key] });
-      toast.success('Configuração salva com sucesso!');
+      showToast.success('Configuração salva com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating setting:', error);
-      toast.error('Erro ao salvar configuração');
+      showToast.error('Erro ao salvar configuração');
     },
   });
 }

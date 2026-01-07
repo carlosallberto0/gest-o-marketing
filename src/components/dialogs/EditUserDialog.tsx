@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import {
   Dialog,
   DialogContent,
@@ -197,7 +197,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                     size="icon"
                     onClick={() => {
                       navigator.clipboard.writeText(user.temp_password!);
-                      toast.success('Senha copiada!');
+                      showToast.success('Senha copiada!');
                     }}
                   >
                     <Copy className="h-4 w-4" />
