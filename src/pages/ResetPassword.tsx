@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Fuel, Lock, Loader2, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { z } from 'zod';
 
 const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
@@ -32,12 +32,12 @@ export default function ResetPassword() {
 
     const validation = passwordSchema.safeParse(password);
     if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
+      showToast.error(validation.error.errors[0].message);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
+      showToast.error('As senhas não coincidem');
       return;
     }
 
@@ -49,19 +49,19 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        toast.error(error.message);
+        showToast.error(error.message);
         return;
       }
 
       setSuccess(true);
-      toast.success('Senha alterada com sucesso!');
+      showToast.success('Senha alterada com sucesso!');
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/auth');
       }, 3000);
     } catch (error) {
-      toast.error('Erro ao redefinir senha');
+      showToast.error('Erro ao redefinir senha');
     } finally {
       setLoading(false);
     }

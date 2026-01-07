@@ -24,7 +24,7 @@ import {
   Loader2,
   Check,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { 
   AccessLinkUser, 
   generateWhatsAppLink, 
@@ -67,7 +67,7 @@ export function AccessLinkDialog({
     
     await navigator.clipboard.writeText(currentLink);
     setCopied(true);
-    toast.success('Link copiado!');
+    showToast.success('Link copiado!');
     setTimeout(() => setCopied(false), 2000);
   };
 

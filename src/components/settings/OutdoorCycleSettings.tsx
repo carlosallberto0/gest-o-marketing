@@ -19,7 +19,7 @@ import {
   RotateCcw,
   Settings2
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 const DEFAULT_CONFIG: OutdoorCycleConfig = {
   validade_horas: 24,
@@ -75,7 +75,7 @@ export function OutdoorCycleSettings() {
     setLocalConfig(DEFAULT_CONFIG);
     setSelectedPreset('24');
     setCustomHours('');
-    toast.info('Configurações restauradas para o padrão');
+    showToast.info('Configurações restauradas para o padrão');
   };
 
   if (isLoading) {

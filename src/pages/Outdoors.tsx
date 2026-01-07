@@ -59,7 +59,7 @@ import { NewOutdoorDialog } from '@/components/dialogs/NewOutdoorDialog';
 import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { usePDVs } from '@/hooks/usePDVs';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
 
 export default function Outdoors() {
@@ -133,11 +133,11 @@ export default function Outdoors() {
       
       if (error) throw error;
       
-      toast.success(`${idsToDelete.length} outdoor(s) excluído(s) com sucesso!`);
+      showToast.success(`${idsToDelete.length} outdoor(s) excluído(s) com sucesso!`);
       setSelectedOutdoors(new Set());
       refetch();
     } catch (error: any) {
-      toast.error('Erro ao excluir: ' + error.message);
+      showToast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsDeleting(false);
     }

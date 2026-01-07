@@ -20,7 +20,7 @@ import {
   Notificacao,
 } from '@/hooks/useNotificacoes';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 const getModuloColor = (modulo: string) => {
   switch (modulo) {
@@ -90,10 +90,10 @@ export function NotificationsPopover() {
   const handleLimparLidas = () => {
     limparLidas.mutate(undefined, {
       onSuccess: () => {
-        toast.success('Notificações lidas removidas');
+        showToast.success('Notificações lidas removidas');
       },
       onError: () => {
-        toast.error('Erro ao limpar notificações');
+        showToast.error('Erro ao limpar notificações');
       },
     });
   };

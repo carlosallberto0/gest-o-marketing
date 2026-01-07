@@ -9,7 +9,7 @@ import { LinkCard } from '@/components/ui/link-card';
 import { ClipboardCheck, Megaphone, Map, Upload, X, Plus, Loader2, RotateCcw, Save } from 'lucide-react';
 import { useModuleSettings, useUpdateModuleSettings, defaultModuleSettings, type ModuleAppearance, type ModuleAppearanceSettings as ModuleSettingsType } from '@/hooks/useModuleSettings';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 const moduleIcons = {
   merchandising: ClipboardCheck,
@@ -71,12 +71,12 @@ export function ModuleAppearanceSettings() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo 5MB.');
+      showToast.error('Arquivo muito grande. Máximo 5MB.');
       return;
     }
 
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      toast.error('Formato inválido. Use PNG, JPG ou WEBP.');
+      showToast.error('Formato inválido. Use PNG, JPG ou WEBP.');
       return;
     }
 
@@ -97,10 +97,10 @@ export function ModuleAppearanceSettings() {
         .getPublicUrl(data.path);
 
       updateModuleField('image_url', urlData.publicUrl);
-      toast.success('Imagem carregada com sucesso!');
+      showToast.success('Imagem carregada com sucesso!');
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Erro ao carregar imagem');
+      showToast.error('Erro ao carregar imagem');
     } finally {
       setIsUploadingImage(false);
     }
@@ -114,7 +114,7 @@ export function ModuleAppearanceSettings() {
     if (!newFeature.trim()) return;
     const currentFeatures = currentModule.features || [];
     if (currentFeatures.length >= 10) {
-      toast.error('Máximo de 10 funcionalidades');
+      showToast.error('Máximo de 10 funcionalidades');
       return;
     }
     updateModuleField('features', [...currentFeatures, newFeature.trim()]);
@@ -134,7 +134,7 @@ export function ModuleAppearanceSettings() {
         [selectedModule]: defaultModuleSettings[selectedModule],
       };
     });
-    toast.success('Configurações restauradas para o padrão');
+    showToast.success('Configurações restauradas para o padrão');
   };
 
   const handleSave = () => {

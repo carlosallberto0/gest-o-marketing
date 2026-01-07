@@ -19,7 +19,7 @@ import {
 import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2, Save, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { Outdoor } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { usePDVsList } from '@/hooks/usePDVsList';
@@ -121,12 +121,12 @@ export function EditOutdoorDialog({
         new_data: updateData,
       });
 
-      toast.success('Outdoor atualizado com sucesso!');
+      showToast.success('Outdoor atualizado com sucesso!');
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating outdoor:', error);
-      toast.error('Erro ao atualizar outdoor: ' + error.message);
+      showToast.error('Erro ao atualizar outdoor: ' + error.message);
     } finally {
       setIsLoading(false);
     }

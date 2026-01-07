@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, Hotel, Utensils, Fuel, Wrench, Users, MapPin, Printer, Truck, Palette } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useOperationalCosts, useUpdateOperationalCost, getOperationalCostValue } from '@/hooks/useOperationalCosts';
 
 interface CostParameter {
@@ -75,10 +75,10 @@ export function OperationalCostsSettings() {
       });
 
       await Promise.all(updates);
-      toast.success('Custos operacionais atualizados!');
+      showToast.success('Custos operacionais atualizados!');
     } catch (error) {
       console.error('Error saving operational costs:', error);
-      toast.error('Erro ao salvar custos operacionais');
+      showToast.error('Erro ao salvar custos operacionais');
     } finally {
       setIsSaving(false);
     }

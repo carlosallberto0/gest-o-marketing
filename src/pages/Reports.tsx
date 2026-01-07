@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useModule } from '@/contexts/ModuleContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateMaintenancePackage } from '@/hooks/useMaintenancePackages';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { exportEvaluationsToExcel } from '@/lib/excelExport';
@@ -163,7 +163,7 @@ export default function Reports() {
 
   const handleSendToDirector = async () => {
     if (selectedOutdoors.size === 0) {
-      toast.error('Selecione pelo menos um outdoor');
+      showToast.error('Selecione pelo menos um outdoor');
       return;
     }
 
@@ -234,7 +234,7 @@ export default function Reports() {
     const data = activeModule === 'media' ? mediaEvaluations : merchEvaluations;
     
     if (data.length === 0) {
-      toast.error('Nenhum dado para exportar');
+      showToast.error('Nenhum dado para exportar');
       return;
     }
 
@@ -319,14 +319,14 @@ export default function Reports() {
     }
 
     doc.save(`relatorio-${activeModule}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    toast.success('PDF exportado com sucesso!');
+    showToast.success('PDF exportado com sucesso!');
   };
 
   const handleExportExcel = () => {
     const data = activeModule === 'media' ? mediaEvaluations : merchEvaluations;
     
     if (data.length === 0) {
-      toast.error('Nenhum dado para exportar');
+      showToast.error('Nenhum dado para exportar');
       return;
     }
 
@@ -344,7 +344,7 @@ export default function Reports() {
     }));
 
     exportEvaluationsToExcel(formattedData);
-    toast.success('Excel exportado com sucesso!');
+    showToast.success('Excel exportado com sucesso!');
   };
 
   return (

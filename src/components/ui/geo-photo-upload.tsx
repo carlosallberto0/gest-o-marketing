@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, X, Loader2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadPhoto } from '@/lib/storage';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface GeoPhotoData {
   url: string;
@@ -45,12 +45,12 @@ export function GeoPhotoUpload({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem válida');
+      showToast.error('Por favor, selecione uma imagem válida');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 10MB');
+      showToast.error('A imagem deve ter no máximo 10MB');
       return;
     }
 
@@ -66,13 +66,13 @@ export function GeoPhotoUpload({
         };
         
         onChange([...value, newPhoto]);
-        toast.success('Foto enviada com sucesso!');
+        showToast.success('Foto enviada com sucesso!');
       } else {
-        toast.error('Erro ao enviar foto');
+        showToast.error('Erro ao enviar foto');
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      toast.error('Erro ao enviar foto');
+      showToast.error('Erro ao enviar foto');
     } finally {
       setIsLoading(false);
       if (cameraInputRef.current) {

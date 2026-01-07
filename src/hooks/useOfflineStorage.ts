@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const OFFLINE_STORAGE_KEY = 'offline_checklists';
@@ -30,13 +30,13 @@ export function useOfflineStorage() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success('Conexão restaurada! Sincronizando dados...');
+      showToast.success('Conexão restaurada! Sincronizando dados...');
       syncPendingChecklists();
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.warning('Você está offline. Os dados serão salvos localmente.');
+      showToast.warning('Você está offline. Os dados serão salvos localmente.');
     };
 
     window.addEventListener('online', handleOnline);
@@ -76,7 +76,7 @@ export function useOfflineStorage() {
       return updated;
     });
 
-    toast.info('Checklist salvo localmente. Será sincronizado quando houver conexão.');
+    showToast.info('Checklist salvo localmente. Será sincronizado quando houver conexão.');
     return newChecklist;
   }, []);
 
@@ -170,10 +170,10 @@ export function useOfflineStorage() {
     setIsSyncing(false);
 
     if (syncedCount > 0) {
-      toast.success(`${syncedCount} checklist(s) sincronizado(s) com sucesso!`);
+      showToast.success(`${syncedCount} checklist(s) sincronizado(s) com sucesso!`);
     }
     if (errorCount > 0) {
-      toast.error(`${errorCount} checklist(s) não puderam ser sincronizados.`);
+      showToast.error(`${errorCount} checklist(s) não puderam ser sincronizados.`);
     }
 
     // Update sync status

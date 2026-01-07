@@ -37,7 +37,7 @@ import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultip
 import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings';
 import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearanceSettings';
 import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
@@ -150,7 +150,7 @@ export default function Settings() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo 5MB.');
+      showToast.error('Arquivo muito grande. Máximo 5MB.');
       return;
     }
 
@@ -173,14 +173,14 @@ export default function Settings() {
         .getPublicUrl(data.path);
 
       setLogoPreview(urlData.publicUrl);
-      toast.success('Logo carregada com sucesso!');
+      showToast.success('Logo carregada com sucesso!');
     } catch (error) {
       console.error('Error uploading logo:', error);
       // Fallback to base64 for local storage
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
-        toast.success('Logo carregada com sucesso!');
+        showToast.success('Logo carregada com sucesso!');
       };
       reader.readAsDataURL(file);
     } finally {
@@ -193,13 +193,13 @@ export default function Settings() {
     const palette = colorPalettes.find(p => p.id === paletteId);
     if (palette) {
       document.documentElement.style.setProperty('--primary', palette.colors.primary);
-      toast.success(`Paleta "${palette.name}" aplicada!`);
+      showToast.success(`Paleta "${palette.name}" aplicada!`);
     }
   };
 
   const handleThemeChange = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);
-    toast.success(`Tema ${newTheme === 'light' ? 'claro' : 'escuro'} ativado!`);
+    showToast.success(`Tema ${newTheme === 'light' ? 'claro' : 'escuro'} ativado!`);
   };
 
   const handleSave = async () => {
@@ -218,7 +218,7 @@ export default function Settings() {
     window.dispatchEvent(new CustomEvent('systemSettingsUpdated', { detail: settings }));
     
     setIsSaving(false);
-    toast.success('Configurações salvas com sucesso!');
+    showToast.success('Configurações salvas com sucesso!');
   };
 
   const handleSaveEvaluationSettings = async () => {

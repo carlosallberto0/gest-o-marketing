@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Fuel, Mail, Lock, Loader2, Shield, Users, Link2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { useLoginScreenSettings, defaultSettings } from '@/hooks/useLoginScreenSettings';
@@ -67,7 +67,7 @@ export default function Auth() {
         } else {
           // Non super_admin users should use access links
           await supabase.auth.signOut();
-          toast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
+          showToast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
         }
       }
     });
@@ -96,7 +96,7 @@ export default function Auth() {
     try {
       const validation = loginSchema.safeParse(formData);
       if (!validation.success) {
-        toast.error(validation.error.errors[0].message);
+        showToast.error(validation.error.errors[0].message);
         setLoading(false);
         return;
       }
@@ -108,9 +108,9 @@ export default function Auth() {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email ou senha inválidos');
+          showToast.error('Email ou senha inválidos');
         } else {
-          toast.error(error.message);
+          showToast.error(error.message);
         }
         setLoading(false);
         return;
@@ -145,18 +145,18 @@ export default function Auth() {
 
         if (!profile || profile.role !== 'super_admin') {
           await supabase.auth.signOut();
-          toast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
+          showToast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
           setLoading(false);
           return;
         }
 
-        toast.success('Login realizado com sucesso!');
+        showToast.success('Login realizado com sucesso!');
         navigate('/modules');
         return; // Prevent further execution after navigation
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Ocorreu um erro. Tente novamente.');
+      showToast.error('Ocorreu um erro. Tente novamente.');
     } finally {
       setLoading(false);
     }

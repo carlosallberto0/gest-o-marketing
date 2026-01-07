@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, MapPin, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { extractCoordsFromGoogleMapsUrl, isShortGoogleMapsUrl } from '@/lib/googleMaps';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface PDVRecalibrateDialogProps {
   open: boolean;
@@ -98,13 +98,13 @@ export function PDVRecalibrateDialog({ open, onOpenChange, pdv, onSuccess }: PDV
 
       if (updateError) throw updateError;
 
-      toast.success(`Coordenadas do PDV "${pdv.name}" atualizadas com sucesso!`);
+      showToast.success(`Coordenadas do PDV "${pdv.name}" atualizadas com sucesso!`);
       onSuccess?.();
       onOpenChange(false);
       resetState();
     } catch (err) {
       console.error('Error updating PDV:', err);
-      toast.error('Erro ao atualizar coordenadas do PDV');
+      showToast.error('Erro ao atualizar coordenadas do PDV');
     } finally {
       setSaving(false);
     }
