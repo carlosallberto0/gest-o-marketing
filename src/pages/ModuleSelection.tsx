@@ -8,6 +8,7 @@ import { LinkCard } from '@/components/ui/link-card';
 import { useModuleSettings } from '@/hooks/useModuleSettings';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
 
 const moduleIcons = {
   merchandising: ClipboardCheck,
@@ -51,6 +52,8 @@ export default function ModuleSelection() {
   const navigate = useNavigate();
   const { data: moduleSettings, isLoading: settingsLoading } = useModuleSettings();
 
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   // Redirect pending users to pending approval page
   useEffect(() => {
     if (!loading && profile?.status === 'pending') {
@@ -63,7 +66,7 @@ export default function ModuleSelection() {
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
     if (moduleId === 'mapa') {
-      return profile?.role === 'super_admin';
+      return isSuperAdmin;
     }
     return hasModule(moduleId as 'media' | 'merchandising');
   });
@@ -107,10 +110,10 @@ export default function ModuleSelection() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-5xl space-y-8">
+        <div className="w-full max-w-7xl">
           {/* Welcome Section */}
           <motion.div 
-            className="text-center space-y-2"
+            className="text-center space-y-2 mb-8"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -123,50 +126,64 @@ export default function ModuleSelection() {
             </p>
           </motion.div>
 
-          {/* Module Cards */}
-          {availableModules.length > 0 ? (
-            <motion.div 
-              className={`grid gap-6 ${
-                availableModules.length === 1 
-                  ? 'max-w-sm mx-auto' 
-                  : availableModules.length === 2 
-                    ? 'sm:grid-cols-2 max-w-2xl mx-auto' 
-                    : 'sm:grid-cols-2 lg:grid-cols-3'
-              }`}
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {availableModules.map((moduleId) => {
-                const settings = moduleSettings?.[moduleId];
-                const Icon = moduleIcons[moduleId];
-                const path = modulePaths[moduleId];
+          {/* Layout with Calendar for Super Admin */}
+          <div className={isSuperAdmin ? "grid grid-cols-1 lg:grid-cols-3 gap-6" : ""}>
+            {/* Module Cards Section */}
+            <div className={isSuperAdmin ? "lg:col-span-2" : ""}>
+              {availableModules.length > 0 ? (
+                <motion.div 
+                  className={`grid gap-6 ${
+                    !isSuperAdmin && availableModules.length === 1 
+                      ? 'max-w-sm mx-auto' 
+                      : !isSuperAdmin && availableModules.length === 2 
+                        ? 'sm:grid-cols-2 max-w-2xl mx-auto' 
+                        : isSuperAdmin
+                          ? 'sm:grid-cols-2 xl:grid-cols-3'
+                          : 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto'
+                  }`}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {availableModules.map((moduleId) => {
+                    const settings = moduleSettings?.[moduleId];
+                    const Icon = moduleIcons[moduleId];
+                    const path = modulePaths[moduleId];
 
-                return (
-                  <motion.div key={moduleId} variants={itemVariants}>
-                    <LinkCard
-                      title={settings?.title || moduleId}
-                      description={settings?.description || ''}
-                      imageUrl={settings?.image_url}
-                      icon={Icon}
-                      iconBgColor={settings?.icon_color || '#3b82f6'}
-                      buttonColor={settings?.button_color || '#3b82f6'}
-                      features={settings?.features || []}
-                      onClick={() => handleModuleSelect(moduleId, path)}
-                    />
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          ) : (
-            <Card className="max-w-md mx-auto text-center py-8">
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Você não tem acesso a nenhum módulo. Entre em contato com o administrador.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                    return (
+                      <motion.div key={moduleId} variants={itemVariants}>
+                        <LinkCard
+                          title={settings?.title || moduleId}
+                          description={settings?.description || ''}
+                          imageUrl={settings?.image_url}
+                          icon={Icon}
+                          iconBgColor={settings?.icon_color || '#3b82f6'}
+                          buttonColor={settings?.button_color || '#3b82f6'}
+                          features={settings?.features || []}
+                          onClick={() => handleModuleSelect(moduleId, path)}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              ) : (
+                <Card className="max-w-md mx-auto text-center py-8">
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Você não tem acesso a nenhum módulo. Entre em contato com o administrador.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Calendar Section - Only for Super Admin */}
+            {isSuperAdmin && (
+              <div className="lg:col-span-1">
+                <AdminCalendarWidget />
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
