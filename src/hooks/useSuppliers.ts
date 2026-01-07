@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface Supplier {
   id: string;
@@ -71,11 +71,11 @@ export function useCreateSupplier() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast.success('Fornecedor cadastrado com sucesso!');
+      showToast.success('Fornecedor cadastrado com sucesso!');
     },
     onError: (error) => {
       console.error('Error creating supplier:', error);
-      toast.error('Erro ao cadastrar fornecedor');
+      showToast.error('Erro ao cadastrar fornecedor');
     },
   });
 }
@@ -108,11 +108,11 @@ export function useUpdateSupplier() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast.success('Fornecedor atualizado com sucesso!');
+      showToast.success('Fornecedor atualizado com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating supplier:', error);
-      toast.error('Erro ao atualizar fornecedor');
+      showToast.error('Erro ao atualizar fornecedor');
     },
   });
 }
@@ -131,11 +131,11 @@ export function useDeleteSupplier() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast.success('Fornecedor excluído!');
+      showToast.success('Fornecedor excluído!');
     },
     onError: (error) => {
       console.error('Error deleting supplier:', error);
-      toast.error('Erro ao excluir fornecedor');
+      showToast.error('Erro ao excluir fornecedor');
     },
   });
 }

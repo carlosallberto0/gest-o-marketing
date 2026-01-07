@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras';
 
@@ -87,11 +87,11 @@ export function useUpdateProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Usuário atualizado com sucesso!');
+      showToast.success('Usuário atualizado com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating profile:', error);
-      toast.error('Erro ao atualizar usuário');
+      showToast.error('Erro ao atualizar usuário');
     },
   });
 }
@@ -111,11 +111,11 @@ export function useDeleteProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Usuário desativado com sucesso!');
+      showToast.success('Usuário desativado com sucesso!');
     },
     onError: (error) => {
       console.error('Error deleting profile:', error);
-      toast.error('Erro ao desativar usuário');
+      showToast.error('Erro ao desativar usuário');
     },
   });
 }
@@ -142,11 +142,11 @@ export function usePermanentDeleteProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Usuário excluído permanentemente!');
+      showToast.success('Usuário excluído permanentemente!');
     },
     onError: (error: Error) => {
       console.error('Error permanently deleting profile:', error);
-      toast.error(error.message || 'Erro ao excluir usuário permanentemente');
+      showToast.error(error.message || 'Erro ao excluir usuário permanentemente');
     },
   });
 }
@@ -165,11 +165,11 @@ export function useReactivateProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Usuário reativado com sucesso!');
+      showToast.success('Usuário reativado com sucesso!');
     },
     onError: (error) => {
       console.error('Error reactivating profile:', error);
-      toast.error('Erro ao reativar usuário');
+      showToast.error('Erro ao reativar usuário');
     },
   });
 }
@@ -196,14 +196,11 @@ export function useResetPassword() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      toast.success('Senha resetada com sucesso!', {
-        description: `Nova senha: ${data.newPassword}`,
-        duration: 10000,
-      });
+      showToast.success('Senha resetada com sucesso!', `Nova senha: ${data.newPassword}`);
     },
     onError: (error: Error) => {
       console.error('Error resetting password:', error);
-      toast.error(error.message || 'Erro ao resetar senha');
+      showToast.error(error.message || 'Erro ao resetar senha');
     },
   });
 }

@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, X, FileDown, ExternalLink } from 'lucide-react';
 import { useBulkImport, ImportRecord, generateCSVTemplate } from '@/hooks/useBulkImport';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { isShortGoogleMapsUrl } from '@/lib/googleMaps';
 
 interface BulkImportDialogProps {
@@ -71,7 +71,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
     a.download = 'template_importacao.csv';
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Template baixado!');
+    showToast.success('Template baixado!');
   };
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -90,14 +90,14 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
   const handleFile = async (selectedFile: File) => {
     // Validate file size (4MB limit as requested)
     if (selectedFile.size > 4 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Limite: 4MB');
+      showToast.error('Arquivo muito grande. Limite: 4MB');
       return;
     }
 
     // Validate file type
     const extension = selectedFile.name.toLowerCase().split('.').pop();
     if (!['csv', 'json'].includes(extension || '')) {
-      toast.error('Formato não suportado. Use CSV ou JSON.');
+      showToast.error('Formato não suportado. Use CSV ou JSON.');
       return;
     }
 
@@ -111,13 +111,13 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
       setValidationErrors(errors);
       
       if (parsed.records.length === 0) {
-        toast.error('Nenhum registro válido encontrado no arquivo');
+        showToast.error('Nenhum registro válido encontrado no arquivo');
         return;
       }
       
       setStep('preview');
     } catch (error: any) {
-      toast.error('Erro ao processar arquivo: ' + error.message);
+      showToast.error('Erro ao processar arquivo: ' + error.message);
     }
   };
 
@@ -129,7 +129,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
       setStep('result');
       onSuccess?.();
     } catch (error: any) {
-      toast.error('Erro na importação: ' + error.message);
+      showToast.error('Erro na importação: ' + error.message);
       setStep('preview');
     }
   };

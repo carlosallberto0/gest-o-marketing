@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Mail, Loader2, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { z } from 'zod';
 
 interface ForgotPasswordDialogProps {
@@ -31,7 +31,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     
     const validation = emailSchema.safeParse(email);
     if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
+      showToast.error(validation.error.errors[0].message);
       return;
     }
 
@@ -43,13 +43,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
       });
 
       if (error) {
-        toast.error(error.message);
+        showToast.error(error.message);
         return;
       }
 
       setSent(true);
     } catch (error) {
-      toast.error('Erro ao enviar email de recuperação');
+      showToast.error('Erro ao enviar email de recuperação');
     } finally {
       setLoading(false);
     }

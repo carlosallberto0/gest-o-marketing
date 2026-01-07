@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface Alert {
   id: string;
@@ -83,7 +83,7 @@ export function useMarkAllAlertsAsRead() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       queryClient.invalidateQueries({ queryKey: ['alerts-unread-count'] });
-      toast.success('Todas as notificações foram marcadas como lidas');
+      showToast.success('Todas as notificações foram marcadas como lidas');
     },
   });
 }

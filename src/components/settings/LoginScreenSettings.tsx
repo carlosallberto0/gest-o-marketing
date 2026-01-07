@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Upload, Fuel, X, Plus, GripVertical, Images } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { useUpdateSystemSetting, useSystemSetting } from '@/hooks/useSystemSettings';
 import { uploadPhoto } from '@/lib/storage';
 import { LoginScreenSettings as LoginSettings } from '@/hooks/useLoginScreenSettings';
@@ -83,18 +83,18 @@ export function LoginScreenSettings() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Imagem deve ter no máximo 5MB');
+      showToast.error('Imagem deve ter no máximo 5MB');
       return;
     }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Formato não suportado. Use PNG, JPG ou WEBP');
+      showToast.error('Formato não suportado. Use PNG, JPG ou WEBP');
       return;
     }
 
     if (isSlider && settings.slider_images.length >= 6) {
-      toast.error('Máximo de 6 imagens no carrossel');
+      showToast.error('Máximo de 6 imagens no carrossel');
       return;
     }
 
@@ -110,12 +110,12 @@ export function LoginScreenSettings() {
         } else {
           setSettings(prev => ({ ...prev, background_image: url }));
         }
-        toast.success('Imagem carregada com sucesso!');
+        showToast.success('Imagem carregada com sucesso!');
       } else {
-        toast.error('Erro ao carregar imagem');
+        showToast.error('Erro ao carregar imagem');
       }
     } catch (error) {
-      toast.error('Erro ao carregar imagem');
+      showToast.error('Erro ao carregar imagem');
     } finally {
       setIsUploading(false);
       // Reset the input

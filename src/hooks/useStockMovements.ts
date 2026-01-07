@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface StockMovement {
   id: string;
@@ -90,10 +90,10 @@ export function useCreateStockMovement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['trade-materials'] });
-      toast.success('Movimentação registrada com sucesso!');
+      showToast.success('Movimentação registrada com sucesso!');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao registrar movimentação');
+      showToast.error(error.message || 'Erro ao registrar movimentação');
     },
   });
 }

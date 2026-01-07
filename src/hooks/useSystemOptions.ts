@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface SystemOption {
   id: string;
@@ -115,14 +115,14 @@ export function useCreateSystemOption() {
       queryClient.invalidateQueries({ queryKey: ['system-options', variables.category] });
       queryClient.invalidateQueries({ queryKey: ['system-options-all', variables.category] });
       queryClient.invalidateQueries({ queryKey: ['system-options-categories'] });
-      toast.success('Opção criada com sucesso!');
+      showToast.success('Opção criada com sucesso!');
     },
     onError: (error: any) => {
       console.error('Error creating option:', error);
       if (error?.code === '23505') {
-        toast.error('Já existe uma opção com essa chave nesta categoria.');
+        showToast.error('Já existe uma opção com essa chave nesta categoria.');
       } else {
-        toast.error('Erro ao criar opção.');
+        showToast.error('Erro ao criar opção.');
       }
     },
   });
@@ -163,11 +163,11 @@ export function useUpdateSystemOption() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['system-options', data.category] });
       queryClient.invalidateQueries({ queryKey: ['system-options-all', data.category] });
-      toast.success('Opção atualizada com sucesso!');
+      showToast.success('Opção atualizada com sucesso!');
     },
     onError: (error: any) => {
       console.error('Error updating option:', error);
-      toast.error('Erro ao atualizar opção.');
+      showToast.error('Erro ao atualizar opção.');
     },
   });
 }
@@ -189,11 +189,11 @@ export function useDeleteSystemOption() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['system-options', data.category] });
       queryClient.invalidateQueries({ queryKey: ['system-options-all', data.category] });
-      toast.success('Opção excluída com sucesso!');
+      showToast.success('Opção excluída com sucesso!');
     },
     onError: (error: any) => {
       console.error('Error deleting option:', error);
-      toast.error('Erro ao excluir opção.');
+      showToast.error('Erro ao excluir opção.');
     },
   });
 }
@@ -218,11 +218,11 @@ export function useReorderSystemOptions() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['system-options', data.category] });
       queryClient.invalidateQueries({ queryKey: ['system-options-all', data.category] });
-      toast.success('Ordem atualizada!');
+      showToast.success('Ordem atualizada!');
     },
     onError: (error) => {
       console.error('Error reordering options:', error);
-      toast.error('Erro ao reordenar opções.');
+      showToast.error('Erro ao reordenar opções.');
     },
   });
 }

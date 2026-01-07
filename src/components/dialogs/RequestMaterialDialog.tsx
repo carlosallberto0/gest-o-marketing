@@ -26,7 +26,7 @@ import { useCreateMaterialRequest } from '@/hooks/useMaterialRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Package, Search, AlertTriangle } from 'lucide-react';
 import { z } from 'zod';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface RequestMaterialDialogProps {
   open: boolean;
@@ -158,7 +158,7 @@ export function RequestMaterialDialog({ open, onOpenChange, preselectedMaterialI
     });
 
     if (!result.success) {
-      result.error.errors.forEach((err) => toast.error(err.message));
+      result.error.errors.forEach((err) => showToast.error(err.message));
       return;
     }
 

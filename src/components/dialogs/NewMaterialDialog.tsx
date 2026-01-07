@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { PhotoUpload } from '@/components/ui/photo-upload';
@@ -75,7 +75,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
     e.preventDefault();
     
     if (!formData.name || !formData.type || !generatedCode) {
-      toast.error('Preencha todos os campos obrigatórios');
+      showToast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
@@ -98,7 +98,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
 
       if (error) throw error;
 
-      toast.success('Material criado com sucesso!');
+      showToast.success('Material criado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['trade-materials'] });
       onOpenChange(false);
       setFormData({
@@ -113,7 +113,7 @@ export function NewMaterialDialog({ open, onOpenChange }: NewMaterialDialogProps
       });
       setGeneratedCode('');
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao criar material');
+      showToast.error(error.message || 'Erro ao criar material');
     } finally {
       setIsLoading(false);
     }
