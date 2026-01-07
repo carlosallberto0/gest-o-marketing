@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { notificarPorRole } from '@/hooks/useNotificacoes';
 
 export interface OutdoorMonthlyReview {
@@ -134,7 +134,7 @@ export function useCreateMonthlyReview() {
     onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['outdoor-monthly-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-stats'] });
-      toast.success('Revisão mensal registrada com sucesso!');
+      showToast.success('Revisão mensal registrada com sucesso!');
       
       // Notify super_admin when outdoor needs maintenance
       if (variables.status === 'needs_maintenance') {
@@ -157,9 +157,9 @@ export function useCreateMonthlyReview() {
     onError: (error: Error) => {
       console.error('Error creating monthly review:', error);
       if (error.message.includes('duplicate')) {
-        toast.error('Este outdoor já foi avaliado neste mês');
+        showToast.error('Este outdoor já foi avaliado neste mês');
       } else {
-        toast.error('Erro ao registrar revisão mensal');
+        showToast.error('Erro ao registrar revisão mensal');
       }
     },
   });

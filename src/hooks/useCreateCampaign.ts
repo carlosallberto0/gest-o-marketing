@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type CampaignType = Database['public']['Enums']['campaign_type'];
@@ -64,11 +64,11 @@ export function useCreateCampaign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast.success('Campanha criada com sucesso!');
+      showToast.success('Campanha criada com sucesso!');
     },
     onError: (error) => {
       console.error('Error creating campaign:', error);
-      toast.error('Erro ao criar campanha');
+      showToast.error('Erro ao criar campanha');
     },
   });
 }

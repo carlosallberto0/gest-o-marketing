@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface EvaluationComment {
   id: string;
@@ -101,11 +101,11 @@ export function useCreateComment() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['evaluation-comments', variables.evaluationId] });
-      toast.success('Comentário adicionado!');
+      showToast.success('Comentário adicionado!');
     },
     onError: (error) => {
       console.error('Error creating comment:', error);
-      toast.error('Erro ao adicionar comentário');
+      showToast.error('Erro ao adicionar comentário');
     }
   });
 }
@@ -125,11 +125,11 @@ export function useDeleteComment() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['evaluation-comments', data.evaluationId] });
-      toast.success('Comentário removido!');
+      showToast.success('Comentário removido!');
     },
     onError: (error) => {
       console.error('Error deleting comment:', error);
-      toast.error('Erro ao remover comentário');
+      showToast.error('Erro ao remover comentário');
     }
   });
 }

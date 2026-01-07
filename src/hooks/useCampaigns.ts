@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface Campaign {
   id: string;
@@ -65,11 +65,11 @@ export function useUpdateCampaignStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast.success('Status da campanha atualizado!');
+      showToast.success('Status da campanha atualizado!');
     },
     onError: (error) => {
       console.error('Error updating campaign status:', error);
-      toast.error('Erro ao atualizar status da campanha');
+      showToast.error('Erro ao atualizar status da campanha');
     },
   });
 }

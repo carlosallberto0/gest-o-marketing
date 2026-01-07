@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface CreatePDVInput {
   code: string;
@@ -41,14 +41,14 @@ export function useCreatePDV() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
-      toast.success('PDV criado com sucesso!');
+      showToast.success('PDV criado com sucesso!');
     },
     onError: (error: any) => {
       console.error('Error creating PDV:', error);
       if (error?.code === '23505') {
-        toast.error('Código duplicado. Feche o diálogo e tente novamente.');
+        showToast.error('Código duplicado', 'Feche o diálogo e tente novamente.');
       } else {
-        toast.error('Erro ao criar PDV');
+        showToast.error('Erro ao criar PDV');
       }
     },
   });

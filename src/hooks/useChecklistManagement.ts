@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { Database } from '@/integrations/supabase/types';
 
 type MaterialType = Database['public']['Enums']['material_type'];
@@ -54,11 +54,11 @@ export function useCreateChecklistQuestion() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist-categories'] });
-      toast.success('Pergunta criada com sucesso!');
+      showToast.success('Pergunta criada com sucesso!');
     },
     onError: (error) => {
       console.error('Error creating question:', error);
-      toast.error('Erro ao criar pergunta');
+      showToast.error('Erro ao criar pergunta');
     },
   });
 }
@@ -80,11 +80,11 @@ export function useUpdateChecklistQuestion() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist-categories'] });
-      toast.success('Pergunta atualizada!');
+      showToast.success('Pergunta atualizada!');
     },
     onError: (error) => {
       console.error('Error updating question:', error);
-      toast.error('Erro ao atualizar pergunta');
+      showToast.error('Erro ao atualizar pergunta');
     },
   });
 }
@@ -103,11 +103,11 @@ export function useDeleteChecklistQuestion() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist-categories'] });
-      toast.success('Pergunta excluída!');
+      showToast.success('Pergunta excluída!');
     },
     onError: (error) => {
       console.error('Error deleting question:', error);
-      toast.error('Erro ao excluir pergunta');
+      showToast.error('Erro ao excluir pergunta');
     },
   });
 }

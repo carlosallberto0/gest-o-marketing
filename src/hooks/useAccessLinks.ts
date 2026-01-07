@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface AccessLinkUser {
   id: string;
@@ -55,13 +55,11 @@ export function useAccessLinks() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['access-link-users'] });
-      toast.success('Link de acesso gerado!', {
-        description: `Link válido até ${new Date(data.expiresAt).toLocaleDateString('pt-BR')}`,
-      });
+      showToast.success('Link de acesso gerado!', `Link válido até ${new Date(data.expiresAt).toLocaleDateString('pt-BR')}`);
     },
     onError: (error: Error) => {
       console.error('Error generating link:', error);
-      toast.error('Erro ao gerar link: ' + error.message);
+      showToast.error('Erro ao gerar link', error.message);
     },
   });
 
@@ -89,11 +87,11 @@ export function useAccessLinks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['access-link-users'] });
-      toast.success('Acesso revogado com sucesso');
+      showToast.success('Acesso revogado com sucesso');
     },
     onError: (error: Error) => {
       console.error('Error revoking link:', error);
-      toast.error('Erro ao revogar acesso: ' + error.message);
+      showToast.error('Erro ao revogar acesso', error.message);
     },
   });
 

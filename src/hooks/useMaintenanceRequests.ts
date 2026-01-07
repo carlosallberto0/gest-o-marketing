@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { notificarPorRole } from '@/hooks/useNotificacoes';
 
 export interface MaintenanceRequest {
@@ -142,7 +142,7 @@ export function useCreateMaintenanceRequest() {
     },
     onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-      toast.success('Solicitação de manutenção criada!');
+      showToast.success('Solicitação de manutenção criada!');
       
       // Build urgency label for notification
       const urgencyLabels: Record<string, string> = {
@@ -172,7 +172,7 @@ export function useCreateMaintenanceRequest() {
     },
     onError: (error) => {
       console.error('Error creating maintenance request:', error);
-      toast.error('Erro ao criar solicitação');
+      showToast.error('Erro ao criar solicitação');
     },
   });
 }
@@ -201,11 +201,11 @@ export function useApproveMaintenanceRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-      toast.success('Solicitação aprovada!');
+      showToast.success('Solicitação aprovada!');
     },
     onError: (error) => {
       console.error('Error approving maintenance request:', error);
-      toast.error('Erro ao aprovar solicitação');
+      showToast.error('Erro ao aprovar solicitação');
     },
   });
 }
@@ -227,11 +227,11 @@ export function useRejectMaintenanceRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-      toast.success('Solicitação rejeitada');
+      showToast.success('Solicitação rejeitada');
     },
     onError: (error) => {
       console.error('Error rejecting maintenance request:', error);
-      toast.error('Erro ao rejeitar solicitação');
+      showToast.error('Erro ao rejeitar solicitação');
     },
   });
 }
@@ -253,11 +253,11 @@ export function useConsolidateMaintenanceRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-      toast.success('Solicitações consolidadas na ordem de serviço!');
+      showToast.success('Solicitações consolidadas na ordem de serviço!');
     },
     onError: (error) => {
       console.error('Error consolidating maintenance requests:', error);
-      toast.error('Erro ao consolidar solicitações');
+      showToast.error('Erro ao consolidar solicitações');
     },
   });
 }

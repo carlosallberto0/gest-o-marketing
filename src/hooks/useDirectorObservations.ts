@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface DirectorObservation {
   id: string;
@@ -134,10 +134,10 @@ export function useCreateDirectorObservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['director-observations'] });
       queryClient.invalidateQueries({ queryKey: ['outdoor-observations'] });
-      toast.success('Observação enviada ao Super Admin!');
+      showToast.success('Observação enviada ao Super Admin!');
     },
     onError: (error: any) => {
-      toast.error('Erro ao enviar observação: ' + error.message);
+      showToast.error('Erro ao enviar observação', error.message);
     },
   });
 }

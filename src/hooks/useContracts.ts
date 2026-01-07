@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface Contract {
   id: string;
@@ -118,11 +118,11 @@ export function useUpdateContract() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       queryClient.invalidateQueries({ queryKey: ['contract'] });
-      toast.success('Contrato atualizado com sucesso!');
+      showToast.success('Contrato atualizado com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating contract:', error);
-      toast.error('Erro ao atualizar contrato');
+      showToast.error('Erro ao atualizar contrato');
     },
   });
 }

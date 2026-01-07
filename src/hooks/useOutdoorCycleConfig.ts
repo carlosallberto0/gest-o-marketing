@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface OutdoorCycleConfig {
   validade_horas: number;
@@ -72,11 +72,11 @@ export function useUpdateOutdoorCycleConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outdoor-cycle-config'] });
-      toast.success('Configurações do ciclo atualizadas!');
+      showToast.success('Configurações do ciclo atualizadas!');
     },
     onError: (error) => {
       console.error('Error updating outdoor cycle config:', error);
-      toast.error('Erro ao atualizar configurações');
+      showToast.error('Erro ao atualizar configurações');
     },
   });
 }

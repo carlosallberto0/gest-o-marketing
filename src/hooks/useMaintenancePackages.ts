@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { notificarDiretoresAprovadores, notificarPorRole } from './useNotificacoes';
 
 export interface MaintenancePackage {
@@ -193,10 +193,10 @@ export function useCreateMaintenancePackage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-packages'] });
-      toast.success('Pacote enviado para aprovação da diretoria');
+      showToast.success('Pacote enviado para aprovação da diretoria');
     },
     onError: (error: Error) => {
-      toast.error('Erro ao criar pacote: ' + error.message);
+      showToast.error('Erro ao criar pacote', error.message);
     },
   });
 }
@@ -296,7 +296,7 @@ export function useUpdatePackageItems() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-packages'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-package'] });
-      toast.success(
+      showToast.success(
         data.packageStatus === 'approved' 
           ? 'Pacote aprovado com sucesso' 
           : data.packageStatus === 'rejected'
@@ -307,7 +307,7 @@ export function useUpdatePackageItems() {
       );
     },
     onError: (error: Error) => {
-      toast.error('Erro ao atualizar: ' + error.message);
+      showToast.error('Erro ao atualizar', error.message);
     },
   });
 }

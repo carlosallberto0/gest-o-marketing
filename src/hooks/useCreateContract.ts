@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface CreateContractInput {
   outdoorId: string;
@@ -59,11 +59,11 @@ export function useCreateContract() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       queryClient.invalidateQueries({ queryKey: ['outdoors'] });
-      toast.success('Contrato criado com sucesso!');
+      showToast.success('Contrato criado com sucesso!');
     },
     onError: (error) => {
       console.error('Error creating contract:', error);
-      toast.error('Erro ao criar contrato');
+      showToast.error('Erro ao criar contrato');
     },
   });
 }
