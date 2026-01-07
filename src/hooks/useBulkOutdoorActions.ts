@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { OutdoorStatus } from '@/types';
 
 interface BulkActionInput {
@@ -60,11 +60,11 @@ export function useBulkOutdoorActions() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['outdoors'] });
       queryClient.invalidateQueries({ queryKey: ['outdoor-cycle-health'] });
-      toast.success(`${data.affected} outdoor(s) atualizado(s) com sucesso!`);
+      showToast.success(`${data.affected} outdoor(s) atualizado(s) com sucesso!`);
     },
     onError: (error) => {
       console.error('Error in bulk action:', error);
-      toast.error('Erro ao atualizar outdoors em massa');
+      showToast.error('Erro ao atualizar outdoors em massa');
     },
   });
 }

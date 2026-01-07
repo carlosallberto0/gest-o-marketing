@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface CreateUserInput {
   name: string;
@@ -56,9 +56,9 @@ export function useCreateUser() {
     onError: (error: Error) => {
       console.error('Error creating user:', error);
       if (error.message.includes('already been registered')) {
-        toast.error('Este email já está registrado');
+        showToast.error('Este email já está registrado');
       } else {
-        toast.error('Erro ao criar usuário: ' + error.message);
+        showToast.error('Erro ao criar usuário', error.message);
       }
     },
   });

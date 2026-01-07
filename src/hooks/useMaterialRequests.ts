@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface MaterialRequest {
   id: string;
@@ -92,7 +92,7 @@ export function useCreateMaterialRequest() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['material-requests'] });
       const count = variables.items.length;
-      toast.success(
+      showToast.success(
         count === 1
           ? 'Solicitação de material enviada com sucesso!'
           : `${count} solicitações de materiais enviadas com sucesso!`
@@ -100,7 +100,7 @@ export function useCreateMaterialRequest() {
     },
     onError: (error) => {
       console.error('Error creating material request:', error);
-      toast.error('Erro ao criar solicitação de material');
+      showToast.error('Erro ao criar solicitação de material');
     },
   });
 }
@@ -145,11 +145,11 @@ export function useUpdateMaterialRequest() {
         rejected: 'Solicitação rejeitada.',
         delivered: 'Material marcado como entregue!',
       };
-      toast.success(messages[variables.status]);
+      showToast.success(messages[variables.status]);
     },
     onError: (error) => {
       console.error('Error updating material request:', error);
-      toast.error('Erro ao atualizar solicitação');
+      showToast.error('Erro ao atualizar solicitação');
     },
   });
 }

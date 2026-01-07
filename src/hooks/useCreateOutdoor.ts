@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface CreateOutdoorInput {
   code: string;
@@ -47,11 +47,11 @@ export function useCreateOutdoor() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outdoors'] });
-      toast.success('Outdoor criado com sucesso!');
+      showToast.success('Outdoor criado com sucesso!');
     },
     onError: (error) => {
       console.error('Error creating outdoor:', error);
-      toast.error('Erro ao criar outdoor');
+      showToast.error('Erro ao criar outdoor');
     },
   });
 }

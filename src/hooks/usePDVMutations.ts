@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface UpdatePDVData {
   id: string;
@@ -34,11 +34,11 @@ export function useUpdatePDV() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
-      toast.success('PDV atualizado com sucesso!');
+      showToast.success('PDV atualizado com sucesso!');
     },
     onError: (error) => {
       console.error('Error updating PDV:', error);
-      toast.error('Erro ao atualizar PDV');
+      showToast.error('Erro ao atualizar PDV');
     },
   });
 }
@@ -63,11 +63,11 @@ export function useTogglePDVStatus() {
     },
     onSuccess: (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
-      toast.success(newStatus === 'active' ? 'PDV ativado!' : 'PDV desativado!');
+      showToast.success(newStatus === 'active' ? 'PDV ativado!' : 'PDV desativado!');
     },
     onError: (error) => {
       console.error('Error toggling PDV status:', error);
-      toast.error('Erro ao alterar status do PDV');
+      showToast.error('Erro ao alterar status do PDV');
     },
   });
 }
@@ -86,11 +86,11 @@ export function useDeletePDV() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
-      toast.success('PDV excluído com sucesso!');
+      showToast.success('PDV excluído com sucesso!');
     },
     onError: (error) => {
       console.error('Error deleting PDV:', error);
-      toast.error('Erro ao excluir PDV. Verifique se não há dados vinculados.');
+      showToast.error('Erro ao excluir PDV', 'Verifique se não há dados vinculados.');
     },
   });
 }

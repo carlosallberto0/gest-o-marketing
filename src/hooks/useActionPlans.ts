@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface ActionPlan {
   id: string;
@@ -134,10 +134,10 @@ export function useCreateActionPlan() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['action-plans'] });
       queryClient.invalidateQueries({ queryKey: ['action-plans', variables.evaluation_id] });
-      toast.success('Plano de ação criado com sucesso');
+      showToast.success('Plano de ação criado com sucesso');
     },
     onError: () => {
-      toast.error('Erro ao criar plano de ação');
+      showToast.error('Erro ao criar plano de ação');
     },
   });
 }
@@ -168,10 +168,10 @@ export function useUpdateActionPlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['action-plans'] });
-      toast.success('Plano de ação atualizado');
+      showToast.success('Plano de ação atualizado');
     },
     onError: () => {
-      toast.error('Erro ao atualizar plano de ação');
+      showToast.error('Erro ao atualizar plano de ação');
     },
   });
 }
@@ -190,10 +190,10 @@ export function useDeleteActionPlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['action-plans'] });
-      toast.success('Plano de ação excluído');
+      showToast.success('Plano de ação excluído');
     },
     onError: () => {
-      toast.error('Erro ao excluir plano de ação');
+      showToast.error('Erro ao excluir plano de ação');
     },
   });
 }

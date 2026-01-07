@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface BulkEditParams {
   pdvIds: string[];
@@ -54,13 +54,13 @@ export function useBulkEditPDVs() {
       queryClient.invalidateQueries({ queryKey: ['pdvs'] });
       
       if (result.failed === 0) {
-        toast.success(`${result.success} PDVs atualizados com sucesso!`);
+        showToast.success(`${result.success} PDVs atualizados com sucesso!`);
       } else {
-        toast.warning(`${result.success} atualizados, ${result.failed} erros`);
+        showToast.warning(`${result.success} atualizados, ${result.failed} erros`);
       }
     },
     onError: (error) => {
-      toast.error(`Erro ao atualizar PDVs: ${error.message}`);
+      showToast.error('Erro ao atualizar PDVs', error.message);
     },
   });
 

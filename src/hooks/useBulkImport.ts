@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { extractCoordsFromGoogleMapsUrl, isShortGoogleMapsUrl } from '@/lib/googleMaps';
 
 export interface ImportRecord {
@@ -617,7 +617,7 @@ export function useBulkImport() {
         .eq('id', lote?.id);
 
     } catch (error: any) {
-      toast.error('Erro durante a importação: ' + error.message);
+      showToast.error('Erro durante a importação', error.message);
     }
     
     const finalSummary: ImportSummary = {
