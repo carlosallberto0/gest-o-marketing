@@ -83,7 +83,7 @@ export function useCalendarEvents(selectedMonth?: Date) {
               outdoorId: outdoor.id,
               outdoorCode: outdoor.code,
               pdvName: (outdoor.pdv as any)?.name,
-              navigateTo: `/media/outdoors/${outdoor.id}`,
+              navigateTo: `/outdoor/${outdoor.id}`,
             },
           });
         });
@@ -119,7 +119,7 @@ export function useCalendarEvents(selectedMonth?: Date) {
               farmerName: contract.farmer_name,
               outdoorId: (contract.outdoor as any)?.id,
               outdoorCode: (contract.outdoor as any)?.code,
-              navigateTo: '/media/contracts',
+              navigateTo: '/contracts',
             },
           });
         });
