@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CalendarEvent, CalendarEventType, CalendarEventSeverity } from '@/hooks/useCalendarEvents';
+import { useModule } from '@/contexts/ModuleContext';
 
 interface CalendarEventsListProps {
   events: CalendarEvent[];
@@ -43,6 +44,7 @@ const severityBadgeStyles: Record<CalendarEventSeverity, string> = {
 
 export function CalendarEventsList({ events }: CalendarEventsListProps) {
   const navigate = useNavigate();
+  const { setActiveModule } = useModule();
 
   if (events.length === 0) {
     return (
@@ -55,6 +57,15 @@ export function CalendarEventsList({ events }: CalendarEventsListProps) {
 
   const handleEventClick = (event: CalendarEvent) => {
     if (event.metadata.navigateTo) {
+      // Definir módulo ativo baseado no tipo de evento
+      if (
+        event.type === 'avaliacao_expirando' || 
+        event.type === 'contrato_vencendo' || 
+        event.type === 'prazo_fornecedor' || 
+        event.type === 'manutencao_pendente'
+      ) {
+        setActiveModule('media');
+      }
       navigate(event.metadata.navigateTo);
     }
   };
