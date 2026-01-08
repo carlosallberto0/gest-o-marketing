@@ -2082,7 +2082,7 @@ export type Database = {
           id: string
           name: string
           phone: string
-          service_types: Database["public"]["Enums"]["service_type"][]
+          service_types: string[]
           status: string
           updated_at: string
         }
@@ -2094,7 +2094,7 @@ export type Database = {
           id?: string
           name: string
           phone: string
-          service_types?: Database["public"]["Enums"]["service_type"][]
+          service_types?: string[]
           status?: string
           updated_at?: string
         }
@@ -2106,7 +2106,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string
-          service_types?: Database["public"]["Enums"]["service_type"][]
+          service_types?: string[]
           status?: string
           updated_at?: string
         }
