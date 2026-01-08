@@ -1,8 +1,7 @@
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -20,17 +19,12 @@ import { useCustosExternosKPIs, useCustosExternos } from '@/hooks/useCustosExter
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 
 const CHART_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -39,7 +33,7 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-export default function FinanceiroDashboard() {
+export function FinanceiroDashboardContent() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const isSuperAdmin = profile?.role === 'super_admin';
@@ -75,8 +69,7 @@ export default function FinanceiroDashboard() {
   const recentCustos = custos?.slice(0, 5) || [];
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -356,7 +349,10 @@ export default function FinanceiroDashboard() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </AppLayout>
+    </div>
   );
+}
+
+export default function FinanceiroDashboard() {
+  return <FinanceiroDashboardContent />;
 }

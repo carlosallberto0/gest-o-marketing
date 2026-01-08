@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,7 @@ interface RateioItem {
   valor: number;
 }
 
-export default function AjustarRateio() {
+export function AjustarRateioContent() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: custo, isLoading } = useCustoExterno(id);
@@ -83,7 +82,7 @@ export default function AjustarRateio() {
       })),
     }, {
       onSuccess: () => {
-        navigate('/custos-externos');
+        navigate('/financeiro/custos');
       },
     });
   };
