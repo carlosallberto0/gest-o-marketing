@@ -16,6 +16,93 @@ import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin, 
 import { SupplierPricingDialog } from '@/components/dialogs/SupplierPricingDialog';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
 
+// Props interface for the form component
+interface SupplierFormProps {
+  formData: CreateSupplierInput;
+  setFormData: React.Dispatch<React.SetStateAction<CreateSupplierInput>>;
+  serviceTypeOptions: Array<{ option_key: string; option_label: string }>;
+}
+
+// SupplierForm component defined OUTSIDE of SuppliersContent to prevent re-mounting on state changes
+function SupplierForm({ formData, setFormData, serviceTypeOptions }: SupplierFormProps) {
+  const handleServiceTypeChange = (type: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      service_types: checked
+        ? [...prev.service_types, type]
+        : prev.service_types.filter(t => t !== type),
+    }));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Nome *</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="Nome do fornecedor"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>CNPJ *</Label>
+          <Input
+            value={formData.cnpj}
+            onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+            placeholder="00.000.000/0000-00"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Email *</Label>
+          <Input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="email@fornecedor.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Telefone *</Label>
+          <Input
+            value={formData.phone}
+            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Endereço *</Label>
+        <Input
+          value={formData.address}
+          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+          placeholder="Endereço completo"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Tipos de Serviço *</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {serviceTypeOptions.map(option => (
+            <div key={option.option_key} className="flex items-center space-x-2">
+              <Checkbox
+                id={option.option_key}
+                checked={formData.service_types.includes(option.option_key)}
+                onCheckedChange={(checked) => handleServiceTypeChange(option.option_key, checked as boolean)}
+              />
+              <label htmlFor={option.option_key} className="text-sm">{option.option_label}</label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SuppliersContent() {
   const { data: suppliers, isLoading } = useSuppliers();
   const { data: serviceTypeOptions = [], isLoading: isLoadingServiceTypes } = useSystemOptions('supplier_service_type');
@@ -28,15 +115,6 @@ export function SuppliersContent() {
 
   const getServiceTypeLabel = (type: string) => {
     return serviceTypeOptions.find(opt => opt.option_key === type)?.option_label || type;
-  };
-
-  const handleServiceTypeChange = (type: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      service_types: checked
-        ? [...prev.service_types, type]
-        : prev.service_types.filter(t => t !== type),
-    }));
   };
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,74 +198,6 @@ export function SuppliersContent() {
     );
   }
 
-  const SupplierForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Nome *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Nome do fornecedor"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>CNPJ *</Label>
-          <Input
-            value={formData.cnpj}
-            onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
-            placeholder="00.000.000/0000-00"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Email *</Label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            placeholder="email@fornecedor.com"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Telefone *</Label>
-          <Input
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            placeholder="(00) 00000-0000"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Endereço *</Label>
-        <Input
-          value={formData.address}
-          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-          placeholder="Endereço completo"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Tipos de Serviço *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {serviceTypeOptions.map(option => (
-            <div key={option.option_key} className="flex items-center space-x-2">
-              <Checkbox
-                id={option.option_key}
-                checked={formData.service_types.includes(option.option_key)}
-                onCheckedChange={(checked) => handleServiceTypeChange(option.option_key, checked as boolean)}
-              />
-              <label htmlFor={option.option_key} className="text-sm">{option.option_label}</label>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <>
       <div className="space-y-6">
@@ -208,7 +218,7 @@ export function SuppliersContent() {
                 <DialogHeader>
                   <DialogTitle>Novo Fornecedor</DialogTitle>
                 </DialogHeader>
-                <SupplierForm />
+                <SupplierForm formData={formData} setFormData={setFormData} serviceTypeOptions={serviceTypeOptions} />
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
                   <Button onClick={handleCreate} disabled={createSupplier.isPending}>
@@ -404,7 +414,7 @@ export function SuppliersContent() {
             <DialogHeader>
               <DialogTitle>Editar Fornecedor</DialogTitle>
             </DialogHeader>
-            <SupplierForm />
+            <SupplierForm formData={formData} setFormData={setFormData} serviceTypeOptions={serviceTypeOptions} />
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setEditingSupplier(null)}>Cancelar</Button>
               <Button onClick={handleUpdate} disabled={updateSupplier.isPending}>
