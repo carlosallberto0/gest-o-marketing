@@ -52,7 +52,8 @@ export default function StrategicMapMapbox() {
   const popupRootRef = useRef<Root | null>(null);
   
   // Refs for GeoJSON data to avoid stale closures in map callbacks
-  const pdvGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const convenienciaGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const postoGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
   const outdoorGeoJSONRef = useRef<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
 
   const { data: mapboxToken, isLoading: tokenLoading, error: tokenError, refetch: refetchToken } = useMapboxToken();
@@ -101,8 +102,9 @@ export default function StrategicMapMapbox() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapTheme, setMapTheme] = useState<'light' | 'dark'>(persistedState.theme);
 
-  // Layer visibility
-  const [showPDVs, setShowPDVs] = useState(persistedState.layers.showPDVs);
+  // Layer visibility - separated PDV types
+  const [showConveniencias, setShowConveniencias] = useState(persistedState.layers.showConveniencias);
+  const [showPostos, setShowPostos] = useState(persistedState.layers.showPostos);
   const [showOutdoors, setShowOutdoors] = useState(persistedState.layers.showOutdoors);
   const [showAlerts, setShowAlerts] = useState(persistedState.layers.showAlerts);
 
@@ -154,8 +156,8 @@ export default function StrategicMapMapbox() {
 
   // Persist layer visibility
   useEffect(() => {
-    updateLayers({ showPDVs, showOutdoors, showAlerts });
-  }, [showPDVs, showOutdoors, showAlerts, updateLayers]);
+    updateLayers({ showConveniencias, showPostos, showOutdoors, showAlerts });
+  }, [showConveniencias, showPostos, showOutdoors, showAlerts, updateLayers]);
 
   // Filter data based on user role
   const roleFilteredPDVs = useMemo(() => {
@@ -220,15 +222,24 @@ export default function StrategicMapMapbox() {
     filteredPDVs.filter(pdv => pdv.lat && pdv.lng),
   [filteredPDVs]);
 
+  // Separate conveniencias and postos
+  const convenienciasWithCoords = useMemo(() => 
+    pdvsWithCoords.filter(pdv => pdv.type === 'conveniencia' || pdv.type === 'both'),
+  [pdvsWithCoords]);
+
+  const postosWithCoords = useMemo(() => 
+    pdvsWithCoords.filter(pdv => pdv.type === 'posto' || pdv.type === 'both'),
+  [pdvsWithCoords]);
+
   // Outdoors with valid coordinates
   const outdoorsWithCoords = useMemo(() => 
     filteredOutdoors.filter(outdoor => outdoor.lat && outdoor.lng),
   [filteredOutdoors]);
 
-  // GeoJSON for PDVs
-  const pdvGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+  // GeoJSON for Conveniencias
+  const convenienciaGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
     type: 'FeatureCollection',
-    features: pdvsWithCoords.map(pdv => ({
+    features: convenienciasWithCoords.map(pdv => ({
       type: 'Feature' as const,
       geometry: {
         type: 'Point' as const,
@@ -249,7 +260,33 @@ export default function StrategicMapMapbox() {
         outdoorCount: pdv.outdoorCount,
       }
     }))
-  }), [pdvsWithCoords]);
+  }), [convenienciasWithCoords]);
+
+  // GeoJSON for Postos
+  const postoGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: 'FeatureCollection',
+    features: postosWithCoords.map(pdv => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [pdv.lng!, pdv.lat!]
+      },
+      properties: {
+        id: pdv.id,
+        name: pdv.name,
+        code: pdv.code,
+        address: pdv.address,
+        city: pdv.city,
+        state: pdv.state,
+        type: pdv.type,
+        status: pdv.status,
+        evaluationStatus: pdv.evaluationStatus,
+        managerName: pdv.managerName,
+        lastEvaluationDate: pdv.lastEvaluationDate,
+        outdoorCount: pdv.outdoorCount,
+      }
+    }))
+  }), [postosWithCoords]);
 
   // GeoJSON for Outdoors
   const outdoorGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
@@ -279,8 +316,12 @@ export default function StrategicMapMapbox() {
 
   // Keep refs updated for use in map callbacks (avoids stale closures)
   useEffect(() => {
-    pdvGeoJSONRef.current = pdvGeoJSON;
-  }, [pdvGeoJSON]);
+    convenienciaGeoJSONRef.current = convenienciaGeoJSON;
+  }, [convenienciaGeoJSON]);
+
+  useEffect(() => {
+    postoGeoJSONRef.current = postoGeoJSON;
+  }, [postoGeoJSON]);
 
   useEffect(() => {
     outdoorGeoJSONRef.current = outdoorGeoJSON;
@@ -428,31 +469,26 @@ export default function StrategicMapMapbox() {
 
   // Add sources and layers to map - uses refs to avoid stale closures
   const addSourcesAndLayers = useCallback((map: mapboxgl.Map) => {
-    // PDV Source with clustering
-    if (!map.getSource('pdvs')) {
-      map.addSource('pdvs', {
+    // Conveniencias Source with clustering
+    if (!map.getSource('conveniencias')) {
+      map.addSource('conveniencias', {
         type: 'geojson',
-        data: pdvGeoJSONRef.current,
+        data: convenienciaGeoJSONRef.current,
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 50,
       });
     }
 
-    // PDV Cluster Layer
-    if (!map.getLayer('pdv-clusters')) {
+    // Conveniencias Cluster Layer
+    if (!map.getLayer('conveniencia-clusters')) {
       map.addLayer({
-        id: 'pdv-clusters',
+        id: 'conveniencia-clusters',
         type: 'circle',
-        source: 'pdvs',
+        source: 'conveniencias',
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': [
-            'step', ['get', 'point_count'],
-            PDV_CLUSTER_COLORS[0], 10,
-            PDV_CLUSTER_COLORS[1], 50,
-            PDV_CLUSTER_COLORS[2]
-          ],
+          'circle-color': '#10b981', // Green for conveniencias
           'circle-radius': [
             'step', ['get', 'point_count'],
             20, 10,
@@ -465,12 +501,12 @@ export default function StrategicMapMapbox() {
       });
     }
 
-    // PDV Cluster Count Layer
-    if (!map.getLayer('pdv-cluster-count')) {
+    // Conveniencias Cluster Count Layer
+    if (!map.getLayer('conveniencia-cluster-count')) {
       map.addLayer({
-        id: 'pdv-cluster-count',
+        id: 'conveniencia-cluster-count',
         type: 'symbol',
-        source: 'pdvs',
+        source: 'conveniencias',
         filter: ['has', 'point_count'],
         layout: {
           'text-field': '{point_count_abbreviated}',
@@ -478,25 +514,97 @@ export default function StrategicMapMapbox() {
           'text-size': 12
         },
         paint: {
-          'text-color': '#000000'
+          'text-color': '#ffffff'
         }
       });
     }
 
-    // PDV Individual Points Layer
-    if (!map.getLayer('pdv-points')) {
+    // Conveniencias Individual Points Layer
+    if (!map.getLayer('conveniencia-points')) {
       map.addLayer({
-        id: 'pdv-points',
+        id: 'conveniencia-points',
         type: 'circle',
-        source: 'pdvs',
+        source: 'conveniencias',
         filter: ['!', ['has', 'point_count']],
         paint: {
           'circle-color': [
             'match', ['get', 'evaluationStatus'],
-            'ok', STATUS_COLORS.ok,
-            'pending', STATUS_COLORS.pending,
-            'critical', STATUS_COLORS.critical,
-            STATUS_COLORS.ok
+            'ok', '#10b981',       // Green
+            'pending', '#f59e0b',  // Amber
+            'critical', '#ef4444', // Red
+            '#10b981'
+          ],
+          'circle-radius': 10,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Postos Source with clustering
+    if (!map.getSource('postos')) {
+      map.addSource('postos', {
+        type: 'geojson',
+        data: postoGeoJSONRef.current,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+      });
+    }
+
+    // Postos Cluster Layer
+    if (!map.getLayer('posto-clusters')) {
+      map.addLayer({
+        id: 'posto-clusters',
+        type: 'circle',
+        source: 'postos',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#3b82f6', // Blue for postos
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            20, 10,
+            30, 50,
+            40
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Postos Cluster Count Layer
+    if (!map.getLayer('posto-cluster-count')) {
+      map.addLayer({
+        id: 'posto-cluster-count',
+        type: 'symbol',
+        source: 'postos',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12
+        },
+        paint: {
+          'text-color': '#ffffff'
+        }
+      });
+    }
+
+    // Postos Individual Points Layer
+    if (!map.getLayer('posto-points')) {
+      map.addLayer({
+        id: 'posto-points',
+        type: 'circle',
+        source: 'postos',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match', ['get', 'evaluationStatus'],
+            'ok', '#3b82f6',       // Blue
+            'pending', '#f59e0b',  // Amber
+            'critical', '#ef4444', // Red
+            '#3b82f6'
           ],
           'circle-radius': 10,
           'circle-stroke-width': 2,
@@ -826,28 +934,40 @@ export default function StrategicMapMapbox() {
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     
-    const pdvSource = mapRef.current.getSource('pdvs') as mapboxgl.GeoJSONSource;
-    if (pdvSource) {
-      pdvSource.setData(pdvGeoJSON);
+    const convenienciaSource = mapRef.current.getSource('conveniencias') as mapboxgl.GeoJSONSource;
+    if (convenienciaSource) {
+      convenienciaSource.setData(convenienciaGeoJSON);
+    }
+
+    const postoSource = mapRef.current.getSource('postos') as mapboxgl.GeoJSONSource;
+    if (postoSource) {
+      postoSource.setData(postoGeoJSON);
     }
 
     const outdoorSource = mapRef.current.getSource('outdoors') as mapboxgl.GeoJSONSource;
     if (outdoorSource) {
       outdoorSource.setData(outdoorGeoJSON);
     }
-  }, [pdvGeoJSON, outdoorGeoJSON, mapLoaded]);
+  }, [convenienciaGeoJSON, postoGeoJSON, outdoorGeoJSON, mapLoaded]);
 
   // Toggle layer visibility
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
 
-    const pdvLayers = ['pdv-clusters', 'pdv-cluster-count', 'pdv-points'];
+    const convenienciaLayers = ['conveniencia-clusters', 'conveniencia-cluster-count', 'conveniencia-points'];
+    const postoLayers = ['posto-clusters', 'posto-cluster-count', 'posto-points'];
     const outdoorLayers = ['outdoor-clusters', 'outdoor-cluster-count', 'outdoor-points'];
 
-    pdvLayers.forEach(layer => {
+    convenienciaLayers.forEach(layer => {
       if (map.getLayer(layer)) {
-        map.setLayoutProperty(layer, 'visibility', showPDVs ? 'visible' : 'none');
+        map.setLayoutProperty(layer, 'visibility', showConveniencias ? 'visible' : 'none');
+      }
+    });
+
+    postoLayers.forEach(layer => {
+      if (map.getLayer(layer)) {
+        map.setLayoutProperty(layer, 'visibility', showPostos ? 'visible' : 'none');
       }
     });
 
@@ -856,7 +976,7 @@ export default function StrategicMapMapbox() {
         map.setLayoutProperty(layer, 'visibility', showOutdoors ? 'visible' : 'none');
       }
     });
-  }, [showPDVs, showOutdoors, mapLoaded]);
+  }, [showConveniencias, showPostos, showOutdoors, mapLoaded]);
 
   // Admin mode - draggable markers for PDVs
   useEffect(() => {
@@ -868,11 +988,13 @@ export default function StrategicMapMapbox() {
     adminMarkersRef.current = [];
 
     // PDV layers that need to be hidden in admin mode
-    const pdvLayers = ['pdv-clusters', 'pdv-cluster-count', 'pdv-points'];
+    const convenienciaLayers = ['conveniencia-clusters', 'conveniencia-cluster-count', 'conveniencia-points'];
+    const postoLayers = ['posto-clusters', 'posto-cluster-count', 'posto-points'];
+    const allPdvLayers = [...convenienciaLayers, ...postoLayers];
 
     if (adminMode && isSuperAdmin) {
       // Hide ALL PDV layers (clusters + points) so draggable markers are visible
-      pdvLayers.forEach(layer => {
+      allPdvLayers.forEach(layer => {
         if (map.getLayer(layer)) {
           map.setLayoutProperty(layer, 'visibility', 'none');
         }
@@ -968,14 +1090,19 @@ export default function StrategicMapMapbox() {
         adminMarkersRef.current.push(marker);
       });
     } else {
-      // Restore PDV layer visibility based on showPDVs setting
-      pdvLayers.forEach(layer => {
+      // Restore PDV layer visibility based on settings
+      convenienciaLayers.forEach(layer => {
         if (map.getLayer(layer)) {
-          map.setLayoutProperty(layer, 'visibility', showPDVs ? 'visible' : 'none');
+          map.setLayoutProperty(layer, 'visibility', showConveniencias ? 'visible' : 'none');
+        }
+      });
+      postoLayers.forEach(layer => {
+        if (map.getLayer(layer)) {
+          map.setLayoutProperty(layer, 'visibility', showPostos ? 'visible' : 'none');
         }
       });
     }
-  }, [adminMode, isSuperAdmin, pdvsWithCoords, mapLoaded, handlePDVCoordinateUpdate, showPDVs]);
+  }, [adminMode, isSuperAdmin, pdvsWithCoords, mapLoaded, handlePDVCoordinateUpdate, showConveniencias, showPostos]);
 
   // Handle retry
   const handleRetry = useCallback(() => {
@@ -1129,10 +1256,12 @@ export default function StrategicMapMapbox() {
       {/* Right Panel: Layer Controls - positioned lower to avoid Mapbox controls */}
       <div className="absolute top-36 right-4 z-10 w-52">
         <MapLayerControls
-          showPDVs={showPDVs}
+          showConveniencias={showConveniencias}
+          showPostos={showPostos}
           showOutdoors={showOutdoors}
           showAlerts={showAlerts}
-          onTogglePDVs={() => setShowPDVs(!showPDVs)}
+          onToggleConveniencias={() => setShowConveniencias(!showConveniencias)}
+          onTogglePostos={() => setShowPostos(!showPostos)}
           onToggleOutdoors={() => setShowOutdoors(!showOutdoors)}
           onToggleAlerts={() => setShowAlerts(!showAlerts)}
         />
@@ -1142,10 +1271,13 @@ export default function StrategicMapMapbox() {
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
         <MapLegend />
         <div className="bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
-          <span className="text-primary">{filteredPDVs.length}</span>
-          <span className="text-muted-foreground"> PDVs</span>
-          <span className="mx-2 text-muted-foreground">•</span>
-          <span className="text-primary">{filteredOutdoors.length}</span>
+          <span className="text-emerald-600">{convenienciasWithCoords.length}</span>
+          <span className="text-muted-foreground"> Conv.</span>
+          <span className="mx-1.5 text-muted-foreground">•</span>
+          <span className="text-blue-600">{postosWithCoords.length}</span>
+          <span className="text-muted-foreground"> Postos</span>
+          <span className="mx-1.5 text-muted-foreground">•</span>
+          <span className="text-purple-600">{filteredOutdoors.length}</span>
           <span className="text-muted-foreground"> Outdoors</span>
         </div>
       </div>

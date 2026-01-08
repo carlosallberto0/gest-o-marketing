@@ -181,8 +181,9 @@ function StrategicMapContent() {
   // Current zoom level for responsive markers
   const [currentZoom, setCurrentZoom] = useState(persistedState.zoom);
 
-  // Layer visibility
-  const [showPDVs, setShowPDVs] = useState(persistedState.layers.showPDVs);
+  // Layer visibility - separated PDV types
+  const [showConveniencias, setShowConveniencias] = useState(persistedState.layers.showConveniencias);
+  const [showPostos, setShowPostos] = useState(persistedState.layers.showPostos);
   const [showOutdoors, setShowOutdoors] = useState(persistedState.layers.showOutdoors);
   const [showAlerts, setShowAlerts] = useState(persistedState.layers.showAlerts);
 
@@ -235,8 +236,8 @@ function StrategicMapContent() {
 
   // Persist layer visibility
   useEffect(() => {
-    updateLayers({ showPDVs, showOutdoors, showAlerts });
-  }, [showPDVs, showOutdoors, showAlerts, updateLayers]);
+    updateLayers({ showConveniencias, showPostos, showOutdoors, showAlerts });
+  }, [showConveniencias, showPostos, showOutdoors, showAlerts, updateLayers]);
 
   // Filter data based on user role
   const roleFilteredPDVs = useMemo(() => {
@@ -512,14 +513,58 @@ function StrategicMapContent() {
             },
           }}
         >
-          {/* PDV Markers with Clustering */}
-          {showPDVs && pdvsWithCoords.length > 0 && (
+          {/* Conveniencias Markers with Clustering */}
+          {showConveniencias && pdvsWithCoords.filter(p => p.type === 'conveniencia' || p.type === 'both').length > 0 && (
             <MarkerClusterer options={clusterOptions}>
               {(clusterer) => (
                 <>
-                  {pdvsWithCoords.map(pdv => (
+                  {pdvsWithCoords.filter(p => p.type === 'conveniencia' || p.type === 'both').map(pdv => (
                     <Marker
                       key={pdv.id}
+                      position={{ lat: pdv.lat!, lng: pdv.lng! }}
+                      clusterer={clusterer}
+                      icon={{
+                        url: getMarkerIcon(pdv.type, pdv.evaluationStatus, currentZoom),
+                        scaledSize: new google.maps.Size(20, 20),
+                        anchor: new google.maps.Point(10, 10),
+                      }}
+                      draggable={adminMode && isSuperAdmin}
+                      onClick={() => {
+                        setSelectedOutdoor(null);
+                        setSelectedPDV(pdv);
+                      }}
+                      onRightClick={(e) => {
+                        if (isSuperAdmin) {
+                          const mouseEvent = e.domEvent as MouseEvent | undefined;
+                          setContextMenu({
+                            show: true,
+                            x: mouseEvent?.clientX || 0,
+                            y: mouseEvent?.clientY || 0,
+                            type: 'pdv',
+                            item: pdv,
+                          });
+                        }
+                      }}
+                      onDragEnd={(e) => {
+                        if (e.latLng && adminMode) {
+                          handlePDVCoordinateUpdate(pdv.id, e.latLng.lat(), e.latLng.lng());
+                        }
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </MarkerClusterer>
+          )}
+
+          {/* Postos Markers with Clustering */}
+          {showPostos && pdvsWithCoords.filter(p => p.type === 'posto' || p.type === 'both').length > 0 && (
+            <MarkerClusterer options={clusterOptions}>
+              {(clusterer) => (
+                <>
+                  {pdvsWithCoords.filter(p => p.type === 'posto' || p.type === 'both').map(pdv => (
+                    <Marker
+                      key={`posto-${pdv.id}`}
                       position={{ lat: pdv.lat!, lng: pdv.lng! }}
                       clusterer={clusterer}
                       icon={{
@@ -747,10 +792,12 @@ function StrategicMapContent() {
       {/* Right Panel: Layer Controls - positioned lower to avoid Google Maps controls */}
       <div className="absolute top-36 right-4 z-10 w-52">
         <MapLayerControls
-          showPDVs={showPDVs}
+          showConveniencias={showConveniencias}
+          showPostos={showPostos}
           showOutdoors={showOutdoors}
           showAlerts={showAlerts}
-          onTogglePDVs={() => setShowPDVs(!showPDVs)}
+          onToggleConveniencias={() => setShowConveniencias(!showConveniencias)}
+          onTogglePostos={() => setShowPostos(!showPostos)}
           onToggleOutdoors={() => setShowOutdoors(!showOutdoors)}
           onToggleAlerts={() => setShowAlerts(!showAlerts)}
         />
@@ -760,10 +807,13 @@ function StrategicMapContent() {
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
         <MapLegend />
         <div className="bg-background/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-border text-sm font-medium">
-          <span className="text-primary">{filteredPDVs.length}</span>
-          <span className="text-muted-foreground"> PDVs</span>
-          <span className="mx-2 text-muted-foreground">•</span>
-          <span className="text-primary">{filteredOutdoors.length}</span>
+          <span className="text-emerald-600">{filteredPDVs.filter(p => p.type === 'conveniencia' || p.type === 'both').length}</span>
+          <span className="text-muted-foreground"> Conv.</span>
+          <span className="mx-1.5 text-muted-foreground">•</span>
+          <span className="text-blue-600">{filteredPDVs.filter(p => p.type === 'posto' || p.type === 'both').length}</span>
+          <span className="text-muted-foreground"> Postos</span>
+          <span className="mx-1.5 text-muted-foreground">•</span>
+          <span className="text-purple-600">{filteredOutdoors.length}</span>
           <span className="text-muted-foreground"> Outdoors</span>
         </div>
       </div>
