@@ -16,7 +16,7 @@ import { Plus, Search, Loader2, Pencil, Trash2, Building2, Phone, Mail, MapPin, 
 import { SupplierPricingDialog } from '@/components/dialogs/SupplierPricingDialog';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
 
-export default function Suppliers() {
+export function SuppliersContent() {
   const { data: suppliers, isLoading } = useSuppliers();
   const { data: serviceTypeOptions = [], isLoading: isLoadingServiceTypes } = useSystemOptions('supplier_service_type');
   const createSupplier = useCreateSupplier();
@@ -114,11 +114,9 @@ export default function Suppliers() {
 
   if (isLoading || isLoadingServiceTypes) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
@@ -191,7 +189,7 @@ export default function Suppliers() {
   );
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -427,6 +425,14 @@ export default function Suppliers() {
           />
         )}
       </div>
+    </>
+  );
+}
+
+export default function Suppliers() {
+  return (
+    <AppLayout>
+      <SuppliersContent />
     </AppLayout>
   );
 }

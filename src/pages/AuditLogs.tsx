@@ -70,7 +70,7 @@ const getActionColor = (action: string) => {
   }
 };
 
-export default function AuditLogs() {
+export function AuditLogsContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
@@ -103,16 +103,14 @@ export default function AuditLogs() {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -265,6 +263,14 @@ export default function AuditLogs() {
           </Table>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function AuditLogs() {
+  return (
+    <AppLayout>
+      <AuditLogsContent />
     </AppLayout>
   );
 }

@@ -90,7 +90,7 @@ const colorPalettes = [
   },
 ];
 
-export default function Settings() {
+export function SettingsContent() {
   const { theme, setTheme } = useTheme();
   const { profile } = useAuth();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -231,7 +231,7 @@ export default function Settings() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -752,6 +752,14 @@ export default function Settings() {
           )}
         </Tabs>
       </div>
+    </>
+  );
+}
+
+export default function Settings() {
+  return (
+    <AppLayout>
+      <SettingsContent />
     </AppLayout>
   );
 }
