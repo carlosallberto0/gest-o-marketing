@@ -1,6 +1,6 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ModuleProvider } from "@/contexts/ModuleContext";
 import { SystemProvider } from "@/contexts/SystemContext";
@@ -33,15 +33,15 @@ import AdminAprovacoes from "./pages/AdminAprovacoes";
 import DiretoriaAprovacoes from "./pages/DiretoriaAprovacoes";
 import GerenteValidacoes from "./pages/GerenteValidacoes";
 import PDVDetail from "./pages/PDVDetail";
-import Settings from "./pages/Settings";
+import Settings, { SettingsContent } from "./pages/Settings";
 import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
-import Suppliers from "./pages/Suppliers";
+import Suppliers, { SuppliersContent } from "./pages/Suppliers";
 import MaintenanceRequests from "./pages/MaintenanceRequests";
 import MaintenanceApproval from "./pages/MaintenanceApproval";
 import GenerateServiceOrder from "./pages/GenerateServiceOrder";
 import ResetPassword from "./pages/ResetPassword";
-import AuditLogs from "./pages/AuditLogs";
+import AuditLogs, { AuditLogsContent } from "./pages/AuditLogs";
 import StrategicMapMapbox from "./pages/StrategicMapMapbox";
 import OutdoorReviews from "./pages/OutdoorReviews";
 import PendingApproval from "./pages/PendingApproval";
@@ -49,10 +49,11 @@ import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
 import OutdoorStatusControl from "./pages/OutdoorStatusControl";
 import SupplierManagement from "./pages/SupplierManagement";
-import CustosExternos from "./pages/CustosExternos";
-import RegistrarCusto from "./pages/RegistrarCusto";
-import AjustarRateio from "./pages/AjustarRateio";
-import FinanceiroDashboard from "./pages/FinanceiroDashboard";
+import { CustosExternosContent } from "./pages/CustosExternos";
+import { RegistrarCustoContent } from "./pages/RegistrarCusto";
+import { AjustarRateioContent } from "./pages/AjustarRateio";
+import { FinanceiroDashboardContent } from "./pages/FinanceiroDashboard";
+import { FinanceiroLayout } from "./components/layout/FinanceiroLayout";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -429,47 +430,62 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    {/* Financeiro Module Routes */}
+    {/* Financeiro Module Routes - using FinanceiroLayout */}
     <Route 
-      path="/financeiro/dashboard" 
+      path="/financeiro"
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'director', 'coordenador_compras']}>
-            <FinanceiroDashboard />
+            <FinanceiroLayout>
+              <Outlet />
+            </FinanceiroLayout>
           </RequireRole>
         </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/financeiro/custos" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'director', 'coordenador_compras']}>
-            <CustosExternos />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/financeiro/custos/registrar" 
-      element={
-        <ProtectedRoute>
+      }
+    >
+      <Route path="dashboard" element={<FinanceiroDashboardContent />} />
+      <Route path="custos" element={<CustosExternosContent />} />
+      <Route 
+        path="custos/registrar" 
+        element={
           <RequireRole allowedRoles={['super_admin']}>
-            <RegistrarCusto />
+            <RegistrarCustoContent />
           </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/financeiro/custos/:id/rateio" 
-      element={
-        <ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="custos/:id/rateio" 
+        element={
           <RequireRole allowedRoles={['super_admin']}>
-            <AjustarRateio />
+            <AjustarRateioContent />
           </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
+        } 
+      />
+      <Route 
+        path="fornecedores" 
+        element={
+          <RequireRole allowedRoles={['super_admin']}>
+            <SuppliersContent />
+          </RequireRole>
+        } 
+      />
+      <Route 
+        path="audit-logs" 
+        element={
+          <RequireRole allowedRoles={['super_admin']}>
+            <AuditLogsContent />
+          </RequireRole>
+        } 
+      />
+      <Route 
+        path="settings" 
+        element={
+          <RequireRole allowedRoles={['super_admin']}>
+            <SettingsContent />
+          </RequireRole>
+        } 
+      />
+    </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

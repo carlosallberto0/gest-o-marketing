@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +38,7 @@ interface FormData {
   postos_selecionados: string[];
 }
 
-export default function RegistrarCusto() {
+export function RegistrarCustoContent() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
@@ -112,7 +111,7 @@ export default function RegistrarCusto() {
       alocacoes,
     }, {
       onSuccess: () => {
-        navigate('/custos-externos');
+        navigate('/financeiro/custos');
       },
     });
   };
@@ -137,30 +136,29 @@ export default function RegistrarCusto() {
   const custoLiquido = formData.valor_total - (formData.teve_perdas ? formData.perda_valor : 0);
 
   return (
-    <AppLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/custos-externos')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Registrar Custo do Fornecedor</h1>
-            <p className="text-muted-foreground">Etapa {step} de 5</p>
-          </div>
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/financeiro/custos')}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Registrar Custo do Fornecedor</h1>
+          <p className="text-muted-foreground">Etapa {step} de 5</p>
         </div>
+      </div>
 
-        {/* Progress */}
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map(s => (
-            <div 
-              key={s}
-              className={`h-2 flex-1 rounded-full transition-colors ${
-                s <= step ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
-        </div>
+      {/* Progress */}
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map(s => (
+          <div 
+            key={s}
+            className={`h-2 flex-1 rounded-full transition-colors ${
+              s <= step ? 'bg-primary' : 'bg-muted'
+            }`}
+          />
+        ))}
+      </div>
 
         {/* Step 1: Descrição */}
         {step === 1 && (
@@ -520,44 +518,47 @@ export default function RegistrarCusto() {
           </Card>
         )}
 
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={() => step > 1 ? setStep(step - 1) : navigate('/custos-externos')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {step > 1 ? 'Voltar' : 'Cancelar'}
-          </Button>
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => step > 1 ? setStep(step - 1) : navigate('/financeiro/custos')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          {step > 1 ? 'Voltar' : 'Cancelar'}
+        </Button>
 
-          {step < 5 ? (
-            <Button
-              onClick={() => setStep(step + 1)}
-              disabled={!canProceed()}
-            >
-              Próximo
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={!canProceed() || createMutation.isPending}
-            >
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Registrar Custo
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+        {step < 5 ? (
+          <Button
+            onClick={() => setStep(step + 1)}
+            disabled={!canProceed()}
+          >
+            Próximo
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSubmit}
+            disabled={!canProceed() || createMutation.isPending}
+          >
+            {createMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Registrar Custo
+              </>
+            )}
+          </Button>
+        )}
       </div>
-    </AppLayout>
+    </div>
   );
+}
+
+export default function RegistrarCusto() {
+  return <RegistrarCustoContent />;
 }
