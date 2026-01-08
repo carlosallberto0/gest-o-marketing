@@ -243,7 +243,7 @@ export default function RegistrarCusto() {
                     <SelectValue placeholder="Selecione o fornecedor..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {fornecedores?.map(f => (
+                    {fornecedores?.filter(f => f.id).map(f => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name} - {f.email}
                       </SelectItem>
@@ -461,7 +461,7 @@ export default function RegistrarCusto() {
                       <SelectValue placeholder="Selecione um posto..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {postos?.map(p => (
+                      {postos?.filter(p => p.id).map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>
