@@ -52,6 +52,7 @@ import SupplierManagement from "./pages/SupplierManagement";
 import CustosExternos from "./pages/CustosExternos";
 import RegistrarCusto from "./pages/RegistrarCusto";
 import AjustarRateio from "./pages/AjustarRateio";
+import FinanceiroDashboard from "./pages/FinanceiroDashboard";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -428,18 +429,29 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
+    {/* Financeiro Module Routes */}
     <Route 
-      path="/custos-externos" 
+      path="/financeiro/dashboard" 
       element={
         <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin']}>
+          <RequireRole allowedRoles={['super_admin', 'director', 'coordenador_compras']}>
+            <FinanceiroDashboard />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/financeiro/custos" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'director', 'coordenador_compras']}>
             <CustosExternos />
           </RequireRole>
         </ProtectedRoute>
       } 
     />
     <Route 
-      path="/custos-externos/registrar" 
+      path="/financeiro/custos/registrar" 
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin']}>
@@ -449,7 +461,7 @@ const AppRoutes = () => (
       } 
     />
     <Route 
-      path="/custos-externos/:id/rateio" 
+      path="/financeiro/custos/:id/rateio" 
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin']}>

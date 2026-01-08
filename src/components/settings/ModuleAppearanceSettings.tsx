@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LinkCard } from '@/components/ui/link-card';
-import { ClipboardCheck, Megaphone, Map, Upload, X, Plus, Loader2, RotateCcw, Save } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, Upload, X, Plus, Loader2, RotateCcw, Save, DollarSign } from 'lucide-react';
 import { useModuleSettings, useUpdateModuleSettings, defaultModuleSettings, type ModuleAppearance, type ModuleAppearanceSettings as ModuleSettingsType } from '@/hooks/useModuleSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
@@ -15,12 +15,14 @@ const moduleIcons = {
   merchandising: ClipboardCheck,
   media: Megaphone,
   mapa: Map,
+  financeiro: DollarSign,
 };
 
 const moduleLabels = {
   merchandising: 'Merchandising',
   media: 'Mídia Externa',
   mapa: 'Mapa Estratégico',
+  financeiro: 'Financeiro',
 };
 
 type ModuleKey = keyof ModuleSettingsType;
@@ -164,6 +166,7 @@ export function ModuleAppearanceSettings() {
                 <SelectItem value="merchandising">Merchandising</SelectItem>
                 <SelectItem value="media">Mídia Externa</SelectItem>
                 <SelectItem value="mapa">Mapa Estratégico</SelectItem>
+                <SelectItem value="financeiro">Financeiro</SelectItem>
               </SelectContent>
             </Select>
           </div>
