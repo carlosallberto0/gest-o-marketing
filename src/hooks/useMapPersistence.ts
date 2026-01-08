@@ -14,7 +14,8 @@ interface MapPersistenceState {
     selectedImportStatus: string;
   };
   layers: {
-    showPDVs: boolean;
+    showConveniencias: boolean;
+    showPostos: boolean;
     showOutdoors: boolean;
     showAlerts: boolean;
   };
@@ -31,7 +32,8 @@ const defaultState: MapPersistenceState = {
     selectedImportStatus: 'all',
   },
   layers: {
-    showPDVs: true,
+    showConveniencias: true,
+    showPostos: true,
     showOutdoors: true,
     showAlerts: true,
   },
