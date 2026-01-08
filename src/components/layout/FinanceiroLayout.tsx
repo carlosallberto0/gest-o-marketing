@@ -97,9 +97,9 @@ export function FinanceiroLayout({ children }: FinanceiroLayoutProps) {
   // Menu items for Financeiro module - Only 4 items as requested
   const financeiroItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard Financeiro', path: '/financeiro/dashboard', roles: ['super_admin', 'director', 'coordenador_compras'] },
-    { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin'] },
-    { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin'] },
-    { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
+    { icon: Building2, label: 'Fornecedores', path: '/financeiro/fornecedores', roles: ['super_admin'] },
+    { icon: ScrollText, label: 'Logs de Auditoria', path: '/financeiro/audit-logs', roles: ['super_admin'] },
+    { icon: Settings, label: 'Configurações', path: '/financeiro/settings', roles: ['super_admin'] },
   ];
 
   const filteredMenuItems = financeiroItems.filter(item => {
