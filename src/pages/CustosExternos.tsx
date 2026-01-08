@@ -50,13 +50,13 @@ const tipoColors: Record<string, string> = {
 export default function CustosExternos() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [tipoFilter, setTipoFilter] = useState<string>('');
-  const [fornecedorFilter, setFornecedorFilter] = useState<string>('');
+  const [tipoFilter, setTipoFilter] = useState<string>('all');
+  const [fornecedorFilter, setFornecedorFilter] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: custos, isLoading } = useCustosExternos({
-    tipo: tipoFilter || undefined,
-    fornecedorId: fornecedorFilter || undefined,
+    tipo: tipoFilter === 'all' ? undefined : tipoFilter,
+    fornecedorId: fornecedorFilter === 'all' ? undefined : fornecedorFilter,
   });
   const { data: kpis } = useCustosExternosKPIs();
   const { data: fornecedores } = useActiveSuppliers();
@@ -172,7 +172,7 @@ export default function CustosExternos() {
                   <SelectValue placeholder="Tipo de custo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
                   <SelectItem value="material">Material/Insumo</SelectItem>
                   <SelectItem value="transporte">Transporte</SelectItem>
                   <SelectItem value="mao_obra">Mão de Obra</SelectItem>
@@ -185,8 +185,8 @@ export default function CustosExternos() {
                   <SelectValue placeholder="Fornecedor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os fornecedores</SelectItem>
-                  {fornecedores?.map(f => (
+                  <SelectItem value="all">Todos os fornecedores</SelectItem>
+                  {fornecedores?.filter(f => !!f.id).map(f => (
                     <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                   ))}
                 </SelectContent>
