@@ -19,24 +19,26 @@ interface BulkEditDialogProps {
   onSuccess?: () => void;
 }
 
+const NO_CHANGE_VALUE = 'no_change';
+
 const IMPORT_STATUS_OPTIONS = [
-  { value: '', label: 'Não alterar' },
+  { value: NO_CHANGE_VALUE, label: 'Não alterar' },
   { value: 'ativo', label: 'Ativo' },
   { value: 'pre_cadastrado', label: 'Pré-cadastrado' },
   { value: 'em_revisao', label: 'Em Revisão' },
 ];
 
 const PDV_STATUS_OPTIONS = [
-  { value: '', label: 'Não alterar' },
+  { value: NO_CHANGE_VALUE, label: 'Não alterar' },
   { value: 'active', label: 'Ativo' },
   { value: 'inactive', label: 'Inativo' },
 ];
 
 export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEditDialogProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [managerId, setManagerId] = useState<string>('');
-  const [importStatus, setImportStatus] = useState<string>('');
-  const [pdvStatus, setPdvStatus] = useState<string>('');
+  const [managerId, setManagerId] = useState<string>(NO_CHANGE_VALUE);
+  const [importStatus, setImportStatus] = useState<string>(NO_CHANGE_VALUE);
+  const [pdvStatus, setPdvStatus] = useState<string>(NO_CHANGE_VALUE);
 
   const { mutate: bulkEdit, isPending } = useBulkEditPDVs();
   const { data: profiles } = useProfiles();
@@ -74,18 +76,18 @@ export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEdit
     if (selectedIds.size === 0) return;
 
     const updates: Record<string, string | null> = {};
-    
-    if (managerId && managerId !== 'none') {
+
+    if (managerId !== NO_CHANGE_VALUE && managerId !== 'none') {
       updates.manager_id = managerId;
     } else if (managerId === 'none') {
       updates.manager_id = null;
     }
-    
-    if (importStatus) {
+
+    if (importStatus !== NO_CHANGE_VALUE) {
       updates.status_importacao = importStatus;
     }
-    
-    if (pdvStatus) {
+
+    if (pdvStatus !== NO_CHANGE_VALUE) {
       updates.status = pdvStatus;
     }
 
@@ -96,9 +98,9 @@ export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEdit
       {
         onSuccess: () => {
           setSelectedIds(new Set());
-          setManagerId('');
-          setImportStatus('');
-          setPdvStatus('');
+          setManagerId(NO_CHANGE_VALUE);
+          setImportStatus(NO_CHANGE_VALUE);
+          setPdvStatus(NO_CHANGE_VALUE);
           onOpenChange(false);
           onSuccess?.();
         },
@@ -130,9 +132,9 @@ export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEdit
 
   const handleClose = () => {
     setSelectedIds(new Set());
-    setManagerId('');
-    setImportStatus('');
-    setPdvStatus('');
+    setManagerId(NO_CHANGE_VALUE);
+    setImportStatus(NO_CHANGE_VALUE);
+    setPdvStatus(NO_CHANGE_VALUE);
     onOpenChange(false);
   };
 
@@ -215,7 +217,7 @@ export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEdit
                     <SelectValue placeholder="Não alterar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Não alterar</SelectItem>
+                    <SelectItem value={NO_CHANGE_VALUE}>Não alterar</SelectItem>
                     <SelectItem value="none">Remover gerente</SelectItem>
                     {managers.map(m => (
                       <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
@@ -272,7 +274,11 @@ export function BulkEditDialog({ open, onOpenChange, pdvs, onSuccess }: BulkEdit
           </Button>
           <Button 
             onClick={handleApply} 
-            disabled={selectedIds.size === 0 || isPending || (!managerId && !importStatus && !pdvStatus)}
+            disabled={
+              selectedIds.size === 0 ||
+              isPending ||
+              (managerId === NO_CHANGE_VALUE && importStatus === NO_CHANGE_VALUE && pdvStatus === NO_CHANGE_VALUE)
+            }
           >
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Aplicar Alterações
