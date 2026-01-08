@@ -4,7 +4,7 @@ import { useModule } from '@/contexts/ModuleContext';
 import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { LinkCard } from '@/components/ui/link-card';
+import { ModuleCard } from '@/components/ui/module-card';
 import { useModuleSettings } from '@/hooks/useModuleSettings';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -138,14 +138,14 @@ export default function ModuleSelection() {
             <div className={isSuperAdmin ? "lg:col-span-2" : ""}>
               {availableModules.length > 0 ? (
                 <motion.div 
-                  className={`grid gap-6 ${
+                  className={`grid gap-5 ${
                     !isSuperAdmin && availableModules.length === 1 
-                      ? 'max-w-sm mx-auto' 
+                      ? 'max-w-xs mx-auto' 
                       : !isSuperAdmin && availableModules.length === 2 
-                        ? 'sm:grid-cols-2 max-w-2xl mx-auto' 
+                        ? 'sm:grid-cols-2 max-w-xl mx-auto' 
                         : isSuperAdmin
-                          ? 'sm:grid-cols-2 xl:grid-cols-3'
-                          : 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto'
+                          ? 'sm:grid-cols-2 xl:grid-cols-4'
+                          : 'sm:grid-cols-2 lg:grid-cols-4 max-w-4xl mx-auto'
                   }`}
                   variants={containerVariants}
                   initial="hidden"
@@ -158,14 +158,12 @@ export default function ModuleSelection() {
 
                     return (
                       <motion.div key={moduleId} variants={itemVariants}>
-                        <LinkCard
+                        <ModuleCard
                           title={settings?.title || moduleId}
                           description={settings?.description || ''}
-                          imageUrl={settings?.image_url}
                           icon={Icon}
                           iconBgColor={settings?.icon_color || '#3b82f6'}
                           buttonColor={settings?.button_color || '#3b82f6'}
-                          features={settings?.features || []}
                           onClick={() => handleModuleSelect(moduleId, path)}
                         />
                       </motion.div>
