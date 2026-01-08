@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
-import { ClipboardCheck, Megaphone, Map, LogOut, Loader2 } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { LinkCard } from '@/components/ui/link-card';
@@ -14,12 +14,14 @@ const moduleIcons = {
   merchandising: ClipboardCheck,
   media: Megaphone,
   mapa: Map,
+  financeiro: DollarSign,
 };
 
 const modulePaths = {
   merchandising: '/merchandising/dashboard',
   media: '/media/dashboard',
   mapa: '/mapa',
+  financeiro: '/financeiro/dashboard',
 };
 
 const containerVariants = {
@@ -61,18 +63,22 @@ export default function ModuleSelection() {
     }
   }, [profile?.status, loading, navigate]);
 
-  const moduleKeys = ['merchandising', 'media', 'mapa'] as const;
+  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro'] as const;
   
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
     if (moduleId === 'mapa') {
       return isSuperAdmin;
     }
+    if (moduleId === 'financeiro') {
+      // Super Admin, Director, and Coordenador Compras can access
+      return ['super_admin', 'director', 'coordenador_compras'].includes(profile?.role || '');
+    }
     return hasModule(moduleId as 'media' | 'merchandising');
   });
 
   const handleModuleSelect = (moduleId: string, path: string) => {
-    setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa');
+    setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro');
     navigate(path);
   };
 

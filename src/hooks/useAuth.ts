@@ -83,8 +83,17 @@ export function useAuth() {
     });
   }, []);
 
-  const hasModule = useCallback((module: 'media' | 'merchandising') => {
-    return state.profile?.modules?.includes(module) ?? false;
+  const hasModule = useCallback((module: 'media' | 'merchandising' | 'financeiro') => {
+    // Financeiro module has special access rules (not stored in profile.modules)
+    if (module === 'financeiro') {
+      // Super Admin always has access
+      if (state.profile?.role === 'super_admin') return true;
+      // Directors and Coordinators can view (read-only)
+      if (['director', 'coordenador_compras'].includes(state.profile?.role || '')) return true;
+      return false;
+    }
+    // For other modules, check profile.modules
+    return state.profile?.modules?.includes(module as 'media' | 'merchandising') ?? false;
   }, [state.profile]);
 
   const canAccessRoute = useCallback((allowedRoles: string[]) => {

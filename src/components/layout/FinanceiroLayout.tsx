@@ -4,8 +4,9 @@ import { useModule } from '@/contexts/ModuleContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  ClipboardCheck, 
-  Fuel, 
+  DollarSign,
+  FileText,
+  Plus,
   Users, 
   Settings, 
   LogOut, 
@@ -13,26 +14,14 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  History,
-  Megaphone,
-  FileText,
-  Package,
-  ShoppingCart,
-  Target,
+  Fuel,
   Loader2,
   BarChart3,
   ArrowLeftRight,
-  Eye,
-  ScrollText,
   Building2,
-  Wrench,
-  FilePlus,
+  ScrollText,
   Search,
-  Upload,
-  Bell,
   Maximize2,
-  CheckCircle,
-  DollarSign,
   Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +37,7 @@ import { NotificationsPopover } from '@/components/notifications/NotificationsPo
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
 
-interface AppLayoutProps {
+interface FinanceiroLayoutProps {
   children: ReactNode;
 }
 
@@ -66,15 +55,26 @@ const getRoleLabel = (role: string): string => {
   return labels[role] || role;
 };
 
-export function AppLayout({ children }: AppLayoutProps) {
-  const { profile, signOut, hasModule, canAccessRoute, loading } = useAuth();
-  const { activeModule, clearActiveModule } = useModule();
+type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier' | 'coordenador_compras';
+
+interface MenuItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+  roles: UserRole[];
+}
+
+export function FinanceiroLayout({ children }: FinanceiroLayoutProps) {
+  const { profile, signOut, canAccessRoute, loading } = useAuth();
+  const { clearActiveModule } = useModule();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [systemLogo, setSystemLogo] = useState<string | null>(null);
   const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   // Load system settings
   useEffect(() => {
@@ -100,83 +100,28 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  type UserRole = 'super_admin' | 'admin' | 'director' | 'manager' | 'collaborator' | 'supplier';
-  
-  interface MenuItem {
-    icon: typeof LayoutDashboard;
-    label: string;
-    path: string;
-    roles: UserRole[];
-  }
-
-  // Menu items for Merchandising module - organized by workflow
-  const merchandisingItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/merchandising/dashboard', roles: ['super_admin', 'admin', 'director', 'manager'] },
-    // Avaliações
-    { icon: ClipboardCheck, label: 'Avaliação de PDV', path: '/checklist', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico de Avaliações', path: '/history', roles: ['super_admin', 'admin', 'director', 'manager'] },
-    // Materiais
-    { icon: Package, label: 'Estoque de Materiais', path: '/materials', roles: ['super_admin', 'admin'] },
-    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'director', 'manager', 'collaborator'] },
-    // Campanhas e Relatórios
-    { icon: Target, label: 'Campanhas', path: '/campaigns', roles: ['super_admin', 'admin', 'director'] },
-    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
+  // Menu items for Financeiro module
+  const financeiroItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/financeiro/dashboard', roles: ['super_admin', 'director', 'coordenador_compras'] },
+    { icon: FileText, label: 'Custos Externos', path: '/financeiro/custos', roles: ['super_admin', 'director', 'coordenador_compras'] },
+    { icon: Plus, label: 'Registrar Custo', path: '/financeiro/custos/registrar', roles: ['super_admin'] },
+    { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin'] },
+    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'director', 'coordenador_compras'] },
   ];
 
-  // Menu items for Media module - organized by workflow
-  // Manager only sees: Maintenance Requests and Material Requests (no dashboard)
-  // Director sees: Dashboard, Outdoors, Aprovar Manutenção, Relatórios, Observações
-  const mediaItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['super_admin', 'admin', 'director'] },
-    { icon: Fuel, label: 'Cadastro', path: '/pdvs', roles: ['super_admin', 'admin'] },
-    // Gestão de Outdoors
-    { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin', 'director'] },
-    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
-    { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin'] },
-    { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
-    // Carga em Massa - Super Admin only
-    { icon: Upload, label: 'Carga de Imagens', path: '/bulk-image-upload', roles: ['super_admin'] },
-    // Manutenção e Serviços
-    { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
-    { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin', 'director'] },
-    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'manager'] },
-    { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
-    { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
-    // Fornecedores e Relatórios
-    { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
-    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin', 'director'] },
-    // Director-only: Observações Enviadas
-    { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
-  ];
-
-  // Admin items - system administration
+  // Admin items - only for super_admin
   const adminItems: MenuItem[] = [
-    { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin', 'admin'] },
-    { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin', 'admin'] },
+    { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin'] },
+    { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin'] },
     { icon: Link2, label: 'Controle de Acessos', path: '/admin/controle-de-acessos', roles: ['super_admin'] },
-    { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin', 'admin'] },
+    { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 
-  // Get menu items based on active module
-  const getMenuItems = (): MenuItem[] => {
-    const items: MenuItem[] = [];
-    
-    if (activeModule === 'merchandising') {
-      items.push(...merchandisingItems);
-    } else if (activeModule === 'media') {
-      items.push(...mediaItems);
-    }
-    
-    // Add admin items for admins
-    if (profile?.role === 'super_admin' || profile?.role === 'admin') {
-      items.push(...adminItems);
-    }
-    
-    return items;
-  };
-
-  const menuItems = getMenuItems();
+  const menuItems = [
+    ...financeiroItems,
+    ...(isSuperAdmin ? adminItems : []),
+  ];
 
   const filteredMenuItems = menuItems.filter(item => {
     if (!profile) return false;
@@ -207,18 +152,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  const getModuleLabel = () => {
-    if (activeModule === 'merchandising') return 'Merchandising';
-    if (activeModule === 'media') return 'Mídia Externa';
-    return '';
-  };
-
-  const getModuleColor = () => {
-    if (activeModule === 'merchandising') return 'bg-success';
-    if (activeModule === 'media') return 'bg-info';
-    return 'bg-primary';
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Header - Nazox Style */}
@@ -227,7 +160,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-muted-foreground hover:text-foreground">
             <Menu className="h-5 w-5" />
           </Button>
-          {/* Search Bar - Nazox Style */}
+          {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
@@ -248,8 +181,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 ml-3 pl-3 border-l border-border hover:bg-muted/50 rounded-lg px-3 py-2 transition-colors cursor-pointer">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary font-semibold text-sm">
+                <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <span className="text-amber-500 font-semibold text-sm">
                     {profile?.name?.charAt(0) || '?'}
                   </span>
                 </div>
@@ -266,7 +199,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-xs text-muted-foreground">{profile?.email}</p>
               </div>
               <DropdownMenuSeparator />
-              {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
+              {isSuperAdmin && (
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="h-4 w-4 mr-2" />
                   Configurações
@@ -317,8 +250,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               <img src={systemLogo} alt={systemName} className="h-10 w-auto max-w-[180px] object-contain" />
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded bg-primary flex items-center justify-center">
-                  <Fuel className="h-5 w-5 text-primary-foreground" />
+                <div className="w-9 h-9 rounded bg-amber-500 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <span className="font-semibold text-lg block text-sidebar-foreground">{systemName}</span>
@@ -328,15 +261,13 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* Active Module Badge */}
-          {activeModule && (
-            <div className="px-5 py-3 border-b border-sidebar-border">
-              <Badge className={cn("w-full justify-center py-1.5 text-white border-0", getModuleColor())}>
-                {getModuleLabel()}
-              </Badge>
-            </div>
-          )}
+          <div className="px-5 py-3 border-b border-sidebar-border">
+            <Badge className="w-full justify-center py-1.5 text-white border-0 bg-amber-500">
+              Financeiro
+            </Badge>
+          </div>
 
-          {/* Navigation Menu - Nazox Style */}
+          {/* Navigation Menu */}
           <nav className="flex-1 px-4 py-5 space-y-1 overflow-y-auto scrollbar-thin">
             <p className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">Menu</p>
             {filteredMenuItems.map((item) => {
@@ -348,7 +279,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] font-medium transition-all duration-200",
                     isActive 
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                      ? "bg-amber-500 text-white" 
                       : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                   )}
                 >

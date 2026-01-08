@@ -15,6 +15,7 @@ export interface ModuleAppearanceSettings {
   merchandising: ModuleAppearance;
   media: ModuleAppearance;
   mapa: ModuleAppearance;
+  financeiro: ModuleAppearance;
 }
 
 const defaultModuleSettings: ModuleAppearanceSettings = {
@@ -41,6 +42,14 @@ const defaultModuleSettings: ModuleAppearanceSettings = {
     icon_color: '#a855f7',
     button_color: '#a855f7',
     features: ['Mapa Interativo', 'Status em Tempo Real', 'Alertas Visuais', 'KPIs Consolidados', 'Ações Rápidas'],
+  },
+  financeiro: {
+    title: 'Financeiro',
+    description: 'Gestão de custos externos, alocações, comprovantes e relatórios financeiros por posto.',
+    image_url: null,
+    icon_color: '#f59e0b',
+    button_color: '#f59e0b',
+    features: ['Custos Externos', 'Rateio por Posto', 'Comprovantes', 'Relatórios', 'KPIs Financeiros'],
   },
 };
 
@@ -69,6 +78,7 @@ export function useModuleSettings() {
         merchandising: { ...defaultModuleSettings.merchandising, ...storedSettings.merchandising },
         media: { ...defaultModuleSettings.media, ...storedSettings.media },
         mapa: { ...defaultModuleSettings.mapa, ...storedSettings.mapa },
+        financeiro: { ...defaultModuleSettings.financeiro, ...storedSettings.financeiro },
       };
     },
   });
