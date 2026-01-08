@@ -100,30 +100,15 @@ export function FinanceiroLayout({ children }: FinanceiroLayoutProps) {
     }
   };
 
-  // Menu items for Financeiro module
+  // Menu items for Financeiro module - Only 4 items as requested
   const financeiroItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/financeiro/dashboard', roles: ['super_admin', 'director', 'coordenador_compras'] },
-    { icon: FileText, label: 'Custos Externos', path: '/financeiro/custos', roles: ['super_admin', 'director', 'coordenador_compras'] },
-    { icon: Plus, label: 'Registrar Custo', path: '/financeiro/custos/registrar', roles: ['super_admin'] },
+    { icon: LayoutDashboard, label: 'Dashboard Financeiro', path: '/financeiro/dashboard', roles: ['super_admin', 'director', 'coordenador_compras'] },
     { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin'] },
-    { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'director', 'coordenador_compras'] },
-  ];
-
-  // Admin items - only for super_admin
-  const adminItems: MenuItem[] = [
-    { icon: BarChart3, label: 'Painel Administrativo', path: '/admin', roles: ['super_admin'] },
-    { icon: Users, label: 'Gestão de Usuários', path: '/users', roles: ['super_admin'] },
-    { icon: Link2, label: 'Controle de Acessos', path: '/admin/controle-de-acessos', roles: ['super_admin'] },
     { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs', roles: ['super_admin'] },
     { icon: Settings, label: 'Configurações', path: '/settings', roles: ['super_admin'] },
   ];
 
-  const menuItems = [
-    ...financeiroItems,
-    ...(isSuperAdmin ? adminItems : []),
-  ];
-
-  const filteredMenuItems = menuItems.filter(item => {
+  const filteredMenuItems = financeiroItems.filter(item => {
     if (!profile) return false;
     if (!canAccessRoute(item.roles)) return false;
     return true;
