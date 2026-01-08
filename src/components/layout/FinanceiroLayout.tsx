@@ -5,24 +5,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   DollarSign,
-  FileText,
-  Plus,
-  Users, 
   Settings, 
   LogOut, 
   Menu, 
   X,
   ChevronRight,
   ChevronDown,
-  Fuel,
   Loader2,
-  BarChart3,
   ArrowLeftRight,
   Building2,
   ScrollText,
   Search,
-  Maximize2,
-  Link2
+  Maximize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
