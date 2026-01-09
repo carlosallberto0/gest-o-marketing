@@ -6,6 +6,7 @@ import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
 import { toGoogleMapsUrl } from '@/lib/googleMaps';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
+import { generateOutdoorListPDF, OutdoorPDFData } from '@/lib/pdfGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,8 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -60,6 +62,7 @@ import { BulkImportDialog } from '@/components/map/BulkImportDialog';
 import { usePDVs } from '@/hooks/usePDVs';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
+import { toast } from 'sonner';
 import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
 
 export default function Outdoors() {
@@ -72,6 +75,7 @@ export default function Outdoors() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [bulkStatusAction, setBulkStatusAction] = useState<'operational' | 'non_operational' | 'pending_evaluation' | null>(null);
   const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
 
@@ -156,6 +160,41 @@ export default function Outdoors() {
     setBulkStatusAction(null);
     setShowStatusConfirmDialog(false);
     refetch();
+  };
+
+  const handleGeneratePDF = async () => {
+    if (selectedOutdoors.size === 0) {
+      showToast.warning('Selecione pelo menos um outdoor para gerar o relatório');
+      return;
+    }
+    
+    setIsGeneratingPDF(true);
+    const toastId = toast.loading('Gerando PDF...');
+    
+    try {
+      const selectedOutdoorsList = filteredOutdoors.filter(o => selectedOutdoors.has(o.id));
+      
+      const pdfData: OutdoorPDFData[] = selectedOutdoorsList.map(outdoor => ({
+        code: outdoor.code,
+        pdvName: outdoor.pdvName,
+        city: outdoor.pdvCity || '',
+        photoUrl: outdoor.photoUrl ? convertGoogleDriveUrl(outdoor.photoUrl) : undefined,
+        width: outdoor.width,
+        height: outdoor.height,
+        area: outdoor.area,
+        locationUrl: outdoor.locationUrl,
+        location: outdoor.location,
+        status: outdoor.status,
+      }));
+      
+      await generateOutdoorListPDF(pdfData);
+      toast.success('PDF gerado com sucesso!', { id: toastId });
+    } catch (error: any) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF: ' + error.message, { id: toastId });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   if (isLoading) {
@@ -267,6 +306,19 @@ export default function Outdoors() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleGeneratePDF}
+                disabled={isGeneratingPDF}
+              >
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                Gerar PDF
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" disabled={isDeleting}>
