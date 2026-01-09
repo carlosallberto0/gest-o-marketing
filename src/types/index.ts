@@ -67,6 +67,7 @@ export interface Outdoor {
   id: string;
   pdvId: string;
   pdvName: string;
+  pdvCity?: string;
   code: string;
   location: string;
   locationUrl?: string;

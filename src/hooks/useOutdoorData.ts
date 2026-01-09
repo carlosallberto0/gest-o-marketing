@@ -25,6 +25,7 @@ interface OutdoorWithPDV {
   avaliacao_valida_ate: string | null;
   pdvs: {
     name: string;
+    city: string;
   } | null;
 }
 
@@ -38,7 +39,7 @@ export function useOutdoors() {
         .from('outdoors')
         .select(`
           *,
-          pdvs(name)
+          pdvs(name, city)
         `)
         .order('code');
 
@@ -55,6 +56,7 @@ export function useOutdoors() {
         id: out.id,
         pdvId: out.pdv_id,
         pdvName: out.pdvs?.name || 'PDV não encontrado',
+        pdvCity: out.pdvs?.city || '',
         code: out.code,
         location: out.location,
         locationUrl: out.location_url || undefined,
