@@ -833,7 +833,11 @@ export default function StrategicMapMapbox() {
     // Close popup on map click (not on markers)
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: ['pdv-points', 'pdv-clusters', 'outdoor-points', 'outdoor-clusters']
+        layers: [
+          'conveniencia-points', 'conveniencia-clusters',
+          'posto-points', 'posto-clusters',
+          'outdoor-points', 'outdoor-clusters'
+        ]
       });
       if (features.length === 0) {
         if (popupRef.current) {
@@ -843,13 +847,13 @@ export default function StrategicMapMapbox() {
       }
     });
 
-    // PDV cluster click - zoom in
-    map.on('click', 'pdv-clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['pdv-clusters'] });
+    // Conveniência cluster click - zoom in
+    map.on('click', 'conveniencia-clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['conveniencia-clusters'] });
       if (!features.length) return;
       
       const clusterId = features[0].properties?.cluster_id;
-      const source = map.getSource('pdvs') as mapboxgl.GeoJSONSource;
+      const source = map.getSource('conveniencias') as mapboxgl.GeoJSONSource;
       
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err || zoom === undefined) return;
@@ -861,14 +865,44 @@ export default function StrategicMapMapbox() {
       });
     });
 
-    // PDV point click - show popup
-    map.on('click', 'pdv-points', (e) => {
+    // Conveniência point click - show popup
+    map.on('click', 'conveniencia-points', (e) => {
       if (!e.features?.length) return;
       const feature = e.features[0];
       const geometry = feature.geometry as GeoJSON.Point;
       const coords = geometry.coordinates as [number, number];
       
-      // Find the PDV object
+      const pdv = pdvsWithCoords.find(p => p.id === feature.properties?.id);
+      if (pdv) {
+        showPDVPopup(coords, pdv);
+      }
+    });
+
+    // Posto cluster click - zoom in
+    map.on('click', 'posto-clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['posto-clusters'] });
+      if (!features.length) return;
+      
+      const clusterId = features[0].properties?.cluster_id;
+      const source = map.getSource('postos') as mapboxgl.GeoJSONSource;
+      
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || zoom === undefined) return;
+        const geometry = features[0].geometry as GeoJSON.Point;
+        map.easeTo({
+          center: geometry.coordinates as [number, number],
+          zoom: zoom
+        });
+      });
+    });
+
+    // Posto point click - show popup
+    map.on('click', 'posto-points', (e) => {
+      if (!e.features?.length) return;
+      const feature = e.features[0];
+      const geometry = feature.geometry as GeoJSON.Point;
+      const coords = geometry.coordinates as [number, number];
+      
       const pdv = pdvsWithCoords.find(p => p.id === feature.properties?.id);
       if (pdv) {
         showPDVPopup(coords, pdv);
@@ -907,11 +941,17 @@ export default function StrategicMapMapbox() {
       }
     });
 
-    // Cursor styling
-    map.on('mouseenter', 'pdv-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'pdv-clusters', () => { map.getCanvas().style.cursor = ''; });
-    map.on('mouseenter', 'pdv-points', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'pdv-points', () => { map.getCanvas().style.cursor = ''; });
+    // Cursor styling - Conveniências
+    map.on('mouseenter', 'conveniencia-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'conveniencia-clusters', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'conveniencia-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'conveniencia-points', () => { map.getCanvas().style.cursor = ''; });
+    // Cursor styling - Postos
+    map.on('mouseenter', 'posto-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'posto-clusters', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'posto-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'posto-points', () => { map.getCanvas().style.cursor = ''; });
+    // Cursor styling - Outdoors
     map.on('mouseenter', 'outdoor-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'outdoor-clusters', () => { map.getCanvas().style.cursor = ''; });
     map.on('mouseenter', 'outdoor-points', () => { map.getCanvas().style.cursor = 'pointer'; });
