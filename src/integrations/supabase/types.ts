@@ -123,6 +123,192 @@ export type Database = {
           },
         ]
       }
+      agencia_demandas: {
+        Row: {
+          agencia_id: string | null
+          categoria: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          id: string
+          prazo_entrega: string | null
+          status: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          agencia_id?: string | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          id?: string
+          prazo_entrega?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          agencia_id?: string | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          prazo_entrega?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agencia_demandas_agencia_id_fkey"
+            columns: ["agencia_id"]
+            isOneToOne: false
+            referencedRelation: "agencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agencia_demandas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agencia_fotos: {
+        Row: {
+          agencia_id: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          link_album: string
+          tags: string[] | null
+          titulo: string
+        }
+        Insert: {
+          agencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          link_album: string
+          tags?: string[] | null
+          titulo: string
+        }
+        Update: {
+          agencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          link_album?: string
+          tags?: string[] | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agencia_fotos_agencia_id_fkey"
+            columns: ["agencia_id"]
+            isOneToOne: false
+            referencedRelation: "agencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agencia_fotos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agencia_videos: {
+        Row: {
+          agencia_id: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          link_video: string
+          tags: string[] | null
+          titulo: string
+        }
+        Insert: {
+          agencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          link_video: string
+          tags?: string[] | null
+          titulo: string
+        }
+        Update: {
+          agencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          link_video?: string
+          tags?: string[] | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agencia_videos_agencia_id_fkey"
+            columns: ["agencia_id"]
+            isOneToOne: false
+            referencedRelation: "agencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agencia_videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agencias: {
+        Row: {
+          ativo: boolean | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
+          created_at: string | null
+          especialidades: string[] | null
+          id: string
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          especialidades?: string[] | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          especialidades?: string[] | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           created_at: string
@@ -763,6 +949,163 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loteamentos_contratos: {
+        Row: {
+          cliente_cpf: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          created_at: string | null
+          data_assinatura: string | null
+          entrada: number | null
+          id: string
+          lancamento_id: string | null
+          lote_numero: string
+          observacoes: string | null
+          parcelas: number | null
+          quadra: string | null
+          status: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          created_at?: string | null
+          data_assinatura?: string | null
+          entrada?: number | null
+          id?: string
+          lancamento_id?: string | null
+          lote_numero: string
+          observacoes?: string | null
+          parcelas?: number | null
+          quadra?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          created_at?: string | null
+          data_assinatura?: string | null
+          entrada?: number | null
+          id?: string
+          lancamento_id?: string | null
+          lote_numero?: string
+          observacoes?: string | null
+          parcelas?: number | null
+          quadra?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loteamentos_contratos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "loteamentos_lancamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loteamentos_lancamentos: {
+        Row: {
+          created_at: string | null
+          data_lancamento: string | null
+          id: string
+          links_drive: string[] | null
+          localizacao: string
+          lotes_vendidos: number | null
+          nome: string
+          observacoes: string | null
+          status: string | null
+          total_lotes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_lancamento?: string | null
+          id?: string
+          links_drive?: string[] | null
+          localizacao: string
+          lotes_vendidos?: number | null
+          nome: string
+          observacoes?: string | null
+          status?: string | null
+          total_lotes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_lancamento?: string | null
+          id?: string
+          links_drive?: string[] | null
+          localizacao?: string
+          lotes_vendidos?: number | null
+          nome?: string
+          observacoes?: string | null
+          status?: string | null
+          total_lotes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      loteamentos_pagamentos: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string
+          id: string
+          lancamento_id: string | null
+          status: string | null
+          tipo: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
+          id?: string
+          lancamento_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
+          id?: string
+          lancamento_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loteamentos_pagamentos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "loteamentos_lancamentos"
             referencedColumns: ["id"]
           },
         ]
