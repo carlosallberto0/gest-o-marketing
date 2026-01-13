@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
-import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign, Settings, Building2, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ModuleCard } from '@/components/ui/module-card';
@@ -15,6 +15,9 @@ const moduleIcons = {
   media: Megaphone,
   mapa: Map,
   financeiro: DollarSign,
+  configuracoes: Settings,
+  agencia: Building2,
+  loteamentos: Home,
 };
 
 const modulePaths = {
@@ -22,6 +25,9 @@ const modulePaths = {
   media: '/media/dashboard',
   mapa: '/mapa',
   financeiro: '/financeiro/dashboard',
+  configuracoes: '/configuracoes/dashboard',
+  agencia: '/agencia/dashboard',
+  loteamentos: '/loteamentos/dashboard',
 };
 
 const containerVariants = {
@@ -63,22 +69,22 @@ export default function ModuleSelection() {
     }
   }, [profile?.status, loading, navigate]);
 
-  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro'] as const;
+  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos'] as const;
   
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
-    if (moduleId === 'mapa') {
+    // Super Admin only modules
+    if (['mapa', 'configuracoes', 'agencia', 'loteamentos'].includes(moduleId)) {
       return isSuperAdmin;
     }
     if (moduleId === 'financeiro') {
-      // Super Admin, Director, and Coordenador Compras can access
       return ['super_admin', 'director', 'coordenador_compras'].includes(profile?.role || '');
     }
     return hasModule(moduleId as 'media' | 'merchandising');
   });
 
   const handleModuleSelect = (moduleId: string, path: string) => {
-    setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro');
+    setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos');
     navigate(path);
   };
 
