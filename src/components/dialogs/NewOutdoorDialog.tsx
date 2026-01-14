@@ -41,6 +41,7 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
     lat: '',
     lng: '',
     descriptionType: '',
+    direction: '',
   });
 
   // Fetch suppliers
@@ -140,6 +141,7 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
       lat: formData.lat ? parseFloat(formData.lat) : undefined,
       lng: formData.lng ? parseFloat(formData.lng) : undefined,
       descriptionType: formData.descriptionType || undefined,
+      direction: formData.direction || undefined,
     });
     
     onOpenChange(false);
@@ -156,6 +158,7 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
       lat: '',
       lng: '',
       descriptionType: '',
+      direction: '',
     });
   };
 
@@ -391,6 +394,20 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Direction / Sentido da Placa */}
+          <div className="space-y-2">
+            <Label htmlFor="direction">Sentido da Placa (opcional)</Label>
+            <Input
+              id="direction"
+              value={formData.direction}
+              onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
+              placeholder="Ex: sentido Palmas, sentido SINOP..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Informe a orientação/direção da placa para guiar a manutenção
+            </p>
           </div>
 
           <DialogFooter>

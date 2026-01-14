@@ -55,6 +55,7 @@ export function EditOutdoorDialog({
     photoUrl: '',
     descriptionType: '',
     pdvId: '',
+    direction: '',
   });
 
   const isSuperAdmin = profile?.role === 'super_admin';
@@ -74,6 +75,7 @@ export function EditOutdoorDialog({
         photoUrl: outdoor.photoUrl || '',
         descriptionType: (outdoor as any).descriptionType || (outdoor as any).description_type || '',
         pdvId: outdoor.pdvId || '',
+        direction: outdoor.direction || '',
       });
     }
   }, [outdoor]);
@@ -95,6 +97,7 @@ export function EditOutdoorDialog({
           : null,
         photo_url: formData.photoUrl || null,
         description_type: formData.descriptionType || null,
+        direction: formData.direction || null,
       };
 
       // Super Admin pode alterar o PDV
@@ -305,6 +308,16 @@ export function EditOutdoorDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Direction / Sentido da Placa */}
+          <div className="space-y-2">
+            <Label>Sentido da Placa (opcional)</Label>
+            <Input
+              value={formData.direction}
+              onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
+              placeholder="Ex: sentido Palmas, sentido SINOP..."
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

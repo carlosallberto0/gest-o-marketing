@@ -23,6 +23,7 @@ interface OutdoorWithPDV {
   validation_radius_meters: number | null;
   description_type: string | null;
   avaliacao_valida_ate: string | null;
+  direction: string | null;
   pdvs: {
     name: string;
     city: string;
@@ -73,6 +74,7 @@ export function useOutdoors() {
         validationRadiusMeters: out.validation_radius_meters || 50,
         descriptionType: out.description_type || undefined,
         avaliacaoValidaAte: out.avaliacao_valida_ate || undefined,
+        direction: out.direction || undefined,
       }));
     },
     enabled: !!profile,
