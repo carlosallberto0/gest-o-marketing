@@ -480,6 +480,11 @@ export default function Outdoors() {
                     <Maximize className="h-4 w-4" />
                     <span>{outdoor.width}m x {outdoor.height}m ({outdoor.area}m²)</span>
                   </div>
+                  {outdoor.direction && (
+                    <p className="text-xs text-muted-foreground">
+                      Sentido: {outdoor.direction}
+                    </p>
+                  )}
                 </div>
 
                 {outdoor.nonOperationalReason && (

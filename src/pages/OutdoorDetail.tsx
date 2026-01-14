@@ -44,7 +44,8 @@ import {
   Trash2,
   ExternalLink,
   MessageSquare,
-  Send
+  Send,
+  Navigation
 } from 'lucide-react';
 
 export default function OutdoorDetail() {
@@ -258,6 +259,17 @@ export default function OutdoorDetail() {
                       }
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* Sentido da Placa */}
+              <div className="flex items-start gap-3 pt-2 border-t border-border mt-4">
+                <Navigation className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Sentido da Placa</p>
+                  <p className={outdoor.direction ? "font-medium text-foreground" : "text-muted-foreground italic"}>
+                    {outdoor.direction || "Não informado"}
+                  </p>
                 </div>
               </div>
 

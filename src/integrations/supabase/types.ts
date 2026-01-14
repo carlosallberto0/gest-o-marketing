@@ -1757,6 +1757,7 @@ export type Database = {
           contract_id: string | null
           created_at: string
           description_type: string | null
+          direction: string | null
           fonte_importacao: string | null
           height: number
           id: string
@@ -1784,6 +1785,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           description_type?: string | null
+          direction?: string | null
           fonte_importacao?: string | null
           height: number
           id?: string
@@ -1811,6 +1813,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           description_type?: string | null
+          direction?: string | null
           fonte_importacao?: string | null
           height?: number
           id?: string
