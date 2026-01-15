@@ -49,6 +49,7 @@ import {
 import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
 import { EditContractDialog } from '@/components/dialogs/EditContractDialog';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
+import { DocumentViewerDialog } from '@/components/dialogs/DocumentViewerDialog';
 import { useQueryClient } from '@tanstack/react-query';
 
 const getContractStatusColor = (status: string) => {
@@ -79,6 +80,7 @@ export default function Contracts() {
   const [editingContract, setEditingContract] = useState<any>(null);
   const [viewingContract, setViewingContract] = useState<any>(null);
   const [deletingContract, setDeletingContract] = useState<any>(null);
+  const [documentToView, setDocumentToView] = useState<{ url: string; code: string } | null>(null);
   
   const { data: contracts = [], isLoading, refetch } = useContracts();
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
@@ -312,38 +314,24 @@ export default function Contracts() {
                                 size="icon"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(contract.document_url!, '_blank', 'noopener,noreferrer');
+                                  setDocumentToView({ 
+                                    url: contract.document_url!, 
+                                    code: contract.outdoors?.code || 'documento' 
+                                  });
                                 }}
                                 title="Visualizar anexo"
                               >
                                 <FileText className="h-4 w-4 text-primary" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    const response = await fetch(contract.document_url!);
-                                    const blob = await response.blob();
-                                    const blobUrl = window.URL.createObjectURL(blob);
-                                    
-                                    const link = document.createElement('a');
-                                    link.href = blobUrl;
-                                    link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(blobUrl);
-                                  } catch (error) {
-                                    console.error('Erro ao baixar documento:', error);
-                                    window.open(contract.document_url!, '_blank', 'noopener,noreferrer');
-                                  }
-                                }}
+                              <a 
+                                href={contract.document_url}
+                                download={`contrato-${contract.outdoors?.code || 'documento'}.pdf`}
+                                className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                                 title="Baixar documento"
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <Download className="h-4 w-4" />
-                              </Button>
+                              </a>
                             </>
                           )}
                         </div>
@@ -390,6 +378,13 @@ export default function Contracts() {
         open={!!viewingContract}
         onOpenChange={(open) => !open && setViewingContract(null)}
         contract={viewingContract}
+      />
+      <DocumentViewerDialog
+        open={!!documentToView}
+        onOpenChange={(open) => !open && setDocumentToView(null)}
+        documentUrl={documentToView?.url || null}
+        title={`Contrato ${documentToView?.code}`}
+        fileName={`contrato-${documentToView?.code}.pdf`}
       />
 
       <AlertDialog open={!!deletingContract} onOpenChange={(open) => !open && setDeletingContract(null)}>
