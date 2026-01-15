@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
 
 interface CreateContractInput {
-  outdoorId: string;
+  outdoorIds: string[];
   farmerName: string;
   farmerCpf: string;
   farmerPhone?: string;
@@ -13,7 +13,7 @@ interface CreateContractInput {
   monthlyValue: number;
   paymentMethod: string;
   autoRenewal: boolean;
-  documentUrl?: string;
+  imageUrls?: string[];
 }
 
 export function useCreateContract() {
@@ -24,10 +24,10 @@ export function useCreateContract() {
       const monthlyValue = input.monthlyValue;
       const annualValue = monthlyValue * 12;
       
+      // 1. Create contract (without outdoor_id - we use the pivot table now)
       const { data, error } = await supabase
         .from('contracts')
         .insert({
-          outdoor_id: input.outdoorId,
           farmer_name: input.farmerName,
           farmer_cpf: input.farmerCpf,
           farmer_phone: input.farmerPhone || null,
@@ -38,7 +38,6 @@ export function useCreateContract() {
           annual_value: annualValue,
           payment_method: input.paymentMethod,
           auto_renewal: input.autoRenewal,
-          document_url: input.documentUrl || null,
           status: 'active',
         })
         .select()
@@ -46,12 +45,41 @@ export function useCreateContract() {
 
       if (error) throw error;
 
-      // Update outdoor with contract_id
-      if (data) {
-        await supabase
-          .from('outdoors')
-          .update({ contract_id: data.id })
-          .eq('id', input.outdoorId);
+      // 2. Insert outdoor associations
+      if (input.outdoorIds.length > 0) {
+        const { error: outdoorError } = await supabase
+          .from('contract_outdoors')
+          .insert(
+            input.outdoorIds.map(outdoorId => ({
+              contract_id: data.id,
+              outdoor_id: outdoorId,
+            }))
+          );
+
+        if (outdoorError) throw outdoorError;
+
+        // Update each outdoor with contract_id (for backward compatibility)
+        for (const outdoorId of input.outdoorIds) {
+          await supabase
+            .from('outdoors')
+            .update({ contract_id: data.id })
+            .eq('id', outdoorId);
+        }
+      }
+
+      // 3. Insert contract images
+      if (input.imageUrls && input.imageUrls.length > 0) {
+        const { error: imageError } = await supabase
+          .from('contract_images')
+          .insert(
+            input.imageUrls.map((url, index) => ({
+              contract_id: data.id,
+              image_url: url,
+              page_order: index,
+            }))
+          );
+
+        if (imageError) throw imageError;
       }
 
       return data;

@@ -558,6 +558,74 @@ export type Database = {
           },
         ]
       }
+      contract_images: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          image_url: string
+          page_order: number
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          page_order?: number
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          page_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_images_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_outdoors: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          outdoor_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          outdoor_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          outdoor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_outdoors_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_outdoors_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           annual_value: number
@@ -571,7 +639,7 @@ export type Database = {
           farmer_phone: string | null
           id: string
           monthly_value: number
-          outdoor_id: string
+          outdoor_id: string | null
           payment_method: string
           start_date: string
           status: string
@@ -589,7 +657,7 @@ export type Database = {
           farmer_phone?: string | null
           id?: string
           monthly_value: number
-          outdoor_id: string
+          outdoor_id?: string | null
           payment_method: string
           start_date: string
           status?: string
@@ -607,7 +675,7 @@ export type Database = {
           farmer_phone?: string | null
           id?: string
           monthly_value?: number
-          outdoor_id?: string
+          outdoor_id?: string | null
           payment_method?: string
           start_date?: string
           status?: string

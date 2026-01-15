@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,13 +6,33 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { OutdoorMultiSelect } from '@/components/ui/outdoor-multi-select';
+import { MultiPhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2 } from 'lucide-react';
 import { useUpdateContract } from '@/hooks/useContracts';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
+import { useOutdoors } from '@/hooks/useOutdoorData';
+
+interface ContractOutdoor {
+  outdoor: {
+    id: string;
+    code: string;
+    location: string;
+    pdvs: {
+      name: string;
+    } | null;
+  };
+}
+
+interface ContractImage {
+  id: string;
+  image_url: string;
+  page_order: number;
+}
 
 interface Contract {
   id: string;
-  outdoor_id: string;
+  outdoor_id: string | null;
   farmer_name: string;
   farmer_cpf: string;
   farmer_phone: string | null;
@@ -23,6 +43,8 @@ interface Contract {
   payment_method: string;
   auto_renewal: boolean;
   status: string;
+  contract_outdoors?: ContractOutdoor[];
+  contract_images?: ContractImage[];
   outdoors?: {
     code: string;
   };
@@ -37,6 +59,7 @@ interface EditContractDialogProps {
 export function EditContractDialog({ open, onOpenChange, contract }: EditContractDialogProps) {
   const updateContract = useUpdateContract();
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
+  const { data: allOutdoors = [] } = useOutdoors();
   
   const [formData, setFormData] = useState({
     farmerName: '',
@@ -49,10 +72,25 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
     paymentMethod: '',
     autoRenewal: false,
     status: 'active',
+    outdoorIds: [] as string[],
+    contractImages: [] as string[],
   });
 
   useEffect(() => {
     if (contract) {
+      // Get outdoor IDs from contract_outdoors or fallback to outdoor_id
+      let outdoorIds: string[] = [];
+      if (contract.contract_outdoors && contract.contract_outdoors.length > 0) {
+        outdoorIds = contract.contract_outdoors.map(co => co.outdoor.id);
+      } else if (contract.outdoor_id) {
+        outdoorIds = [contract.outdoor_id];
+      }
+
+      // Get image URLs from contract_images
+      const imageUrls = contract.contract_images
+        ?.sort((a, b) => a.page_order - b.page_order)
+        .map(img => img.image_url) || [];
+
       setFormData({
         farmerName: contract.farmer_name,
         farmerCpf: contract.farmer_cpf,
@@ -64,9 +102,21 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
         paymentMethod: contract.payment_method,
         autoRenewal: contract.auto_renewal,
         status: contract.status,
+        outdoorIds,
+        contractImages: imageUrls,
       });
     }
   }, [contract]);
+
+  const availableOutdoors = useMemo(() => {
+    return allOutdoors.map(o => ({
+      id: o.id,
+      code: o.code,
+      pdvName: o.pdvName,
+      location: o.location,
+      hasContract: !!o.contractId && o.contractId !== contract?.id,
+    }));
+  }, [allOutdoors, contract?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,26 +131,49 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
       startDate: formData.startDate,
       endDate: formData.endDate,
       monthlyValue: parseFloat(formData.monthlyValue),
-      paymentMethod: formData.paymentMethod as 'cash' | 'fuel' | 'both',
+      paymentMethod: formData.paymentMethod,
       autoRenewal: formData.autoRenewal,
       status: formData.status,
+      outdoorIds: formData.outdoorIds,
+      imageUrls: formData.contractImages,
     });
 
     onOpenChange(false);
+  };
+
+  // Get display title
+  const getTitle = () => {
+    if (contract?.contract_outdoors && contract.contract_outdoors.length > 0) {
+      const codes = contract.contract_outdoors.map(co => co.outdoor.code).join(', ');
+      return `Editar Contrato - ${codes}`;
+    }
+    if (contract?.outdoors?.code) {
+      return `Editar Contrato ${contract.outdoors.code}`;
+    }
+    return 'Editar Contrato';
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
-          <DialogTitle>
-            Editar Contrato {contract?.outdoors?.code}
-          </DialogTitle>
+          <DialogTitle>{getTitle()}</DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="flex-1 px-6">
           <form onSubmit={handleSubmit} className="space-y-4 pb-4">
-            <div className="space-y-4">
+            {/* Outdoor Selection */}
+            <div className="space-y-2">
+              <Label>Outdoors Vinculados</Label>
+              <OutdoorMultiSelect
+                outdoors={availableOutdoors}
+                value={formData.outdoorIds}
+                onValueChange={(ids) => setFormData({ ...formData, outdoorIds: ids })}
+                placeholder="Buscar e selecionar outdoors..."
+              />
+            </div>
+
+            <div className="space-y-4 border-t pt-4">
               <h4 className="font-medium text-sm text-muted-foreground">Dados do Proprietário</h4>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,6 +317,17 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Contract Images */}
+            <div className="space-y-4 border-t pt-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Páginas do Contrato</h4>
+              <MultiPhotoUpload
+                value={formData.contractImages}
+                onChange={(photos) => setFormData({ ...formData, contractImages: photos })}
+                maxPhotos={10}
+                folder="contracts"
+              />
             </div>
           </form>
         </ScrollArea>

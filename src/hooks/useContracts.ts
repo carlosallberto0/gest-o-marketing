@@ -1,11 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
-import type { Database } from '@/integrations/supabase/types';
+
+interface ContractOutdoor {
+  outdoor: {
+    id: string;
+    code: string;
+    location: string;
+    pdvs: {
+      name: string;
+    } | null;
+  };
+}
+
+interface ContractImage {
+  id: string;
+  image_url: string;
+  page_order: number;
+}
 
 interface Contract {
   id: string;
-  outdoor_id: string;
+  outdoor_id: string | null;
   farmer_name: string;
   farmer_cpf: string;
   farmer_phone: string | null;
@@ -14,19 +30,23 @@ interface Contract {
   end_date: string;
   monthly_value: number;
   annual_value: number;
-  payment_method: 'cash' | 'fuel' | 'both';
+  payment_method: string;
   auto_renewal: boolean;
   status: string;
   document_url: string | null;
   created_at: string;
   updated_at: string;
+  // New relations
+  contract_outdoors: ContractOutdoor[];
+  contract_images: ContractImage[];
+  // Legacy relation (for backward compatibility)
   outdoors?: {
     code: string;
     location: string;
     pdvs?: {
       name: string;
     };
-  };
+  } | null;
 }
 
 export function useContracts() {
@@ -37,7 +57,10 @@ export function useContracts() {
         .from('contracts')
         .select(`
           *,
-          outdoors!contracts_outdoor_id_fkey(code, location, pdvs(name))
+          contract_outdoors(
+            outdoor:outdoors(id, code, location, pdvs(name))
+          ),
+          contract_images(id, image_url, page_order)
         `)
         .order('created_at', { ascending: false });
 
@@ -53,11 +76,36 @@ export function useContractByOutdoor(outdoorId: string | null) {
     queryFn: async () => {
       if (!outdoorId) return null;
       
+      // Check in contract_outdoors pivot table first
+      const { data: pivotData, error: pivotError } = await supabase
+        .from('contract_outdoors')
+        .select(`
+          contract:contracts(
+            *,
+            contract_outdoors(
+              outdoor:outdoors(id, code, location, pdvs(name))
+            ),
+            contract_images(id, image_url, page_order)
+          )
+        `)
+        .eq('outdoor_id', outdoorId)
+        .maybeSingle();
+
+      if (pivotError) throw pivotError;
+      
+      if (pivotData?.contract) {
+        return pivotData.contract as Contract;
+      }
+      
+      // Fallback: check legacy outdoor_id column
       const { data, error } = await supabase
         .from('contracts')
         .select(`
           *,
-          outdoors!contracts_outdoor_id_fkey(code, location, pdvs(name))
+          contract_outdoors(
+            outdoor:outdoors(id, code, location, pdvs(name))
+          ),
+          contract_images(id, image_url, page_order)
         `)
         .eq('outdoor_id', outdoorId)
         .maybeSingle();
@@ -82,6 +130,8 @@ interface UpdateContractInput {
   autoRenewal?: boolean;
   status?: string;
   documentUrl?: string | null;
+  outdoorIds?: string[];
+  imageUrls?: string[];
 }
 
 export function useUpdateContract() {
@@ -106,6 +156,7 @@ export function useUpdateContract() {
       if (input.status !== undefined) updateData.status = input.status;
       if (input.documentUrl !== undefined) updateData.document_url = input.documentUrl;
 
+      // Update contract
       const { data, error } = await supabase
         .from('contracts')
         .update(updateData)
@@ -114,11 +165,56 @@ export function useUpdateContract() {
         .single();
 
       if (error) throw error;
+
+      // Update outdoor associations if provided
+      if (input.outdoorIds !== undefined) {
+        // Delete existing associations
+        await supabase
+          .from('contract_outdoors')
+          .delete()
+          .eq('contract_id', input.id);
+
+        // Insert new associations
+        if (input.outdoorIds.length > 0) {
+          await supabase
+            .from('contract_outdoors')
+            .insert(
+              input.outdoorIds.map(outdoorId => ({
+                contract_id: input.id,
+                outdoor_id: outdoorId,
+              }))
+            );
+        }
+      }
+
+      // Update images if provided
+      if (input.imageUrls !== undefined) {
+        // Delete existing images
+        await supabase
+          .from('contract_images')
+          .delete()
+          .eq('contract_id', input.id);
+
+        // Insert new images
+        if (input.imageUrls.length > 0) {
+          await supabase
+            .from('contract_images')
+            .insert(
+              input.imageUrls.map((url, index) => ({
+                contract_id: input.id,
+                image_url: url,
+                page_order: index,
+              }))
+            );
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       queryClient.invalidateQueries({ queryKey: ['contract'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-images'] });
       showToast.success('Contrato atualizado com sucesso!');
     },
     onError: (error) => {
@@ -133,26 +229,7 @@ export function useDeleteContract() {
 
   return useMutation({
     mutationFn: async (contractId: string) => {
-      // First, get the contract to find the outdoor_id
-      const { data: contract, error: fetchError } = await supabase
-        .from('contracts')
-        .select('outdoor_id')
-        .eq('id', contractId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Unlink the contract from the outdoor
-      if (contract?.outdoor_id) {
-        const { error: unlinkError } = await supabase
-          .from('outdoors')
-          .update({ contract_id: null })
-          .eq('id', contract.outdoor_id);
-
-        if (unlinkError) throw unlinkError;
-      }
-
-      // Delete the contract
+      // Cascade delete will handle contract_outdoors and contract_images
       const { error: deleteError } = await supabase
         .from('contracts')
         .delete()
