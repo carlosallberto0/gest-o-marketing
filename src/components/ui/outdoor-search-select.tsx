@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Command,
   CommandEmpty,
@@ -21,6 +22,7 @@ interface Outdoor {
   code: string;
   pdvName?: string;
   location?: string;
+  hasContract?: boolean;
 }
 
 interface OutdoorSearchSelectProps {
@@ -109,7 +111,14 @@ export function OutdoorSearchSelect({
                     )}
                   />
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-medium">{outdoor.code}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{outdoor.code}</span>
+                      {outdoor.hasContract && (
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                          Com contrato
+                        </Badge>
+                      )}
+                    </div>
                     <span className="text-sm text-muted-foreground truncate">
                       {outdoor.pdvName || 'Sem posto'} {outdoor.location ? `- ${outdoor.location}` : ''}
                     </span>

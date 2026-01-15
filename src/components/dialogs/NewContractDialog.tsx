@@ -168,8 +168,8 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
     onOpenChange(isOpen);
   };
 
-  // Filter outdoors that don't have a contract
-  const availableOutdoors = outdoors?.filter(o => !o.contractId) || [];
+  // Show ALL outdoors, with visual indicator for those with contracts
+  const availableOutdoors = outdoors || [];
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -207,6 +207,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
                   code: o.code,
                   pdvName: o.pdvName,
                   location: o.location,
+                  hasContract: !!o.contractId,
                 }))}
                 value={formData.outdoorId}
                 onValueChange={(id) => setFormData({ ...formData, outdoorId: id })}
