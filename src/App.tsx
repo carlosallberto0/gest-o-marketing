@@ -11,7 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
 import AccessLink from "./pages/AccessLink";
-import AccessControl from "./pages/AccessControl";
+import AccessControl, { AccessControlContent } from "./pages/AccessControl";
 import Dashboard from "./pages/Dashboard";
 import ModuleSelection from "./pages/ModuleSelection";
 import MerchDashboard from "./pages/MerchDashboard";
@@ -27,7 +27,7 @@ import PDVs from "./pages/PDVs";
 import Materials from "./pages/Materials";
 import MaterialRequests from "./pages/MaterialRequests";
 import Campaigns from "./pages/Campaigns";
-import Users from "./pages/Users";
+import Users, { UsersContent } from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminAprovacoes from "./pages/AdminAprovacoes";
 import DiretoriaAprovacoes from "./pages/DiretoriaAprovacoes";
@@ -54,6 +54,16 @@ import { RegistrarCustoContent } from "./pages/RegistrarCusto";
 import { AjustarRateioContent } from "./pages/AjustarRateio";
 import { FinanceiroDashboardContent } from "./pages/FinanceiroDashboard";
 import { FinanceiroLayout } from "./components/layout/FinanceiroLayout";
+import { ConfiguracoesLayout } from "./components/layout/ConfiguracoesLayout";
+import { AgenciaLayout } from "./components/layout/AgenciaLayout";
+import { LoteamentosLayout } from "./components/layout/LoteamentosLayout";
+import DashboardConfiguracoes from "./pages/configuracoes/DashboardConfiguracoes";
+import DashboardAgencia from "./pages/agencia/DashboardAgencia";
+import Agencias from "./pages/agencia/Agencias";
+import AgenciaDemandas from "./pages/agencia/AgenciaDemandas";
+import AgenciaVideos from "./pages/agencia/AgenciaVideos";
+import AgenciaFotos from "./pages/agencia/AgenciaFotos";
+import DashboardLoteamentos from "./pages/loteamentos/DashboardLoteamentos";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -486,6 +496,63 @@ const AppRoutes = () => (
         } 
       />
     </Route>
+    
+    {/* Configurações Module Routes - using ConfiguracoesLayout */}
+    <Route 
+      path="/configuracoes"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <ConfiguracoesLayout>
+              <Outlet />
+            </ConfiguracoesLayout>
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="dashboard" element={<DashboardConfiguracoes />} />
+      <Route path="geral" element={<SettingsContent />} />
+      <Route path="usuarios" element={<UsersContent />} />
+      <Route path="fornecedores" element={<SuppliersContent />} />
+      <Route path="perfis" element={<AccessControlContent />} />
+    </Route>
+
+    {/* Agência Module Routes - using AgenciaLayout */}
+    <Route 
+      path="/agencia"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <AgenciaLayout>
+              <Outlet />
+            </AgenciaLayout>
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="dashboard" element={<DashboardAgencia />} />
+      <Route path="agencias" element={<Agencias />} />
+      <Route path="demandas" element={<AgenciaDemandas />} />
+      <Route path="videos" element={<AgenciaVideos />} />
+      <Route path="fotos" element={<AgenciaFotos />} />
+    </Route>
+
+    {/* Loteamentos Module Routes - using LoteamentosLayout */}
+    <Route 
+      path="/loteamentos"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <LoteamentosLayout>
+              <Outlet />
+            </LoteamentosLayout>
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="dashboard" element={<DashboardLoteamentos />} />
+    </Route>
+
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

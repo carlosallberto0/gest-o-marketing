@@ -38,7 +38,8 @@ import {
 import { AccessLinkDialog } from '@/components/dialogs/AccessLinkDialog';
 import { getPublicAppUrl } from '@/hooks/usePublicAppUrl';
 
-export default function AccessControl() {
+// Content component for reuse in different layouts
+export function AccessControlContent() {
   const { 
     users, 
     isLoadingUsers, 
@@ -140,10 +141,9 @@ export default function AccessControl() {
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Link2 className="h-6 w-6" />
             Controle de Acessos
@@ -382,17 +382,25 @@ export default function AccessControl() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
 
-      <AccessLinkDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        user={selectedUser}
-        accessLink={generatedLink}
-        isGenerating={generateLink.isPending}
-        onGenerate={handleGenerateLink}
-        onRevoke={handleRevokeLink}
-      />
+        <AccessLinkDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          user={selectedUser}
+          accessLink={generatedLink}
+          isGenerating={generateLink.isPending}
+          onGenerate={handleGenerateLink}
+          onRevoke={handleRevokeLink}
+        />
+      </div>
+  );
+}
+
+// Default export with AppLayout wrapper
+export default function AccessControl() {
+  return (
+    <AppLayout>
+      <AccessControlContent />
     </AppLayout>
   );
 }
