@@ -130,17 +130,15 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-lg max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {getTitle()}
-            </DialogTitle>
-            <Badge className={getStatusColor(contract.status)}>
+          <DialogTitle className="flex items-center gap-2 pr-8">
+            <FileText className="h-5 w-5 shrink-0" />
+            <span className="truncate">{getTitle()}</span>
+            <Badge className={`shrink-0 ${getStatusColor(contract.status)}`}>
               {getStatusLabel(contract.status)}
             </Badge>
-          </div>
+          </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-6 pb-6">

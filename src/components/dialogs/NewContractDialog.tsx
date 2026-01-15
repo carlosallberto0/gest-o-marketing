@@ -133,12 +133,13 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-0">
+      <DialogContent className="max-w-lg max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle>Novo Contrato</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="px-6">
           {/* Recovery Banner */}
           {showRecoveryBanner && (
             <div className="flex items-center gap-3 p-3 bg-warning/10 border border-warning/20 rounded-lg mb-4">
@@ -296,7 +297,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
             </div>
 
             {/* Contract Images Upload Section */}
-            <div className="border-t pt-4">
+            <div className="border-t pt-4 pb-2">
               <h4 className="font-medium mb-3">Páginas do Contrato (Imagens)</h4>
               <p className="text-sm text-muted-foreground mb-3">
                 Fotografe ou selecione as páginas do contrato assinado. Formatos aceitos: JPG, PNG.
@@ -309,9 +310,10 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
               />
             </div>
           </form>
+          </div>
         </ScrollArea>
 
-        <DialogFooter className="px-6 py-4 border-t">
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
           <Button type="button" variant="outline" onClick={() => handleClose(false)}>
             Cancelar
           </Button>

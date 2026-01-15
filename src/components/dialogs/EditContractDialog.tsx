@@ -155,12 +155,13 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-0">
-          <DialogTitle>{getTitle()}</DialogTitle>
+      <DialogContent className="max-w-lg max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
+          <DialogTitle className="pr-8 truncate">{getTitle()}</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="px-6">
           <form onSubmit={handleSubmit} className="space-y-4 pb-4">
             {/* Outdoor Selection */}
             <div className="space-y-2">
@@ -320,8 +321,11 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
             </div>
 
             {/* Contract Images */}
-            <div className="space-y-4 border-t pt-4">
+            <div className="space-y-4 border-t pt-4 pb-2">
               <h4 className="font-medium text-sm text-muted-foreground">Páginas do Contrato</h4>
+              <p className="text-sm text-muted-foreground">
+                Fotografe ou selecione as páginas do contrato assinado.
+              </p>
               <MultiPhotoUpload
                 value={formData.contractImages}
                 onChange={(photos) => setFormData({ ...formData, contractImages: photos })}
@@ -330,9 +334,10 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
               />
             </div>
           </form>
+          </div>
         </ScrollArea>
 
-        <DialogFooter className="px-6 py-4 border-t">
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
