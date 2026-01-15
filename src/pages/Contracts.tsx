@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useContracts } from '@/hooks/useContracts';
+import { useContracts, useDeleteContract } from '@/hooks/useContracts';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
   Filter,
   Edit,
   Eye,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,6 +36,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
 import { EditContractDialog } from '@/components/dialogs/EditContractDialog';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
@@ -67,13 +78,21 @@ export default function Contracts() {
   const [isNewContractOpen, setIsNewContractOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
   const [viewingContract, setViewingContract] = useState<any>(null);
+  const [deletingContract, setDeletingContract] = useState<any>(null);
   
   const { data: contracts = [], isLoading, refetch } = useContracts();
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const deleteContract = useDeleteContract();
 
   const canEdit = user?.role === 'super_admin' || user?.role === 'admin';
+
+  const handleDeleteContract = async () => {
+    if (!deletingContract) return;
+    await deleteContract.mutateAsync(deletingContract.id);
+    setDeletingContract(null);
+  };
 
   // Helper function to get payment method label from dynamic options
   const getPaymentMethodLabel = (method: string) => {
@@ -257,6 +276,27 @@ export default function Contracts() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {canEdit && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => setEditingContract(contract)}
+                                title="Editar contrato"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => setDeletingContract(contract)}
+                                title="Excluir contrato"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="icon"
@@ -265,16 +305,6 @@ export default function Contracts() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {canEdit && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingContract(contract)}
-                              title="Editar contrato"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
                           {contract.document_url && (
                             <Button 
                               variant="ghost" 
@@ -330,6 +360,35 @@ export default function Contracts() {
         onOpenChange={(open) => !open && setViewingContract(null)}
         contract={viewingContract}
       />
+
+      <AlertDialog open={!!deletingContract} onOpenChange={(open) => !open && setDeletingContract(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Contrato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o contrato do outdoor <strong>{deletingContract?.outdoors?.code}</strong>?
+              Esta ação não pode ser desfeita e o vínculo com o outdoor será removido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteContract.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteContract}
+              disabled={deleteContract.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteContract.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
