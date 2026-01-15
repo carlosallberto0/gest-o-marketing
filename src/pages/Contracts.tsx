@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useContracts } from '@/hooks/useContracts';
 import { useAuth } from '@/hooks/useAuth';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ import {
 import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
 import { EditContractDialog } from '@/components/dialogs/EditContractDialog';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 const getContractStatusColor = (status: string) => {
   switch (status) {
@@ -56,15 +58,6 @@ const getContractStatusLabel = (status: string) => {
   }
 };
 
-const getPaymentMethodLabel = (method: string) => {
-  switch (method) {
-    case 'cash': return 'Dinheiro';
-    case 'fuel': return 'Combustível';
-    case 'both': return 'Misto';
-    default: return method;
-  }
-};
-
 export default function Contracts() {
   const [searchParams] = useSearchParams();
   const outdoorFilter = searchParams.get('outdoor');
@@ -75,10 +68,26 @@ export default function Contracts() {
   const [editingContract, setEditingContract] = useState<any>(null);
   const [viewingContract, setViewingContract] = useState<any>(null);
   
-  const { data: contracts = [], isLoading } = useContracts();
+  const { data: contracts = [], isLoading, refetch } = useContracts();
+  const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const canEdit = user?.role === 'super_admin' || user?.role === 'admin';
+
+  // Helper function to get payment method label from dynamic options
+  const getPaymentMethodLabel = (method: string) => {
+    const option = paymentOptions.find(o => o.option_key === method);
+    if (option) return option.option_label;
+    // Fallback for legacy values
+    switch (method) {
+      case 'cash': return 'Dinheiro';
+      case 'fuel': return 'Combustível';
+      case 'both': return 'Misto';
+      case 'pix': return 'PIX';
+      default: return method;
+    }
+  };
 
   const filteredContracts = contracts.filter(contract => {
     const matchesSearch = 
@@ -98,11 +107,17 @@ export default function Contracts() {
     totalValue: contracts.reduce((acc, c) => acc + Number(c.annual_value), 0),
   };
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    refetch();
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando contratos...</p>
         </div>
       </AppLayout>
     );
@@ -117,10 +132,15 @@ export default function Contracts() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Contratos</h1>
             <p className="text-muted-foreground mt-1">Gestão de contratos de locação de área</p>
           </div>
-          <Button onClick={() => setIsNewContractOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Contrato
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handleRefresh} title="Recarregar">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => setIsNewContractOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Contrato
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -175,108 +195,126 @@ export default function Contracts() {
         </div>
 
         {/* Contracts Table */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Outdoor</TableHead>
-                <TableHead>Proprietário</TableHead>
-                <TableHead>Vigência</TableHead>
-                <TableHead>Valor Mensal</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContracts.map((contract, index) => (
-                <TableRow 
-                  key={contract.id}
-                  className="animate-slide-up"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium">{contract.outdoors?.code || '-'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{contract.farmer_name}</p>
-                      <p className="text-xs text-muted-foreground">{contract.farmer_cpf}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                      <p className="text-muted-foreground">até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(contract.monthly_value))}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {getPaymentMethodLabel(contract.payment_method)}
-                      {contract.auto_renewal && (
-                        <span title="Renovação automática">
-                          <RefreshCw className="h-3 w-3 text-success" />
+        {filteredContracts.length > 0 ? (
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Outdoor</TableHead>
+                    <TableHead>Proprietário</TableHead>
+                    <TableHead>Vigência</TableHead>
+                    <TableHead>Valor Mensal</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredContracts.map((contract, index) => (
+                    <TableRow 
+                      key={contract.id}
+                      className="animate-slide-up"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{contract.outdoors?.code || '-'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{contract.farmer_name}</p>
+                          <p className="text-xs text-muted-foreground">{contract.farmer_cpf}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          <p className="text-muted-foreground">até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(contract.monthly_value))}
                         </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getContractStatusColor(contract.status)}>
-                      {getContractStatusLabel(contract.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setViewingContract(contract)}
-                        title="Ver detalhes"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canEdit && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setEditingContract(contract)}
-                          title="Editar contrato"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {contract.document_url && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => window.open(contract.document_url, '_blank')}
-                          title="Baixar documento"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {getPaymentMethodLabel(contract.payment_method)}
+                          {contract.auto_renewal && (
+                            <span title="Renovação automática">
+                              <RefreshCw className="h-3 w-3 text-success" />
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getContractStatusColor(contract.status)}>
+                          {getContractStatusLabel(contract.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setViewingContract(contract)}
+                            title="Ver detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {canEdit && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setEditingContract(contract)}
+                              title="Editar contrato"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {contract.document_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => window.open(contract.document_url, '_blank')}
+                              title="Baixar documento"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </div>
-
-        {filteredContracts.length === 0 && (
-          <div className="text-center py-12">
+        ) : contracts.length === 0 ? (
+          <div className="text-center py-12 bg-card rounded-xl border border-border">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
-            <p className="mt-4 text-muted-foreground">Nenhum contrato encontrado</p>
+            <p className="mt-4 text-lg font-medium text-foreground">Nenhum contrato cadastrado</p>
+            <p className="text-muted-foreground mt-1">Clique em "Novo Contrato" para começar</p>
+            <Button onClick={() => setIsNewContractOpen(true)} className="mt-4">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Contrato
+            </Button>
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-card rounded-xl border border-border">
+            <Search className="h-12 w-12 mx-auto text-muted-foreground/50" />
+            <p className="mt-4 text-lg font-medium text-foreground">Nenhum contrato encontrado</p>
+            <p className="text-muted-foreground mt-1">Tente ajustar os filtros de busca</p>
+            <Button 
+              variant="outline" 
+              onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} 
+              className="mt-4"
+            >
+              Limpar filtros
+            </Button>
           </div>
         )}
       </div>

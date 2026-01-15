@@ -11,7 +11,7 @@ interface CreateContractInput {
   startDate: string;
   endDate: string;
   monthlyValue: number;
-  paymentMethod: 'cash' | 'fuel' | 'both';
+  paymentMethod: string;
   autoRenewal: boolean;
   documentUrl?: string;
 }

@@ -2,8 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { 
   User, 
   Phone, 
@@ -28,7 +30,7 @@ interface Contract {
   end_date: string;
   monthly_value: number;
   annual_value: number;
-  payment_method: 'cash' | 'fuel' | 'both';
+  payment_method: string;
   auto_renewal: boolean;
   status: string;
   document_url: string | null;
@@ -66,17 +68,23 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-const getPaymentMethodLabel = (method: string) => {
-  switch (method) {
-    case 'cash': return 'Dinheiro';
-    case 'fuel': return 'Combustível';
-    case 'both': return 'Misto';
-    default: return method;
-  }
-};
-
 export function ViewContractDialog({ open, onOpenChange, contract }: ViewContractDialogProps) {
+  const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
+
   if (!contract) return null;
+
+  const getPaymentMethodLabel = (method: string) => {
+    const option = paymentOptions.find(o => o.option_key === method);
+    if (option) return option.option_label;
+    // Fallback for legacy values
+    switch (method) {
+      case 'cash': return 'Dinheiro';
+      case 'fuel': return 'Combustível';
+      case 'both': return 'Misto';
+      case 'pix': return 'PIX';
+      default: return method;
+    }
+  };
 
   const handleDownload = () => {
     if (contract.document_url) {
@@ -86,8 +94,8 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -99,103 +107,105 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Outdoor Info */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-primary mt-0.5" />
-              <div>
-                <p className="font-medium">{contract.outdoors?.pdvs?.name}</p>
-                <p className="text-sm text-muted-foreground">{contract.outdoors?.location}</p>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Farmer Info */}
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-3">Proprietário da Área</h4>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span>{contract.farmer_name}</span>
-                <span className="text-sm text-muted-foreground">({contract.farmer_cpf})</span>
-              </div>
-              {contract.farmer_phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{contract.farmer_phone}</span>
-                </div>
-              )}
-              {contract.farmer_email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{contract.farmer_email}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Contract Details */}
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-3">Detalhes do Contrato</h4>
-            <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="flex-1 px-6 pb-6">
+          <div className="space-y-4">
+            {/* Outdoor Info */}
+            <div className="p-3 bg-muted/50 rounded-lg">
               <div className="flex items-start gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Vigência</p>
-                  <p className="font-medium">
-                    {format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Valor</p>
-                  <p className="font-medium">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.monthly_value)}
-                    <span className="text-sm text-muted-foreground">/mês</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.annual_value)}/ano
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Pagamento</p>
-                  <p className="font-medium">{getPaymentMethodLabel(contract.payment_method)}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <RefreshCw className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Renovação Automática</p>
-                  <p className="font-medium">{contract.auto_renewal ? 'Sim' : 'Não'}</p>
+                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium">{contract.outdoors?.pdvs?.name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{contract.outdoors?.location}</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Document Download */}
-          {contract.document_url && (
-            <>
-              <Separator />
-              <Button variant="outline" className="w-full" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Baixar Documento do Contrato
-              </Button>
-            </>
-          )}
-        </div>
+            <Separator />
+
+            {/* Farmer Info */}
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">Proprietário da Área</h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium">{contract.farmer_name}</span>
+                  <span className="text-sm text-muted-foreground">({contract.farmer_cpf})</span>
+                </div>
+                {contract.farmer_phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{contract.farmer_phone}</span>
+                  </div>
+                )}
+                {contract.farmer_email && (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">{contract.farmer_email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Contract Details */}
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">Detalhes do Contrato</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vigência</p>
+                    <p className="font-medium">
+                      {format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Valor</p>
+                    <p className="font-medium">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.monthly_value)}
+                      <span className="text-sm text-muted-foreground">/mês</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.annual_value)}/ano
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Pagamento</p>
+                    <p className="font-medium">{getPaymentMethodLabel(contract.payment_method)}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <RefreshCw className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Renovação Automática</p>
+                    <p className="font-medium">{contract.auto_renewal ? 'Sim' : 'Não'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Download */}
+            {contract.document_url && (
+              <>
+                <Separator />
+                <Button variant="outline" className="w-full" onClick={handleDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar Documento do Contrato
+                </Button>
+              </>
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

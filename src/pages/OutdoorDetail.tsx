@@ -281,6 +281,49 @@ export default function OutdoorDetail() {
               )}
             </div>
 
+            {/* Active Contract Section */}
+            {contract && (
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Contrato Ativo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Proprietário</p>
+                      <p className="font-medium">{contract.farmer_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Vigência</p>
+                      <p className="font-medium">
+                        {format(new Date(contract.start_date), 'dd/MM/yy', { locale: ptBR })} - {format(new Date(contract.end_date), 'dd/MM/yy', { locale: ptBR })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Valor Mensal</p>
+                      <p className="font-medium text-primary">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.monthly_value)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Pagamento</p>
+                      <p className="font-medium capitalize">{contract.payment_method}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4" 
+                    onClick={() => setShowContractDialog(true)}
+                  >
+                    Ver Detalhes do Contrato
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Actions - Hidden for directors */}
             {!isDirector && (
               <div className="grid grid-cols-2 gap-3">
@@ -291,18 +334,20 @@ export default function OutdoorDetail() {
                   <ClipboardCheck className="h-4 w-4 mr-2" />
                   Avaliar Outdoor
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowContractDialog(true)}
-                  disabled={loadingContract}
-                >
-                  {loadingContract ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
-                  {contract ? 'Ver Contrato' : 'Sem Contrato'}
-                </Button>
+                {!contract && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowContractDialog(true)}
+                    disabled={loadingContract}
+                  >
+                    {loadingContract ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
+                    Sem Contrato
+                  </Button>
+                )}
               </div>
             )}
 
