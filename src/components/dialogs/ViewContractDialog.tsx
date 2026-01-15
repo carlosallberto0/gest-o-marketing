@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +17,7 @@ import {
   FileText,
   Download,
   MapPin,
-  Loader2
+  ExternalLink
 } from 'lucide-react';
 
 interface Contract {
@@ -72,7 +71,6 @@ const getStatusLabel = (status: string) => {
 
 export function ViewContractDialog({ open, onOpenChange, contract }: ViewContractDialogProps) {
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
-  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!contract) return null;
 
@@ -86,30 +84,6 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
       case 'both': return 'Misto';
       case 'pix': return 'PIX';
       default: return method;
-    }
-  };
-
-  const handleDownload = async () => {
-    if (!contract.document_url) return;
-    
-    setIsDownloading(true);
-    try {
-      const response = await fetch(contract.document_url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Erro ao baixar documento:', error);
-      window.open(contract.document_url, '_blank', 'noopener,noreferrer');
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -215,23 +189,28 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
               </div>
             </div>
 
-            {/* Document Download */}
+            {/* Document Actions */}
             {contract.document_url && (
               <>
                 <Separator />
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  {isDownloading ? 'Baixando...' : 'Baixar Documento do Contrato'}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1" 
+                    onClick={() => window.open(contract.document_url!, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visualizar Documento
+                  </Button>
+                  <a 
+                    href={contract.document_url}
+                    download={`contrato-${contract.outdoors?.code || 'documento'}.pdf`}
+                    className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar Documento
+                  </a>
+                </div>
               </>
             )}
           </div>
