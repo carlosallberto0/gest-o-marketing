@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 import { useUpdateContract } from '@/hooks/useContracts';
+import { useSystemOptions } from '@/hooks/useSystemOptions';
 
 interface Contract {
   id: string;
@@ -18,7 +20,7 @@ interface Contract {
   start_date: string;
   end_date: string;
   monthly_value: number;
-  payment_method: 'cash' | 'fuel' | 'both';
+  payment_method: string;
   auto_renewal: boolean;
   status: string;
   outdoors?: {
@@ -34,6 +36,7 @@ interface EditContractDialogProps {
 
 export function EditContractDialog({ open, onOpenChange, contract }: EditContractDialogProps) {
   const updateContract = useUpdateContract();
+  const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
   
   const [formData, setFormData] = useState({
     farmerName: '',
@@ -43,7 +46,7 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
     startDate: '',
     endDate: '',
     monthlyValue: '',
-    paymentMethod: 'cash' as 'cash' | 'fuel' | 'both',
+    paymentMethod: '',
     autoRenewal: false,
     status: 'active',
   });
@@ -78,7 +81,7 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
       startDate: formData.startDate,
       endDate: formData.endDate,
       monthlyValue: parseFloat(formData.monthlyValue),
-      paymentMethod: formData.paymentMethod,
+      paymentMethod: formData.paymentMethod as 'cash' | 'fuel' | 'both',
       autoRenewal: formData.autoRenewal,
       status: formData.status,
     });
@@ -88,158 +91,172 @@ export function EditContractDialog({ open, onOpenChange, contract }: EditContrac
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>
             Editar Contrato {contract?.outdoors?.code}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm text-muted-foreground">Dados do Proprietário</h4>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farmerName">Nome</Label>
-                <Input
-                  id="farmerName"
-                  value={formData.farmerName}
-                  onChange={(e) => setFormData({ ...formData, farmerName: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="farmerCpf">CPF</Label>
-                <Input
-                  id="farmerCpf"
-                  value={formData.farmerCpf}
-                  onChange={(e) => setFormData({ ...formData, farmerCpf: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farmerPhone">Telefone</Label>
-                <Input
-                  id="farmerPhone"
-                  value={formData.farmerPhone}
-                  onChange={(e) => setFormData({ ...formData, farmerPhone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="farmerEmail">E-mail</Label>
-                <Input
-                  id="farmerEmail"
-                  type="email"
-                  value={formData.farmerEmail}
-                  onChange={(e) => setFormData({ ...formData, farmerEmail: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm text-muted-foreground">Dados do Contrato</h4>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Data de Início</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">Data de Término</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="monthlyValue">Valor Mensal (R$)</Label>
-                <Input
-                  id="monthlyValue"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.monthlyValue}
-                  onChange={(e) => setFormData({ ...formData, monthlyValue: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
-                <Select 
-                  value={formData.paymentMethod} 
-                  onValueChange={(v: 'cash' | 'fuel' | 'both') => setFormData({ ...formData, paymentMethod: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Dinheiro</SelectItem>
-                    <SelectItem value="fuel">Combustível</SelectItem>
-                    <SelectItem value="both">Misto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(v) => setFormData({ ...formData, status: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Ativo</SelectItem>
-                    <SelectItem value="expiring">Vencendo</SelectItem>
-                    <SelectItem value="expired">Vencido</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Renovação Automática</Label>
-                <div className="flex items-center gap-2 pt-2">
-                  <Switch
-                    checked={formData.autoRenewal}
-                    onCheckedChange={(checked) => setFormData({ ...formData, autoRenewal: checked })}
+        
+        <ScrollArea className="flex-1 px-6">
+          <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Dados do Proprietário</h4>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="farmerName">Nome</Label>
+                  <Input
+                    id="farmerName"
+                    value={formData.farmerName}
+                    onChange={(e) => setFormData({ ...formData, farmerName: e.target.value })}
+                    required
                   />
-                  <span className="text-sm text-muted-foreground">
-                    {formData.autoRenewal ? 'Sim' : 'Não'}
-                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="farmerCpf">CPF</Label>
+                  <Input
+                    id="farmerCpf"
+                    value={formData.farmerCpf}
+                    onChange={(e) => setFormData({ ...formData, farmerCpf: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="farmerPhone">Telefone</Label>
+                  <Input
+                    id="farmerPhone"
+                    value={formData.farmerPhone}
+                    onChange={(e) => setFormData({ ...formData, farmerPhone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="farmerEmail">E-mail</Label>
+                  <Input
+                    id="farmerEmail"
+                    type="email"
+                    value={formData.farmerEmail}
+                    onChange={(e) => setFormData({ ...formData, farmerEmail: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={updateContract.isPending}>
-              {updateContract.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Salvar Alterações
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="space-y-4 border-t pt-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Dados do Contrato</h4>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Data de Início</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">Data de Término</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyValue">Valor Mensal (R$)</Label>
+                  <Input
+                    id="monthlyValue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.monthlyValue}
+                    onChange={(e) => setFormData({ ...formData, monthlyValue: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
+                  <Select 
+                    value={formData.paymentMethod} 
+                    onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentOptions.length > 0 ? (
+                        paymentOptions.map(option => (
+                          <SelectItem key={option.id} value={option.option_key}>
+                            {option.option_label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="cash">Dinheiro</SelectItem>
+                          <SelectItem value="fuel">Combustível</SelectItem>
+                          <SelectItem value="both">Misto</SelectItem>
+                          <SelectItem value="pix">PIX</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(v) => setFormData({ ...formData, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="expiring">Vencendo</SelectItem>
+                      <SelectItem value="expired">Vencido</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Renovação Automática</Label>
+                  <div className="flex items-center gap-2 pt-2">
+                    <Switch
+                      checked={formData.autoRenewal}
+                      onCheckedChange={(checked) => setFormData({ ...formData, autoRenewal: checked })}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.autoRenewal ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </ScrollArea>
+
+        <DialogFooter className="px-6 py-4 border-t">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={updateContract.isPending}>
+            {updateContract.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Salvar Alterações
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

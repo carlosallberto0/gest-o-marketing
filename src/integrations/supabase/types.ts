@@ -572,7 +572,7 @@ export type Database = {
           id: string
           monthly_value: number
           outdoor_id: string
-          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_method: string
           start_date: string
           status: string
           updated_at: string
@@ -590,7 +590,7 @@ export type Database = {
           id?: string
           monthly_value: number
           outdoor_id: string
-          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_method: string
           start_date: string
           status?: string
           updated_at?: string
@@ -608,7 +608,7 @@ export type Database = {
           id?: string
           monthly_value?: number
           outdoor_id?: string
-          payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_method?: string
           start_date?: string
           status?: string
           updated_at?: string

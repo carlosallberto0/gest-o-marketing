@@ -77,7 +77,7 @@ interface UpdateContractInput {
   startDate?: string;
   endDate?: string;
   monthlyValue?: number;
-  paymentMethod?: 'cash' | 'fuel' | 'both';
+  paymentMethod?: string;
   autoRenewal?: boolean;
   status?: string;
   documentUrl?: string | null;
