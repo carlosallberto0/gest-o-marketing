@@ -310,7 +310,10 @@ export default function Contracts() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => window.open(contract.document_url, '_blank')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(contract.document_url!, '_blank', 'noopener,noreferrer');
+                                }}
                                 title="Visualizar anexo"
                               >
                                 <FileText className="h-4 w-4 text-primary" />
@@ -318,14 +321,24 @@ export default function Contracts() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = contract.document_url!;
-                                  link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
-                                  link.target = '_blank';
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const response = await fetch(contract.document_url!);
+                                    const blob = await response.blob();
+                                    const blobUrl = window.URL.createObjectURL(blob);
+                                    
+                                    const link = document.createElement('a');
+                                    link.href = blobUrl;
+                                    link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(blobUrl);
+                                  } catch (error) {
+                                    console.error('Erro ao baixar documento:', error);
+                                    window.open(contract.document_url!, '_blank', 'noopener,noreferrer');
+                                  }
                                 }}
                                 title="Baixar documento"
                               >

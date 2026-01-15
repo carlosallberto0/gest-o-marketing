@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,8 @@ import {
   RefreshCw,
   FileText,
   Download,
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 
 interface Contract {
@@ -70,6 +72,7 @@ const getStatusLabel = (status: string) => {
 
 export function ViewContractDialog({ open, onOpenChange, contract }: ViewContractDialogProps) {
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!contract) return null;
 
@@ -86,9 +89,27 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
     }
   };
 
-  const handleDownload = () => {
-    if (contract.document_url) {
-      window.open(contract.document_url, '_blank');
+  const handleDownload = async () => {
+    if (!contract.document_url) return;
+    
+    setIsDownloading(true);
+    try {
+      const response = await fetch(contract.document_url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Erro ao baixar documento:', error);
+      window.open(contract.document_url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -198,9 +219,18 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
             {contract.document_url && (
               <>
                 <Separator />
-                <Button variant="outline" className="w-full" onClick={handleDownload}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar Documento do Contrato
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {isDownloading ? 'Baixando...' : 'Baixar Documento do Contrato'}
                 </Button>
               </>
             )}
