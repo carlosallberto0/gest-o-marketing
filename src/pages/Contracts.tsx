@@ -306,14 +306,32 @@ export default function Contracts() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {contract.document_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => window.open(contract.document_url, '_blank')}
-                              title="Baixar documento"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => window.open(contract.document_url, '_blank')}
+                                title="Visualizar anexo"
+                              >
+                                <FileText className="h-4 w-4 text-primary" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = contract.document_url!;
+                                  link.download = `contrato-${contract.outdoors?.code || 'documento'}.pdf`;
+                                  link.target = '_blank';
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                title="Baixar documento"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
