@@ -64,6 +64,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
 import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
+import { useReportSettings } from '@/hooks/useReportSettings';
 
 export default function Outdoors() {
   const navigate = useNavigate();
@@ -84,6 +85,7 @@ export default function Outdoors() {
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
   const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
+  const { data: reportSettings } = useReportSettings();
   
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -187,7 +189,7 @@ export default function Outdoors() {
         status: outdoor.status,
       }));
       
-      await generateOutdoorListPDF(pdfData);
+      await generateOutdoorListPDF(pdfData, reportSettings || undefined);
       toast.success('PDF gerado com sucesso!', { id: toastId });
     } catch (error: any) {
       console.error('Erro ao gerar PDF:', error);
