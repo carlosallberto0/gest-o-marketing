@@ -4,7 +4,14 @@ import { showToast } from '@/lib/toast';
 const DRAFT_KEY = 'contract_draft';
 
 interface ContractDraft {
-  outdoorId: string;
+  // New structure
+  outdoorIds: string[];
+  contractImages: string[];
+  // Legacy fields (for backward compatibility)
+  outdoorId?: string;
+  documentUrl?: string;
+  documentName?: string;
+  // Common fields
   farmerName: string;
   farmerCpf: string;
   farmerPhone: string;
@@ -14,13 +21,15 @@ interface ContractDraft {
   monthlyValue: string;
   paymentMethod: string;
   autoRenewal: boolean;
-  documentUrl: string;
-  documentName: string;
   lastSaved: number;
 }
 
 const initialDraft: ContractDraft = {
+  outdoorIds: [],
+  contractImages: [],
   outdoorId: '',
+  documentUrl: '',
+  documentName: '',
   farmerName: '',
   farmerCpf: '',
   farmerPhone: '',
@@ -30,8 +39,6 @@ const initialDraft: ContractDraft = {
   monthlyValue: '',
   paymentMethod: '',
   autoRenewal: false,
-  documentUrl: '',
-  documentName: '',
   lastSaved: 0,
 };
 
@@ -46,7 +53,7 @@ export function useDraftContract() {
       try {
         const parsed: ContractDraft = JSON.parse(draft);
         // Check if draft has meaningful data
-        const hasData = parsed.farmerName || parsed.outdoorId || parsed.monthlyValue;
+        const hasData = parsed.farmerName || (parsed.outdoorIds && parsed.outdoorIds.length > 0) || parsed.outdoorId || parsed.monthlyValue;
         if (hasData) {
           setHasDraft(true);
           setShowRecoveryPrompt(true);

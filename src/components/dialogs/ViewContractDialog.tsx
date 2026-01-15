@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ContractImageGallery } from '@/components/contracts/ContractImageGallery';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
@@ -15,14 +15,31 @@ import {
   CreditCard,
   RefreshCw,
   FileText,
-  Download,
   MapPin,
   ExternalLink
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+interface ContractOutdoor {
+  outdoor: {
+    id: string;
+    code: string;
+    location: string;
+    pdvs: {
+      name: string;
+    } | null;
+  };
+}
+
+interface ContractImage {
+  id: string;
+  image_url: string;
+  page_order: number;
+}
 
 interface Contract {
   id: string;
-  outdoor_id: string;
+  outdoor_id: string | null;
   farmer_name: string;
   farmer_cpf: string;
   farmer_phone: string | null;
@@ -35,6 +52,8 @@ interface Contract {
   auto_renewal: boolean;
   status: string;
   document_url: string | null;
+  contract_outdoors?: ContractOutdoor[];
+  contract_images?: ContractImage[];
   outdoors?: {
     code: string;
     location: string;
@@ -77,7 +96,6 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
   const getPaymentMethodLabel = (method: string) => {
     const option = paymentOptions.find(o => o.option_key === method);
     if (option) return option.option_label;
-    // Fallback for legacy values
     switch (method) {
       case 'cash': return 'Dinheiro';
       case 'fuel': return 'Combustível';
@@ -87,6 +105,29 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
     }
   };
 
+  // Get outdoors from contract_outdoors or legacy outdoor
+  const linkedOutdoors = contract.contract_outdoors && contract.contract_outdoors.length > 0
+    ? contract.contract_outdoors.map(co => co.outdoor)
+    : contract.outdoors 
+      ? [{ id: contract.outdoor_id!, code: contract.outdoors.code, location: contract.outdoors.location, pdvs: contract.outdoors.pdvs || null }]
+      : [];
+
+  // Get images from contract_images
+  const images = contract.contract_images
+    ?.sort((a, b) => a.page_order - b.page_order)
+    .map(img => img.image_url) || [];
+
+  // Get title
+  const getTitle = () => {
+    if (linkedOutdoors.length > 0) {
+      if (linkedOutdoors.length === 1) {
+        return `Contrato ${linkedOutdoors[0].code}`;
+      }
+      return `Contrato (${linkedOutdoors.length} outdoors)`;
+    }
+    return 'Contrato';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
@@ -94,7 +135,7 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Contrato {contract.outdoors?.code}
+              {getTitle()}
             </DialogTitle>
             <Badge className={getStatusColor(contract.status)}>
               {getStatusLabel(contract.status)}
@@ -104,16 +145,38 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
 
         <ScrollArea className="flex-1 px-6 pb-6">
           <div className="space-y-4">
-            {/* Outdoor Info */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-medium">{contract.outdoors?.pdvs?.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{contract.outdoors?.location}</p>
+            {/* Linked Outdoors */}
+            {linkedOutdoors.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Outdoors Vinculados ({linkedOutdoors.length})
+                </h4>
+                <div className="space-y-2">
+                  {linkedOutdoors.map((outdoor) => (
+                    <div 
+                      key={outdoor.id}
+                      className="p-3 bg-muted/50 rounded-lg flex items-center justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">{outdoor.code}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {outdoor.pdvs?.name} • {outdoor.location}
+                        </p>
+                      </div>
+                      <Link 
+                        to={`/outdoor/${outdoor.id}`}
+                        className="text-primary hover:underline text-sm flex items-center gap-1 shrink-0"
+                        onClick={() => onOpenChange(false)}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Ver
+                      </Link>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
             <Separator />
 
@@ -189,28 +252,11 @@ export function ViewContractDialog({ open, onOpenChange, contract }: ViewContrac
               </div>
             </div>
 
-            {/* Document Actions */}
-            {contract.document_url && (
+            {/* Contract Images Gallery */}
+            {images.length > 0 && (
               <>
                 <Separator />
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
-                    onClick={() => window.open(contract.document_url!, '_blank', 'noopener,noreferrer')}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visualizar Documento
-                  </Button>
-                  <a 
-                    href={contract.document_url}
-                    download={`contrato-${contract.outdoors?.code || 'documento'}.pdf`}
-                    className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Baixar Documento
-                  </a>
-                </div>
+                <ContractImageGallery images={images} />
               </>
             )}
           </div>

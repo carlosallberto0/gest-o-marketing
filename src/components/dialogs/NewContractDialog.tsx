@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { OutdoorSearchSelect } from '@/components/ui/outdoor-search-select';
-import { Loader2, Upload, FileText, X, AlertCircle } from 'lucide-react';
+import { OutdoorMultiSelect } from '@/components/ui/outdoor-multi-select';
+import { MultiPhotoUpload } from '@/components/ui/photo-upload';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useCreateContract } from '@/hooks/useCreateContract';
 import { useSystemOptions } from '@/hooks/useSystemOptions';
 import { useDraftContract } from '@/hooks/useDraftContract';
-import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
 
 interface NewContractDialogProps {
@@ -21,7 +21,7 @@ interface NewContractDialogProps {
 }
 
 const initialFormData = {
-  outdoorId: '',
+  outdoorIds: [] as string[],
   farmerName: '',
   farmerCpf: '',
   farmerPhone: '',
@@ -31,8 +31,7 @@ const initialFormData = {
   monthlyValue: '',
   paymentMethod: '',
   autoRenewal: false,
-  documentUrl: '',
-  documentName: '',
+  contractImages: [] as string[],
 };
 
 export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps) {
@@ -41,7 +40,6 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
   const createContract = useCreateContract();
   const { showRecoveryPrompt, saveDraft, loadDraft, clearDraft, recoverDraft, dismissRecovery } = useDraftContract();
   
-  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
 
@@ -56,7 +54,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
   useEffect(() => {
     if (!open) return;
     
-    const hasData = formData.farmerName || formData.outdoorId || formData.monthlyValue;
+    const hasData = formData.farmerName || formData.outdoorIds.length > 0 || formData.monthlyValue;
     if (hasData) {
       const timeout = setTimeout(() => {
         saveDraft(formData);
@@ -69,7 +67,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
     const draft = recoverDraft();
     if (draft) {
       setFormData({
-        outdoorId: draft.outdoorId || '',
+        outdoorIds: draft.outdoorIds || draft.outdoorId ? [draft.outdoorId] : [],
         farmerName: draft.farmerName || '',
         farmerCpf: draft.farmerCpf || '',
         farmerPhone: draft.farmerPhone || '',
@@ -79,8 +77,7 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
         monthlyValue: draft.monthlyValue || '',
         paymentMethod: draft.paymentMethod || '',
         autoRenewal: draft.autoRenewal || false,
-        documentUrl: draft.documentUrl || '',
-        documentName: draft.documentName || '',
+        contractImages: draft.contractImages || [],
       });
     }
     setShowRecoveryBanner(false);
@@ -91,59 +88,16 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
     setShowRecoveryBanner(false);
   }, [dismissRecovery]);
 
-  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      showToast.error('O arquivo deve ter no máximo 10MB');
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `contracts/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-      const { data, error } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('photos')
-        .getPublicUrl(data.path);
-
-      setFormData({ 
-        ...formData, 
-        documentUrl: publicUrl,
-        documentName: file.name,
-      });
-      showToast.success('Documento enviado com sucesso!');
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      showToast.error('Erro ao enviar documento');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleRemoveDocument = () => {
-    setFormData({ ...formData, documentUrl: '', documentName: '' });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.paymentMethod || !formData.outdoorId) return;
+    if (!formData.paymentMethod || formData.outdoorIds.length === 0) {
+      showToast.error('Selecione pelo menos um outdoor');
+      return;
+    }
 
     await createContract.mutateAsync({
-      outdoorId: formData.outdoorId,
+      outdoorIds: formData.outdoorIds,
       farmerName: formData.farmerName,
       farmerCpf: formData.farmerCpf,
       farmerPhone: formData.farmerPhone || undefined,
@@ -151,9 +105,9 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
       startDate: formData.startDate,
       endDate: formData.endDate,
       monthlyValue: parseFloat(formData.monthlyValue),
-      paymentMethod: formData.paymentMethod as 'cash' | 'fuel' | 'both',
+      paymentMethod: formData.paymentMethod,
       autoRenewal: formData.autoRenewal,
-      documentUrl: formData.documentUrl || undefined,
+      imageUrls: formData.contractImages.length > 0 ? formData.contractImages : undefined,
     });
     
     clearDraft();
@@ -169,7 +123,13 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
   };
 
   // Show ALL outdoors, with visual indicator for those with contracts
-  const availableOutdoors = outdoors || [];
+  const availableOutdoors = (outdoors || []).map(o => ({
+    id: o.id,
+    code: o.code,
+    pdvName: o.pdvName,
+    location: o.location,
+    hasContract: !!o.contractId,
+  }));
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -200,18 +160,12 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
 
           <form onSubmit={handleSubmit} className="space-y-4 pb-6">
             <div className="space-y-2">
-              <Label htmlFor="outdoorId">Outdoor</Label>
-              <OutdoorSearchSelect
-                outdoors={availableOutdoors.map(o => ({
-                  id: o.id,
-                  code: o.code,
-                  pdvName: o.pdvName,
-                  location: o.location,
-                  hasContract: !!o.contractId,
-                }))}
-                value={formData.outdoorId}
-                onValueChange={(id) => setFormData({ ...formData, outdoorId: id })}
-                placeholder="Buscar outdoor por código ou posto..."
+              <Label>Outdoors Vinculados</Label>
+              <OutdoorMultiSelect
+                outdoors={availableOutdoors}
+                value={formData.outdoorIds}
+                onValueChange={(ids) => setFormData({ ...formData, outdoorIds: ids })}
+                placeholder="Buscar e selecionar outdoors..."
               />
             </div>
 
@@ -341,49 +295,18 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
               </div>
             </div>
 
-            {/* Document Upload Section */}
+            {/* Contract Images Upload Section */}
             <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Contrato Assinado</h4>
-              <div className="space-y-2">
-                {formData.documentUrl ? (
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <FileText className="h-8 w-8 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{formData.documentName}</p>
-                      <p className="text-xs text-muted-foreground">Documento anexado</p>
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={handleRemoveDocument}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                      {isUploading ? (
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      ) : (
-                        <>
-                          <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground text-center px-4">Clique para enviar o contrato assinado</p>
-                          <p className="text-xs text-muted-foreground">(PDF, DOC, JPG - máx. 10MB)</p>
-                        </>
-                      )}
-                    </div>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={handleDocumentUpload}
-                      disabled={isUploading}
-                    />
-                  </label>
-                )}
-              </div>
+              <h4 className="font-medium mb-3">Páginas do Contrato (Imagens)</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Fotografe ou selecione as páginas do contrato assinado. Formatos aceitos: JPG, PNG.
+              </p>
+              <MultiPhotoUpload
+                value={formData.contractImages}
+                onChange={(photos) => setFormData({ ...formData, contractImages: photos })}
+                maxPhotos={10}
+                folder="contracts"
+              />
             </div>
           </form>
         </ScrollArea>
@@ -392,7 +315,10 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
           <Button type="button" variant="outline" onClick={() => handleClose(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={createContract.isPending || !formData.outdoorId || !formData.paymentMethod}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={createContract.isPending || formData.outdoorIds.length === 0 || !formData.paymentMethod}
+          >
             {createContract.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Criar Contrato
           </Button>
