@@ -12,12 +12,13 @@ import {
   Search, 
   Plus, 
   RefreshCw,
-  Download,
+  ExternalLink,
   Filter,
   Edit,
   Eye,
   Loader2,
-  Trash2
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,7 +50,6 @@ import {
 import { NewContractDialog } from '@/components/dialogs/NewContractDialog';
 import { EditContractDialog } from '@/components/dialogs/EditContractDialog';
 import { ViewContractDialog } from '@/components/dialogs/ViewContractDialog';
-import { DocumentViewerDialog } from '@/components/dialogs/DocumentViewerDialog';
 import { useQueryClient } from '@tanstack/react-query';
 
 const getContractStatusColor = (status: string) => {
@@ -70,6 +70,18 @@ const getContractStatusLabel = (status: string) => {
   }
 };
 
+// Helper to get display text for linked outdoors
+const getOutdoorDisplay = (contract: any) => {
+  // Check new structure first
+  if (contract.contract_outdoors && contract.contract_outdoors.length > 0) {
+    const codes = contract.contract_outdoors.map((co: any) => co.outdoor?.code).filter(Boolean);
+    if (codes.length === 1) return codes[0];
+    if (codes.length > 1) return `${codes[0]} +${codes.length - 1}`;
+  }
+  // Fallback to legacy structure
+  return contract.outdoors?.code || '-';
+};
+
 export default function Contracts() {
   const [searchParams] = useSearchParams();
   const outdoorFilter = searchParams.get('outdoor');
@@ -80,7 +92,6 @@ export default function Contracts() {
   const [editingContract, setEditingContract] = useState<any>(null);
   const [viewingContract, setViewingContract] = useState<any>(null);
   const [deletingContract, setDeletingContract] = useState<any>(null);
-  const [documentToView, setDocumentToView] = useState<{ url: string; code: string } | null>(null);
   
   const { data: contracts = [], isLoading, refetch } = useContracts();
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
@@ -94,6 +105,11 @@ export default function Contracts() {
     if (!deletingContract) return;
     await deleteContract.mutateAsync(deletingContract.id);
     setDeletingContract(null);
+  };
+
+  // Helper to open legacy PDF in new tab
+  const handleViewLegacyPDF = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Helper function to get payment method label from dynamic options
@@ -222,7 +238,7 @@ export default function Contracts() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Outdoor</TableHead>
+                    <TableHead>Outdoor(s)</TableHead>
                     <TableHead>Proprietário</TableHead>
                     <TableHead>Vigência</TableHead>
                     <TableHead>Valor Mensal</TableHead>
@@ -232,112 +248,114 @@ export default function Contracts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredContracts.map((contract, index) => (
-                    <TableRow 
-                      key={contract.id}
-                      className={index < 10 ? "animate-slide-up" : ""}
-                      style={index < 10 ? { animationDelay: `${index * 30}ms` } : undefined}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          <span className="font-medium">{contract.outdoors?.code || '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{contract.farmer_name}</p>
-                          <p className="text-xs text-muted-foreground">{contract.farmer_cpf}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p>{format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                          <p className="text-muted-foreground">até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(contract.monthly_value))}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {getPaymentMethodLabel(contract.payment_method)}
-                          {contract.auto_renewal && (
-                            <span title="Renovação automática">
-                              <RefreshCw className="h-3 w-3 text-success" />
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getContractStatusColor(contract.status)}>
-                          {getContractStatusLabel(contract.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {canEdit && (
-                            <>
+                  {filteredContracts.map((contract, index) => {
+                    const hasImages = contract.contract_images && contract.contract_images.length > 0;
+                    const hasLegacyPDF = contract.document_url && !hasImages;
+                    
+                    return (
+                      <TableRow 
+                        key={contract.id}
+                        className={index < 10 ? "animate-slide-up" : ""}
+                        style={index < 10 ? { animationDelay: `${index * 30}ms` } : undefined}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <span className="font-medium">{getOutdoorDisplay(contract)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{contract.farmer_name}</p>
+                            <p className="text-xs text-muted-foreground">{contract.farmer_cpf}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p>{format(new Date(contract.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                            <p className="text-muted-foreground">até {format(new Date(contract.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(contract.monthly_value))}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {getPaymentMethodLabel(contract.payment_method)}
+                            {contract.auto_renewal && (
+                              <span title="Renovação automática">
+                                <RefreshCw className="h-3 w-3 text-success" />
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getContractStatusColor(contract.status)}>
+                            {getContractStatusLabel(contract.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {canEdit && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setEditingContract(contract)}
+                                  title="Editar contrato"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setDeletingContract(contract)}
+                                  title="Excluir contrato"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setViewingContract(contract)}
+                              title="Ver detalhes"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            
+                            {/* Show image indicator if has images */}
+                            {hasImages && (
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => setEditingContract(contract)}
-                                title="Editar contrato"
+                                onClick={() => setViewingContract(contract)}
+                                title={`${contract.contract_images.length} imagem(ns) do contrato`}
                               >
-                                <Edit className="h-4 w-4" />
+                                <ImageIcon className="h-4 w-4 text-primary" />
                               </Button>
+                            )}
+                            
+                            {/* Show PDF button if has legacy PDF */}
+                            {hasLegacyPDF && (
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => setDeletingContract(contract)}
-                                title="Excluir contrato"
-                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleViewLegacyPDF(contract.document_url!)}
+                                title="Abrir PDF em nova aba"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <ExternalLink className="h-4 w-4 text-primary" />
                               </Button>
-                            </>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setViewingContract(contract)}
-                            title="Ver detalhes"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {contract.document_url && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDocumentToView({ 
-                                    url: contract.document_url!, 
-                                    code: contract.outdoors?.code || 'documento' 
-                                  });
-                                }}
-                                title="Visualizar anexo"
-                              >
-                                <FileText className="h-4 w-4 text-primary" />
-                              </Button>
-                              <a 
-                                href={contract.document_url}
-                                download={`contrato-${contract.outdoors?.code || 'documento'}.pdf`}
-                                className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                                title="Baixar documento"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -379,21 +397,14 @@ export default function Contracts() {
         onOpenChange={(open) => !open && setViewingContract(null)}
         contract={viewingContract}
       />
-      <DocumentViewerDialog
-        open={!!documentToView}
-        onOpenChange={(open) => !open && setDocumentToView(null)}
-        documentUrl={documentToView?.url || null}
-        title={`Contrato ${documentToView?.code}`}
-        fileName={`contrato-${documentToView?.code}.pdf`}
-      />
 
       <AlertDialog open={!!deletingContract} onOpenChange={(open) => !open && setDeletingContract(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Contrato</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o contrato do outdoor <strong>{deletingContract?.outdoors?.code}</strong>?
-              Esta ação não pode ser desfeita e o vínculo com o outdoor será removido.
+              Tem certeza que deseja excluir o contrato de <strong>{deletingContract?.farmer_name}</strong>?
+              Esta ação não pode ser desfeita e o vínculo com o(s) outdoor(s) será removido.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
