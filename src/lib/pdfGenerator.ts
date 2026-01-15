@@ -2,6 +2,18 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { ReportSettings } from '@/hooks/useReportSettings';
+
+// Utility function to convert hex color to RGB
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const cleanHex = hex.replace('#', '');
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanHex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 59, g: 130, b: 246 }; // Fallback to blue
+}
 
 interface ServiceOrderPDFData {
   number: string;
@@ -385,36 +397,117 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
-export async function generateOutdoorListPDF(outdoors: OutdoorPDFData[]): Promise<void> {
-  const doc = new jsPDF();
+export async function generateOutdoorListPDF(
+  outdoors: OutdoorPDFData[],
+  settings?: ReportSettings
+): Promise<void> {
+  // Get settings with fallbacks
+  const headerBgColor = hexToRgb(settings?.global?.header?.background_color || '#3b82f6');
+  const headerTextColor = hexToRgb(settings?.global?.header?.text_color || '#ffffff');
+  const bodyTableHeaderColor = hexToRgb(settings?.global?.body?.table_header_color || '#3b82f6');
+  const bodyStripeColor = hexToRgb(settings?.global?.body?.table_stripe_color || '#f5f5f5');
+  const footerTextColor = hexToRgb(settings?.global?.footer?.text_color || '#808080');
+  
+  const title = settings?.templates?.outdoors?.header_title || 
+                settings?.global?.header?.title || 
+                'RELAÇÃO DE OUTDOORS - MANUTENÇÃO';
+  const showSubtitle = settings?.global?.header?.show_subtitle !== false;
+  const showDate = settings?.global?.header?.show_date !== false;
+  const showOnAllPages = settings?.global?.header?.show_on_all_pages || false;
+  const logoUrl = settings?.global?.header?.logo_url;
+  const logoPosition = settings?.global?.header?.logo_position || 'left';
+  const logoHeight = settings?.global?.header?.logo_height || 15;
+  const fontFamily = settings?.global?.font_family || 'helvetica';
+  
+  const marginLeft = settings?.global?.margins?.left || 14;
+  const marginRight = settings?.global?.margins?.right || 14;
+  const marginTop = settings?.global?.margins?.top || 20;
+  const marginBottom = settings?.global?.margins?.bottom || 20;
+  
+  const doc = new jsPDF({
+    orientation: settings?.global?.page_orientation || 'portrait',
+    format: settings?.global?.page_format || 'a4',
+  });
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Header
-  doc.setFillColor(59, 130, 246);
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  // Load logo if configured
+  let logoBase64: string | null = null;
+  if (logoUrl) {
+    logoBase64 = await loadImageAsBase64(logoUrl);
+  }
   
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RELAÇÃO DE OUTDOORS - MANUTENÇÃO', pageWidth / 2, 15, { align: 'center' });
+  // Function to draw header (used on first page or all pages if configured)
+  const drawHeader = async (isFirstPage: boolean) => {
+    if (!isFirstPage && !showOnAllPages) return 45; // Return default yPos for subsequent pages
+    
+    const headerHeight = 35;
+    
+    // Header background
+    doc.setFillColor(headerBgColor.r, headerBgColor.g, headerBgColor.b);
+    doc.rect(0, 0, pageWidth, headerHeight, 'F');
+    
+    // Logo
+    if (logoBase64) {
+      const aspectRatio = 2; // Assume 2:1 aspect ratio for logo width calculation
+      const logoWidth = logoHeight * aspectRatio;
+      let logoX = marginLeft;
+      
+      if (logoPosition === 'center') {
+        logoX = (pageWidth - logoWidth) / 2;
+      } else if (logoPosition === 'right') {
+        logoX = pageWidth - marginRight - logoWidth;
+      }
+      
+      try {
+        doc.addImage(logoBase64, 'PNG', logoX, 3, logoWidth, logoHeight);
+      } catch (e) {
+        console.error('Error adding logo:', e);
+      }
+    }
+    
+    // Title - adjust position based on logo
+    doc.setTextColor(headerTextColor.r, headerTextColor.g, headerTextColor.b);
+    doc.setFontSize(18);
+    doc.setFont(fontFamily, 'bold');
+    
+    let titleY = logoBase64 ? logoHeight + 7 : 15;
+    if (logoPosition === 'center' && logoBase64) {
+      titleY = logoHeight + 10;
+    }
+    
+    doc.text(title, pageWidth / 2, titleY, { align: 'center' });
+    
+    // Subtitle with count and date
+    if (showSubtitle || showDate) {
+      doc.setFontSize(11);
+      doc.setFont(fontFamily, 'normal');
+      
+      let subtitleText = '';
+      if (showSubtitle) {
+        subtitleText += `${outdoors.length} outdoor(s)`;
+      }
+      if (showDate) {
+        if (subtitleText) subtitleText += ' • ';
+        subtitleText += `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
+      }
+      
+      if (subtitleText) {
+        const subtitleY = titleY + 11;
+        doc.text(subtitleText, pageWidth / 2, subtitleY, { align: 'center' });
+      }
+    }
+    
+    return headerHeight + 10; // Return yPos after header
+  };
   
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(
-    `${outdoors.length} outdoor(s) • Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-    pageWidth / 2,
-    26,
-    { align: 'center' }
-  );
+  // Draw header on first page
+  let yPos = await drawHeader(true);
   
-  doc.setTextColor(0, 0, 0);
-  let yPos = 45;
   const itemHeight = 55;
   const imageWidth = 50;
   const imageHeight = 35;
-  const marginLeft = 14;
-  const marginBottom = 20;
   
   for (let i = 0; i < outdoors.length; i++) {
     const outdoor = outdoors[i];
@@ -422,20 +515,25 @@ export async function generateOutdoorListPDF(outdoors: OutdoorPDFData[]): Promis
     // Check if we need a new page
     if (yPos + itemHeight > pageHeight - marginBottom) {
       doc.addPage();
-      yPos = 20;
+      // Draw header on new page if configured
+      if (showOnAllPages) {
+        yPos = await drawHeader(false);
+      } else {
+        yPos = marginTop;
+      }
     }
     
-    // Item number and code header
-    doc.setFillColor(245, 245, 245);
-    doc.rect(marginLeft, yPos, pageWidth - marginLeft * 2, 8, 'F');
+    // Item number and code header - using body stripe color
+    doc.setFillColor(bodyStripeColor.r, bodyStripeColor.g, bodyStripeColor.b);
+    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 8, 'F');
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(59, 130, 246);
+    doc.setFont(fontFamily, 'bold');
+    doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
     doc.text(`${i + 1}. ${outdoor.code}`, marginLeft + 2, yPos + 5.5);
     
     doc.setTextColor(100, 100, 100);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     const truncatedPdv = outdoor.pdvName.length > 40 ? outdoor.pdvName.substring(0, 40) + '...' : outdoor.pdvName;
     doc.text(` - ${truncatedPdv}`, marginLeft + 2 + doc.getTextWidth(`${i + 1}. ${outdoor.code}`), yPos + 5.5);
     
@@ -481,34 +579,34 @@ export async function generateOutdoorListPDF(outdoors: OutdoorPDFData[]): Promis
     doc.setFontSize(9);
     
     // Size
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(fontFamily, 'bold');
     doc.text('Tamanho:', infoX, infoY);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     doc.text(`${outdoor.width}m x ${outdoor.height}m (${outdoor.area}m²)`, infoX + 22, infoY);
     infoY += 6;
     
     // City
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(fontFamily, 'bold');
     doc.text('Cidade:', infoX, infoY);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     doc.text(outdoor.city || 'Não informada', infoX + 17, infoY);
     infoY += 6;
     
     // Status
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(fontFamily, 'bold');
     doc.text('Status:', infoX, infoY);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     const statusText = outdoorStatusLabels[outdoor.status] || outdoor.status;
     doc.text(statusText, infoX + 15, infoY);
     infoY += 6;
     
     // Location
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(fontFamily, 'bold');
     doc.text('Localização:', infoX, infoY);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     if (outdoor.locationUrl) {
       const displayUrl = outdoor.locationUrl.length > 45 ? outdoor.locationUrl.substring(0, 45) + '...' : outdoor.locationUrl;
-      doc.setTextColor(59, 130, 246);
+      doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
       doc.text(displayUrl, infoX + 26, infoY);
       doc.setTextColor(0, 0, 0);
     } else if (outdoor.location) {
@@ -523,22 +621,44 @@ export async function generateOutdoorListPDF(outdoors: OutdoorPDFData[]): Promis
     // Separator line
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.3);
-    doc.line(marginLeft, yPos, pageWidth - marginLeft, yPos);
+    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
     yPos += 5;
   }
   
-  // Footer on all pages
+  // Footer on all pages - use footer settings
+  const footerContent = settings?.global?.footer?.content || 
+    'Página {{pagina}} de {{total_paginas}} | Gerado em {{data_geracao}}';
+  const footerAlignment = settings?.global?.footer?.alignment || 'center';
+  const showPageNumbers = settings?.global?.footer?.show_page_numbers !== false;
+  
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text(
-      `Página ${i} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: 'center' }
-    );
+    doc.setTextColor(footerTextColor.r, footerTextColor.g, footerTextColor.b);
+    
+    // Replace footer variables
+    let footerText = footerContent
+      .replace('{{pagina}}', String(i))
+      .replace('{{total_paginas}}', String(pageCount))
+      .replace('{{data_geracao}}', format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }));
+    
+    if (!showPageNumbers) {
+      footerText = footerText.replace(/Página \d+ de \d+\s*\|?\s*/g, '');
+    }
+    
+    let footerX = pageWidth / 2;
+    let footerAlign: 'left' | 'center' | 'right' = 'center';
+    
+    if (footerAlignment === 'left') {
+      footerX = marginLeft;
+      footerAlign = 'left';
+    } else if (footerAlignment === 'right') {
+      footerX = pageWidth - marginRight;
+      footerAlign = 'right';
+    }
+    
+    doc.text(footerText, footerX, pageHeight - 10, { align: footerAlign });
   }
   
   doc.save(`relacao-outdoors-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
