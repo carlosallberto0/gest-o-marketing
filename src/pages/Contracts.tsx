@@ -82,11 +82,11 @@ export default function Contracts() {
   
   const { data: contracts = [], isLoading, refetch } = useContracts();
   const { data: paymentOptions = [] } = useSystemOptions('contract_payment_method');
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const deleteContract = useDeleteContract();
 
-  const canEdit = user?.role === 'super_admin' || user?.role === 'admin';
+  const canEdit = profile?.role === 'super_admin' || profile?.role === 'admin';
 
   const handleDeleteContract = async () => {
     if (!deletingContract) return;
