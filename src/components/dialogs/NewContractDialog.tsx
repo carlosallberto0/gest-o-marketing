@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { OutdoorSearchSelect } from '@/components/ui/outdoor-search-select';
 import { Loader2, Upload, FileText, X, AlertCircle } from 'lucide-react';
 import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useCreateContract } from '@/hooks/useCreateContract';
@@ -200,18 +201,17 @@ export function NewContractDialog({ open, onOpenChange }: NewContractDialogProps
           <form onSubmit={handleSubmit} className="space-y-4 pb-4">
             <div className="space-y-2">
               <Label htmlFor="outdoorId">Outdoor</Label>
-              <Select value={formData.outdoorId} onValueChange={(v) => setFormData({ ...formData, outdoorId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o outdoor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableOutdoors.map(outdoor => (
-                    <SelectItem key={outdoor.id} value={outdoor.id}>
-                      {outdoor.code} - {outdoor.pdvName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <OutdoorSearchSelect
+                outdoors={availableOutdoors.map(o => ({
+                  id: o.id,
+                  code: o.code,
+                  pdvName: o.pdvName,
+                  location: o.location,
+                }))}
+                value={formData.outdoorId}
+                onValueChange={(id) => setFormData({ ...formData, outdoorId: id })}
+                placeholder="Buscar outdoor por código ou posto..."
+              />
             </div>
 
             <div className="border-t pt-4">
