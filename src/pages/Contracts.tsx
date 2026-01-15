@@ -17,8 +17,7 @@ import {
   Edit,
   Eye,
   Loader2,
-  Trash2,
-  Image as ImageIcon
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -328,17 +327,6 @@ export default function Contracts() {
                               <Eye className="h-4 w-4" />
                             </Button>
                             
-                            {/* Show image indicator if has images */}
-                            {hasImages && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => setViewingContract(contract)}
-                                title={`${contract.contract_images.length} imagem(ns) do contrato`}
-                              >
-                                <ImageIcon className="h-4 w-4 text-primary" />
-                              </Button>
-                            )}
                             
                             {/* Show PDF button if has legacy PDF */}
                             {hasLegacyPDF && (
