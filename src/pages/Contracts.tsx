@@ -233,8 +233,8 @@ export default function Contracts() {
                   {filteredContracts.map((contract, index) => (
                     <TableRow 
                       key={contract.id}
-                      className="animate-slide-up"
-                      style={{ animationDelay: `${index * 30}ms` }}
+                      className={index < 10 ? "animate-slide-up" : ""}
+                      style={index < 10 ? { animationDelay: `${index * 30}ms` } : undefined}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
