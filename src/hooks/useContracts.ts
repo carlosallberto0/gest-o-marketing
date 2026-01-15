@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
+import type { Database } from '@/integrations/supabase/types';
 
 interface Contract {
   id: string;
@@ -123,6 +124,51 @@ export function useUpdateContract() {
     onError: (error) => {
       console.error('Error updating contract:', error);
       showToast.error('Erro ao atualizar contrato');
+    },
+  });
+}
+
+export function useDeleteContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contractId: string) => {
+      // First, get the contract to find the outdoor_id
+      const { data: contract, error: fetchError } = await supabase
+        .from('contracts')
+        .select('outdoor_id')
+        .eq('id', contractId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Unlink the contract from the outdoor
+      if (contract?.outdoor_id) {
+        const { error: unlinkError } = await supabase
+          .from('outdoors')
+          .update({ contract_id: null })
+          .eq('id', contract.outdoor_id);
+
+        if (unlinkError) throw unlinkError;
+      }
+
+      // Delete the contract
+      const { error: deleteError } = await supabase
+        .from('contracts')
+        .delete()
+        .eq('id', contractId);
+
+      if (deleteError) throw deleteError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract'] });
+      queryClient.invalidateQueries({ queryKey: ['outdoors'] });
+      showToast.success('Contrato excluído com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error deleting contract:', error);
+      showToast.error('Erro ao excluir contrato');
     },
   });
 }
