@@ -415,10 +415,11 @@ export default function Outdoors() {
             <div 
               key={outdoor.id}
               className={cn(
-                "bg-card rounded-xl border overflow-hidden hover:shadow-lg transition-all duration-300 animate-slide-up",
+                "bg-card rounded-xl border overflow-hidden hover:shadow-lg transition-all duration-300",
+                index < 6 && "animate-slide-up",
                 selectedOutdoors.has(outdoor.id) ? "border-primary ring-2 ring-primary/20" : "border-border"
               )}
-              style={{ animationDelay: `${index * 50}ms` }}
+              style={index < 6 ? { animationDelay: `${index * 50}ms` } : undefined}
             >
               <div className="aspect-video bg-muted relative">
                 {/* Selection Checkbox - Super Admin only */}
