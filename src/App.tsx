@@ -69,6 +69,15 @@ import { RequireRole } from "@/components/auth/RequireRole";
 
 const queryClient = new QueryClient();
 
+// AppContent is rendered inside providers so ProtectedRoute can use useAuth
+function AppContent() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   
@@ -566,9 +575,7 @@ const App = () => (
             <TooltipProvider>
               <AlertToastContainer />
               <AlertToastConnector />
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
+              <AppContent />
             </TooltipProvider>
           </AlertToastProvider>
         </SystemProvider>
