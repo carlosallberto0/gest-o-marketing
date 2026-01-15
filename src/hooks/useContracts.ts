@@ -36,7 +36,7 @@ export function useContracts() {
         .from('contracts')
         .select(`
           *,
-          outdoors(code, location, pdvs(name))
+          outdoors!contracts_outdoor_id_fkey(code, location, pdvs(name))
         `)
         .order('created_at', { ascending: false });
 
@@ -56,7 +56,7 @@ export function useContractByOutdoor(outdoorId: string | null) {
         .from('contracts')
         .select(`
           *,
-          outdoors(code, location, pdvs(name))
+          outdoors!contracts_outdoor_id_fkey(code, location, pdvs(name))
         `)
         .eq('outdoor_id', outdoorId)
         .maybeSingle();
