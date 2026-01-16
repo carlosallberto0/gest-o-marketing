@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LinkCard } from '@/components/ui/link-card';
-import { ClipboardCheck, Megaphone, Map, Upload, X, Plus, Loader2, RotateCcw, Save, DollarSign } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, Upload, X, Plus, Loader2, RotateCcw, Save, DollarSign, Building2, Home } from 'lucide-react';
 import { useModuleSettings, useUpdateModuleSettings, defaultModuleSettings, type ModuleAppearance, type ModuleAppearanceSettings as ModuleSettingsType } from '@/hooks/useModuleSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
@@ -16,6 +16,8 @@ const moduleIcons = {
   media: Megaphone,
   mapa: Map,
   financeiro: DollarSign,
+  agencia: Building2,
+  loteamentos: Home,
 };
 
 const moduleLabels = {
@@ -23,6 +25,8 @@ const moduleLabels = {
   media: 'Mídia Externa',
   mapa: 'Mapa Estratégico',
   financeiro: 'Financeiro',
+  agencia: 'Agência',
+  loteamentos: 'Loteamentos',
 };
 
 type ModuleKey = keyof ModuleSettingsType;
@@ -167,6 +171,8 @@ export function ModuleAppearanceSettings() {
                 <SelectItem value="media">Mídia Externa</SelectItem>
                 <SelectItem value="mapa">Mapa Estratégico</SelectItem>
                 <SelectItem value="financeiro">Financeiro</SelectItem>
+                <SelectItem value="agencia">Agência</SelectItem>
+                <SelectItem value="loteamentos">Loteamentos</SelectItem>
               </SelectContent>
             </Select>
           </div>

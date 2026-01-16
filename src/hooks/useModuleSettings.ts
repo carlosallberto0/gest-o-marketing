@@ -16,6 +16,8 @@ export interface ModuleAppearanceSettings {
   media: ModuleAppearance;
   mapa: ModuleAppearance;
   financeiro: ModuleAppearance;
+  agencia: ModuleAppearance;
+  loteamentos: ModuleAppearance;
 }
 
 const defaultModuleSettings: ModuleAppearanceSettings = {
@@ -51,6 +53,22 @@ const defaultModuleSettings: ModuleAppearanceSettings = {
     button_color: '#f59e0b',
     features: ['Custos Externos', 'Rateio por Posto', 'Comprovantes', 'Relatórios', 'KPIs Financeiros'],
   },
+  agencia: {
+    title: 'Agência',
+    description: 'Gestão de agências parceiras, demandas, catálogo de vídeos e fotos.',
+    image_url: null,
+    icon_color: '#ec4899',
+    button_color: '#ec4899',
+    features: ['Agências Parceiras', 'Demandas', 'Catálogo de Vídeos', 'Catálogo de Fotos', 'Relatórios'],
+  },
+  loteamentos: {
+    title: 'Loteamentos',
+    description: 'Gestão de empreendimentos imobiliários, contratos e pagamentos.',
+    image_url: null,
+    icon_color: '#14b8a6',
+    button_color: '#14b8a6',
+    features: ['Empreendimentos', 'Contratos de Venda', 'Pagamentos', 'Relatórios', 'Dashboard'],
+  },
 };
 
 export function useModuleSettings() {
@@ -79,6 +97,8 @@ export function useModuleSettings() {
         media: { ...defaultModuleSettings.media, ...storedSettings.media },
         mapa: { ...defaultModuleSettings.mapa, ...storedSettings.mapa },
         financeiro: { ...defaultModuleSettings.financeiro, ...storedSettings.financeiro },
+        agencia: { ...defaultModuleSettings.agencia, ...storedSettings.agencia },
+        loteamentos: { ...defaultModuleSettings.loteamentos, ...storedSettings.loteamentos },
       };
     },
   });

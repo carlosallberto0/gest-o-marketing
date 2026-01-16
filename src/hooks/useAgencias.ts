@@ -276,6 +276,32 @@ export function useDeleteAgenciaVideo() {
   });
 }
 
+export function useUpdateAgenciaVideo() {
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useAlertToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...video }: Partial<AgenciaVideo> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('agencia_videos')
+        .update(video)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencia-videos'] });
+      success('Vídeo atualizado com sucesso!');
+    },
+    onError: (error: Error) => {
+      showError(`Erro ao atualizar vídeo: ${error.message}`);
+    },
+  });
+}
+
 // Hook para Fotos
 export function useAgenciaFotos() {
   return useQuery({
