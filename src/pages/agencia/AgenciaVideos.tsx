@@ -183,17 +183,38 @@ export default function AgenciaVideos() {
             </Select>
           </div>
           
-          {/* Select All */}
+          {/* Select All + Actions Inline */}
           {filteredVideos.length > 0 && (
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-              <Checkbox
-                id="select-all"
-                checked={selectedVideos.size === filteredVideos.length && filteredVideos.length > 0}
-                onCheckedChange={toggleSelectAll}
-              />
-              <Label htmlFor="select-all" className="text-sm cursor-pointer">
-                Selecionar todos ({filteredVideos.length})
-              </Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedVideos.size === filteredVideos.length && filteredVideos.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <Label htmlFor="select-all" className="text-sm cursor-pointer">
+                  Selecionar todos ({filteredVideos.length})
+                </Label>
+              </div>
+              
+              {selectedVideos.size > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedVideos.size} selecionado(s)
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleCopyLinks}>
+                    <Link className="h-4 w-4 mr-1" />
+                    Copiar Links
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleShareWhatsApp}>
+                    <Share2 className="h-4 w-4 mr-1" />
+                    WhatsApp
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedVideos(new Set())}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -236,16 +257,28 @@ export default function AgenciaVideos() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1" 
-                    onClick={() => handleWatchVideo(video.link_video)}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Assistir
-                  </Button>
+                <div className="flex items-center gap-2 mt-4">
+                  {video.link_video ? (
+                    <a
+                      href={video.link_video}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 text-sm text-primary hover:underline flex items-center gap-1 truncate"
+                    >
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">
+                        {(() => {
+                          try {
+                            return new URL(video.link_video).hostname;
+                          } catch {
+                            return 'Assistir';
+                          }
+                        })()}
+                      </span>
+                    </a>
+                  ) : (
+                    <span className="flex-1 text-sm text-muted-foreground">Sem link</span>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(video)}>
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -259,26 +292,6 @@ export default function AgenciaVideos() {
         </div>
       )}
 
-      {/* Bulk Action Bar */}
-      {selectedVideos.size > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-auto bg-background border rounded-lg p-4 shadow-lg flex flex-col sm:flex-row items-center gap-4 z-50">
-          <span className="text-sm font-medium">{selectedVideos.size} vídeo(s) selecionado(s)</span>
-          <div className="flex gap-2 flex-wrap justify-center">
-            <Button variant="outline" size="sm" onClick={handleCopyLinks}>
-              <Link className="h-4 w-4 mr-2" />
-              Copiar Links
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleShareWhatsApp}>
-              <Share2 className="h-4 w-4 mr-2" />
-              WhatsApp
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedVideos(new Set())}>
-              <X className="h-4 w-4 mr-2" />
-              Limpar
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Dialog for Create/Edit */}
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
