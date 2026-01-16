@@ -4,20 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Video, ExternalLink, Trash2 } from 'lucide-react';
-import { useAgencias, useAgenciaVideos, useCreateAgenciaVideo, useDeleteAgenciaVideo } from '@/hooks/useAgencias';
+import { Plus, Search, Video, ExternalLink, Trash2, Edit, Link, Share2, X } from 'lucide-react';
+import { useAgencias, useAgenciaVideos, useCreateAgenciaVideo, useDeleteAgenciaVideo, useUpdateAgenciaVideo, type AgenciaVideo } from '@/hooks/useAgencias';
+import { showToast } from '@/lib/toast';
 
 export default function AgenciaVideos() {
   const { data: agencias = [] } = useAgencias();
   const { data: videos = [], isLoading } = useAgenciaVideos();
   const createVideo = useCreateAgenciaVideo();
   const deleteVideo = useDeleteAgenciaVideo();
+  const updateVideo = useUpdateAgenciaVideo();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [agenciaFilter, setAgenciaFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<AgenciaVideo | null>(null);
+  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     agencia_id: '',
     titulo: '',
@@ -34,20 +39,101 @@ export default function AgenciaVideos() {
     return matchesSearch && matchesAgencia;
   });
 
-  const handleSubmit = async () => {
-    await createVideo.mutateAsync({
-      ...formData,
-      descricao: formData.descricao || null,
-      created_by: null,
-    });
+  const handleOpenDialog = (video?: AgenciaVideo) => {
+    if (video) {
+      setEditingVideo(video);
+      setFormData({
+        agencia_id: video.agencia_id,
+        titulo: video.titulo,
+        descricao: video.descricao || '',
+        link_video: video.link_video,
+        tags: video.tags || [],
+      });
+    } else {
+      setEditingVideo(null);
+      setFormData({ agencia_id: '', titulo: '', descricao: '', link_video: '', tags: [] });
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
     setIsDialogOpen(false);
+    setEditingVideo(null);
     setFormData({ agencia_id: '', titulo: '', descricao: '', link_video: '', tags: [] });
+    setTagInput('');
+  };
+
+  const handleSubmit = async () => {
+    if (editingVideo) {
+      await updateVideo.mutateAsync({
+        id: editingVideo.id,
+        agencia_id: formData.agencia_id,
+        titulo: formData.titulo,
+        descricao: formData.descricao || null,
+        link_video: formData.link_video,
+        tags: formData.tags,
+      });
+    } else {
+      await createVideo.mutateAsync({
+        ...formData,
+        descricao: formData.descricao || null,
+        created_by: null,
+      });
+    }
+    handleCloseDialog();
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este vídeo?')) {
       await deleteVideo.mutateAsync(id);
+      setSelectedVideos(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
+  };
+
+  const handleWatchVideo = (url: string) => {
+    if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+      showToast.error('Link do vídeo inválido');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const toggleSelectVideo = (id: string) => {
+    setSelectedVideos(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedVideos.size === filteredVideos.length) {
+      setSelectedVideos(new Set());
+    } else {
+      setSelectedVideos(new Set(filteredVideos.map(v => v.id)));
+    }
+  };
+
+  const handleCopyLinks = () => {
+    const selectedVideosList = videos.filter(v => selectedVideos.has(v.id));
+    const links = selectedVideosList.map(v => v.link_video).join('\n');
+    navigator.clipboard.writeText(links);
+    showToast.success(`${selectedVideos.size} link(s) copiado(s)!`);
+  };
+
+  const handleShareWhatsApp = () => {
+    const selectedVideosList = videos.filter(v => selectedVideos.has(v.id));
+    const text = selectedVideosList.map(v => `📹 ${v.titulo}\n${v.link_video}`).join('\n\n');
+    const encoded = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
 
   const addTag = () => {
@@ -65,7 +151,7 @@ export default function AgenciaVideos() {
           <h1 className="text-2xl font-bold text-foreground">Catálogo de Vídeos</h1>
           <p className="text-muted-foreground">Vídeos produzidos pelas agências parceiras</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Vídeo
         </Button>
@@ -96,6 +182,20 @@ export default function AgenciaVideos() {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Select All */}
+          {filteredVideos.length > 0 && (
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+              <Checkbox
+                id="select-all"
+                checked={selectedVideos.size === filteredVideos.length && filteredVideos.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <Label htmlFor="select-all" className="text-sm cursor-pointer">
+                Selecionar todos ({filteredVideos.length})
+              </Label>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -111,11 +211,17 @@ export default function AgenciaVideos() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVideos.map((video) => (
-            <Card key={video.id} className="group">
+            <Card key={video.id} className={`group transition-all ${selectedVideos.has(video.id) ? 'ring-2 ring-primary' : ''}`}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Video className="h-6 w-6 text-blue-600" />
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedVideos.has(video.id)}
+                      onCheckedChange={() => toggleSelectVideo(video.id)}
+                    />
+                    <div className="w-10 h-10 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <Video className="h-5 w-5 text-blue-600" />
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{video.titulo}</h3>
@@ -131,11 +237,17 @@ export default function AgenciaVideos() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <Button variant="outline" size="sm" className="flex-1" asChild>
-                    <a href={video.link_video} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Assistir
-                    </a>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1" 
+                    onClick={() => handleWatchVideo(video.link_video)}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Assistir
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(video)}>
+                    <Edit className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(video.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -147,11 +259,32 @@ export default function AgenciaVideos() {
         </div>
       )}
 
-      {/* Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Bulk Action Bar */}
+      {selectedVideos.size > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-auto bg-background border rounded-lg p-4 shadow-lg flex flex-col sm:flex-row items-center gap-4 z-50">
+          <span className="text-sm font-medium">{selectedVideos.size} vídeo(s) selecionado(s)</span>
+          <div className="flex gap-2 flex-wrap justify-center">
+            <Button variant="outline" size="sm" onClick={handleCopyLinks}>
+              <Link className="h-4 w-4 mr-2" />
+              Copiar Links
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleShareWhatsApp}>
+              <Share2 className="h-4 w-4 mr-2" />
+              WhatsApp
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedVideos(new Set())}>
+              <X className="h-4 w-4 mr-2" />
+              Limpar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog for Create/Edit */}
+      <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo Vídeo</DialogTitle>
+            <DialogTitle>{editingVideo ? 'Editar Vídeo' : 'Novo Vídeo'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -212,9 +345,12 @@ export default function AgenciaVideos() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={!formData.agencia_id || !formData.titulo || !formData.link_video || createVideo.isPending}>
-              Cadastrar
+            <Button variant="outline" onClick={handleCloseDialog}>Cancelar</Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!formData.agencia_id || !formData.titulo || !formData.link_video || createVideo.isPending || updateVideo.isPending}
+            >
+              {editingVideo ? 'Salvar' : 'Cadastrar'}
             </Button>
           </DialogFooter>
         </DialogContent>
