@@ -257,33 +257,35 @@ export default function AgenciaVideos() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-4">
-                  {video.link_video ? (
-                    <a
-                      href={video.link_video}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-sm text-primary hover:underline flex items-center gap-1 truncate"
-                    >
-                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">
-                        {(() => {
-                          try {
-                            return new URL(video.link_video).hostname;
-                          } catch {
-                            return 'Assistir';
-                          }
-                        })()}
-                      </span>
-                    </a>
-                  ) : (
-                    <span className="flex-1 text-sm text-muted-foreground">Sem link</span>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(video)}>
+                {/* Link do vídeo em linha separada */}
+                {video.link_video && (
+                  <a
+                    href={video.link_video}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-primary hover:underline mt-3 max-w-full overflow-hidden"
+                  >
+                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{video.link_video}</span>
+                  </a>
+                )}
+
+                {/* Botões de ação */}
+                <div className="flex items-center justify-end gap-1 mt-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenDialog(video)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(video.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(video.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
