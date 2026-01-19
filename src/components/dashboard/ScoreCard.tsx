@@ -8,9 +8,10 @@ interface ScoreCardProps {
   trend?: number;
   icon?: React.ReactNode;
   className?: string;
+  isPercentage?: boolean;
 }
 
-export function ScoreCard({ title, score, subtitle, trend, icon, className }: ScoreCardProps) {
+export function ScoreCard({ title, score, subtitle, trend, icon, className, isPercentage = true }: ScoreCardProps) {
   return (
     <div className={cn(
       "bg-card rounded-xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow",
@@ -20,7 +21,9 @@ export function ScoreCard({ title, score, subtitle, trend, icon, className }: Sc
         <div className="flex-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-foreground">{score}%</span>
+            <span className="text-3xl font-bold text-foreground">
+              {score}{isPercentage && '%'}
+            </span>
             {trend !== undefined && (
               <span className={cn(
                 "text-sm font-medium",
@@ -36,25 +39,27 @@ export function ScoreCard({ title, score, subtitle, trend, icon, className }: Sc
         </div>
         <div className={cn(
           "w-12 h-12 rounded-xl flex items-center justify-center",
-          getScoreBgColor(score)
+          getScoreBgColor(isPercentage ? score : 100)
         )}>
           {icon || (
             <span className="text-sm font-bold text-white">
-              {getScoreLabel(score).charAt(0)}
+              {getScoreLabel(isPercentage ? score : 100).charAt(0)}
             </span>
           )}
         </div>
       </div>
       
-      {/* Progress bar */}
-      <div className="mt-4">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className={cn("h-full rounded-full transition-all duration-500", getScoreBgColor(score))}
-            style={{ width: `${score}%` }}
-          />
+      {/* Progress bar - only for percentages */}
+      {isPercentage && (
+        <div className="mt-4">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={cn("h-full rounded-full transition-all duration-500", getScoreBgColor(score))}
+              style={{ width: `${Math.min(score, 100)}%` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
