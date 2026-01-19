@@ -116,7 +116,7 @@ export default function MediaDashboard() {
                   score={stats?.activeContracts || 0} 
                   subtitle="Próximos do vencimento"
                   icon={<FileText className="h-5 w-5 text-white" />}
-                  className="[&>div>div:first-child>div:last-child]:hidden"
+                  isPercentage={false}
                 />
                 <div className="bg-info/10 rounded-xl p-5 border border-info/20">
                   <div className="flex items-start justify-between">
@@ -138,14 +138,14 @@ export default function MediaDashboard() {
                   score={stats?.totalOutdoors || 0} 
                   subtitle="Cadastrados"
                   icon={<Megaphone className="h-5 w-5 text-white" />}
-                  className="[&>div>div:first-child>div:last-child]:hidden"
+                  isPercentage={false}
                 />
                 <ScoreCard 
                   title="Contratos" 
                   score={stats?.activeContracts || 0} 
                   subtitle="Ativos"
                   icon={<FileText className="h-5 w-5 text-white" />}
-                  className="[&>div>div:first-child>div:last-child]:hidden"
+                  isPercentage={false}
                 />
                 <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
                   <div className="flex items-start justify-between">

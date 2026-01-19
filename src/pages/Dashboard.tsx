@@ -99,7 +99,7 @@ export default function Dashboard() {
                 score={stats?.totalMerchEvaluations || 0} 
                 subtitle="Este mês"
                 icon={<ClipboardCheck className="h-5 w-5 text-white" />}
-                className="[&>div>div:first-child>div:last-child]:hidden"
+                isPercentage={false}
               />
             </>
           )}

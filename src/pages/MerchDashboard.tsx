@@ -73,14 +73,14 @@ export default function MerchDashboard() {
             score={stats?.totalMerchEvaluations || 0} 
             subtitle="Este mês"
             icon={<ClipboardCheck className="h-5 w-5 text-white" />}
-            className="[&>div>div:first-child>div:last-child]:hidden"
+            isPercentage={false}
           />
           <ScoreCard 
             title="PDVs Ativos" 
             score={pdvs.length} 
             subtitle="Total cadastrados"
             icon={<BarChart3 className="h-5 w-5 text-white" />}
-            className="[&>div>div:first-child>div:last-child]:hidden"
+            isPercentage={false}
           />
           <div className="bg-destructive/10 rounded-xl p-5 border border-destructive/20">
             <div className="flex items-start justify-between">
