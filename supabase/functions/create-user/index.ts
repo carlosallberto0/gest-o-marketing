@@ -122,9 +122,10 @@ serve(async (req) => {
         status: 'active', // New users are active by default now
       };
 
-      // For super_admin, store temp password
+      // SECURITY FIX: Do NOT store temp_password in plaintext
+      // The password is returned only once for immediate display
       if (role === 'super_admin') {
-        updateData.temp_password = tempPassword;
+        updateData.temp_password = null; // Never store plaintext passwords
       } else {
         // For other roles, store access token
         updateData.access_token = accessToken;

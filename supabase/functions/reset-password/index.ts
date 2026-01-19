@@ -102,27 +102,28 @@ serve(async (req) => {
       );
     }
 
-    // Save the new password in the profiles table
+    // SECURITY FIX: Do NOT store the password in plaintext
+    // The password is returned only once for immediate display to the admin
+    // Clear any existing temp_password for security
     const { error: updateProfileError } = await supabaseAdmin
       .from('profiles')
-      .update({ temp_password: newPassword })
+      .update({ temp_password: null })
       .eq('id', userId);
 
     if (updateProfileError) {
-      console.error('Error updating profile temp_password:', updateProfileError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to save new password in profile' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Error clearing temp_password:', updateProfileError);
+      // Non-critical error - password was still reset in auth
     }
 
     console.log('Password reset successfully for user:', userId);
 
+    // SECURITY: Return password for one-time display only
+    // Password is NOT stored in plaintext in the database anymore
     return new Response(
       JSON.stringify({ 
         success: true, 
-        newPassword,
-        message: 'Password reset successfully' 
+        newPassword, // Only returned once for immediate display
+        message: 'Password reset successfully. This password will not be stored.' 
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

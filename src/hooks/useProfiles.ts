@@ -196,7 +196,7 @@ export function useResetPassword() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
-      showToast.success('Senha resetada com sucesso!', `Nova senha: ${data.newPassword}`);
+      showToast.success('Senha resetada com sucesso!', `Nova senha (anote agora): ${data.newPassword}`);
     },
     onError: (error: Error) => {
       console.error('Error resetting password:', error);
