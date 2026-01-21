@@ -1,332 +1,260 @@
 
-# Plano de Implementacao: Modulo "Analise Estrategica"
+# Plano: Continuar Implementacao do Modulo Analise Estrategica
 
-## Visao Geral
+## Resumo do Estado Atual
 
-Este plano descreve a criacao de um novo modulo independente chamado **"Analise Estrategica"** que:
-- NAO modifica os modulos existentes (Midia Externa e Merchandising)
-- Consome dados apenas em modo leitura dos modulos existentes
-- Fornece insights estrategicos baseados em clusterizacao inteligente
-- Segmenta analises entre PDVs de Conveniencia e Outdoors
+### Ja Criado (Fundacao Tecnica)
+- 5 tabelas no banco de dados com RLS (analise_clusters_config, analise_clusters_calculo, analise_insights, analise_relatorios, analise_config)
+- Tipos TypeScript (src/types/analise-estrategica.ts)
+- 4 Hooks (useAnaliseConfig, useAnaliseEstrategica, useClusterizacao, useInsightsGeneration)
+- Layout do modulo (AnaliseEstrategicaLayout.tsx) com sidebar completa
+- 5 Componentes base (ClusterCard, InsightCard, ClusterDistributionChart, GapAnalysisChart, ScoreComparisonChart)
+
+### Pendente (Este Plano)
+- 7 Paginas do modulo
+- Integracao com App.tsx (rotas)
+- Integracao com ModuleSelection.tsx (card do modulo)
+- Integracao com ModuleContext.tsx (tipo 'analise')
 
 ---
 
-## Fase 1: Estrutura de Banco de Dados (Migracao SQL)
+## Fase 1: Criar Paginas do Modulo
 
-### Novas Tabelas a Criar
+### 1.1 DashboardAnalise.tsx
+Caminho: src/pages/analise-estrategica/DashboardAnalise.tsx
 
-```text
-+----------------------------------+
-|   analise_clusters_config        |
-+----------------------------------+
-| id, nome, tipo_pdv               |
-| cor_hex, criterios_midia (JSON)  |
-| criterios_merchandising (JSON)   |
-| peso_midia, peso_merchandising   |
-| ativo, created_at, updated_at    |
-+----------------------------------+
+Conteudo:
+- KPIs principais (Total PDVs, Score Medio, Clusters Criticos, Insights Nao Lidos)
+- Grafico de distribuicao de clusters (conveniencia vs outdoors lado a lado)
+- Lista de insights recentes (ultimos 5)
+- Botao para recalcular clusters
+- Cards de acesso rapido para relatorios
 
-+----------------------------------+
-|   analise_clusters_calculo       |
-+----------------------------------+
-| id, pdv_id, pdv_tipo             |
-| cluster_id (FK), pontuacao_total |
-| pontuacao_midia, pontuacao_merch |
-| pontuacao_detalhada (JSON)       |
-| gap_midia_merch                  |
-| potencial_aproveitamento         |
-| data_calculo, created_at         |
-+----------------------------------+
+Componentes usados: ClusterDistributionChart, InsightCard, ScoreCard
 
-+----------------------------------+
-|   analise_insights               |
-+----------------------------------+
-| id, titulo, descricao, tipo      |
-| pdv_tipo, modulo_foco, dados     |
-| acoes_recomendadas (JSON)        |
-| impacto_estimado, data_geracao   |
-+----------------------------------+
+### 1.2 ClustersConveniencia.tsx
+Caminho: src/pages/analise-estrategica/ClustersConveniencia.tsx
 
-+----------------------------------+
-|   analise_relatorios             |
-+----------------------------------+
-| id, nome, pdv_tipo               |
-| parametros (JSON)                |
-| agendamento_cron, ultima_geracao |
-+----------------------------------+
+Conteudo:
+- Header com titulo e botao recalcular
+- Grid de ClusterCards mostrando distribuicao
+- Tabela de PDVs classificados com:
+  - Nome do PDV
+  - Cluster (badge colorido)
+  - Score Total
+  - Score Midia
+  - Score Merchandising
+  - Gap
+- Filtros por cluster
 
-+----------------------------------+
-|   analise_config                 |
-+----------------------------------+
-| id, key, value (JSON)            |
-| updated_at, updated_by           |
-+----------------------------------+
+### 1.3 ClustersOutdoors.tsx
+Caminho: src/pages/analise-estrategica/ClustersOutdoors.tsx
+
+Similar ao ClustersConveniencia mas filtrado para tipo 'outdoor'
+
+### 1.4 ComparativoClusters.tsx
+Caminho: src/pages/analise-estrategica/ComparativoClusters.tsx
+
+Conteudo:
+- Comparativo lado a lado entre Conveniencia e Outdoors
+- ScoreComparisonChart mostrando medias
+- GapAnalysisChart destacando PDVs com maiores gaps
+- Tabela resumo com top 10 gaps
+
+### 1.5 InsightsPage.tsx
+Caminho: src/pages/analise-estrategica/InsightsPage.tsx
+
+Conteudo:
+- Filtros por tipo (Tendencia, Alerta, Oportunidade)
+- Filtros por modulo foco (Midia, Merchandising, Integrado)
+- Grid de InsightCards
+- Botao para gerar novos insights
+- Marcar como lido individual/em massa
+
+### 1.6 RelatoriosAnalise.tsx
+Caminho: src/pages/analise-estrategica/RelatoriosAnalise.tsx
+
+Conteudo:
+- Lista de relatorios salvos
+- Botao para criar novo relatorio
+- Filtros por tipo PDV
+- Download em PDF/Excel
+- Agendamento de relatorios automaticos
+
+### 1.7 ConfigAnaliseEstrategica.tsx
+Caminho: src/pages/analise-estrategica/ConfigAnaliseEstrategica.tsx
+
+Conteudo:
+- Tabs: Geral, Conveniencia, Outdoors
+- Tab Geral: ativar/desativar modulo, permissoes
+- Tab Conveniencia: configurar pesos (40% midia / 60% merch), criterios, faixas de clusters
+- Tab Outdoors: configurar pesos (70% midia / 30% merch), criterios, faixas de clusters
+- Preview das faixas de pontuacao
+
+---
+
+## Fase 2: Integracao com ModuleContext
+
+### Modificar src/contexts/ModuleContext.tsx
+
+Adicionar 'analise' ao tipo ActiveModule:
 ```
-
-### Politicas RLS
-- Leitura: Super Admin e Director
-- Escrita na config: Apenas Super Admin
-
----
-
-## Fase 2: Estrutura de Arquivos
-
-### Novos Arquivos a Criar
-
-```text
-src/pages/
-  analise-estrategica/
-    DashboardAnalise.tsx         # Dashboard principal
-    ClustersConveniencia.tsx     # Clusters para PDVs de Conveniencia
-    ClustersOutdoors.tsx         # Clusters para Outdoors
-    ComparativoClusters.tsx      # Comparativo entre tipos
-    InsightsConveniencia.tsx     # Insights especificos
-    InsightsOutdoors.tsx         # Insights especificos
-    InsightsCruzados.tsx         # Analise cruzada
-    RelatoriosAnalise.tsx        # Relatorios estrategicos
-    ConfigAnaliseEstrategica.tsx # Pagina de configuracao
-
-src/hooks/
-    useAnaliseEstrategica.ts     # Hook principal de dados
-    useClusterizacao.ts          # Logica de clusterizacao
-    useInsights.ts               # Geracao de insights
-    useAnaliseConfig.ts          # Configuracoes do modulo
-
-src/components/
-  layout/
-    AnaliseEstrategicaLayout.tsx # Layout do modulo
-
-  analise/
-    ClusterCard.tsx              # Card de cluster
-    InsightCard.tsx              # Card de insight
-    GapAnalysisChart.tsx         # Grafico de gap
-    ClusterDistributionChart.tsx # Distribuicao de clusters
-    ScoreComparisonChart.tsx     # Comparativo de scores
-    ConfigTabs.tsx               # Abas de configuracao
+type ActiveModule = 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise' | null;
 ```
 
 ---
 
-## Fase 3: Hooks e Servicos
+## Fase 3: Integracao com ModuleSelection
 
-### useAnaliseEstrategica.ts
-```text
-Funcoes principais:
-- useDadosCombinados() -> Busca dados de Midia + Merchandising
-- useClustersByTipo(tipo) -> Clusters filtrados por tipo PDV
-- useInsightsByTipo(tipo) -> Insights filtrados
-- useGapAnalysis() -> PDVs com gaps significativos
-- useEstatisticasAnalise() -> KPIs do modulo
+### Modificar src/pages/ModuleSelection.tsx
+
+1. Adicionar icone ao moduleIcons:
+```
+import { TrendingUp } from 'lucide-react';
+
+const moduleIcons = {
+  // ... existentes
+  analise: TrendingUp,
+};
 ```
 
-### useClusterizacao.ts
-```text
-Funcoes:
-- calcularScoreMidia(dadosMidia, criterios)
-- calcularScoreMerchandising(dadosMerch, criterios)
-- calcularClusterPDV(pdvData, tipo, config)
-- classificarEmCluster(scoreTotal, clustersConfig)
+2. Adicionar path ao modulePaths:
+```
+const modulePaths = {
+  // ... existentes
+  analise: '/analise-estrategica/dashboard',
+};
 ```
 
-### useAnaliseConfig.ts
-```text
-Funcoes:
-- useAnaliseConfig() -> Busca configuracoes
-- useUpdateAnaliseConfig() -> Atualiza configuracoes
-- useClustersCriterios(tipo) -> Criterios por tipo
+3. Adicionar 'analise' ao moduleKeys:
+```
+const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise'] as const;
 ```
 
----
-
-## Fase 4: Paginas e Componentes
-
-### Dashboard Principal (/analise-estrategica/dashboard)
-
-Layout com:
-- KPIs resumidos (Total PDVs, Score Medio, Clusters Criticos)
-- Grafico de distribuicao de clusters (Conveniencia vs Outdoors)
-- Lista de insights recentes
-- Acesso rapido aos relatorios
-
-### Pagina de Clusters por Tipo
-
-| Conveniencia | Outdoors |
-|--------------|----------|
-| Peso Merchandising: 60% | Peso Midia: 70% |
-| Peso Midia: 40% | Peso Merchandising: 30% |
-| Clusters: Premium Plus, Oportunidade Visivel, Necessita Merchandising, Critico | Clusters: Estrategico Total, Viario Prioritario, Parada Funcional, Necessita Atencao |
-
-### Pagina de Insights
-
-Tipos de insights:
-- Tendencia: Padroes identificados
-- Alerta: Situacoes que requerem atencao
-- Oportunidade: Potencial de melhoria
-
-### Pagina de Configuracao
-
-Abas:
-1. Geral (ativar/desativar, permissoes)
-2. Conveniencia (pesos, criterios, clusters)
-3. Outdoors (pesos, criterios, clusters)
-4. Notificacoes (alertas, relatorios automaticos)
-5. Integracao (timeouts, cache)
-
----
-
-## Fase 5: Integracao com Sistema Existente
-
-### Modificacoes em Arquivos Existentes
-
-| Arquivo | Modificacao |
-|---------|-------------|
-| src/App.tsx | Adicionar rotas do modulo |
-| src/pages/ModuleSelection.tsx | Adicionar card do novo modulo |
-| src/contexts/ModuleContext.tsx | Adicionar tipo 'analise' |
-| src/components/layout/ConfiguracoesLayout.tsx | Adicionar menu de config |
-
-### Rotas a Adicionar
-
-```text
-/analise-estrategica/dashboard
-/analise-estrategica/clusters/conveniencia
-/analise-estrategica/clusters/outdoors
-/analise-estrategica/clusters/comparativo
-/analise-estrategica/insights/conveniencia
-/analise-estrategica/insights/outdoors
-/analise-estrategica/insights/cruzados
-/analise-estrategica/relatorios
-/configuracoes/analise-estrategica
+4. Atualizar filtro de modulos disponiveis:
 ```
-
-### Permissoes
-
-| Role | Acesso |
-|------|--------|
-| super_admin | Total |
-| director | Visualizacao completa |
-| gerente | Sem acesso |
-| coordenador | Sem acesso |
-
----
-
-## Fase 6: Logica de Clusterizacao
-
-### Algoritmo de Calculo
-
-```text
-1. Buscar dados do PDV (Midia + Merchandising)
-2. Calcular score de Midia (baseado em criterios)
-3. Calcular score de Merchandising (baseado em criterios)
-4. Aplicar pesos especificos por tipo de PDV
-   - Conveniencia: 40% midia + 60% merchandising
-   - Outdoor: 70% midia + 30% merchandising
-5. Calcular score total ponderado
-6. Calcular gap entre modulos
-7. Classificar em cluster baseado na faixa de pontuacao
-8. Gerar insights baseados nos dados
-```
-
-### Criterios por Tipo
-
-**Conveniencia:**
-- Midia: visibilidade (30%), localizacao (40%), conservacao (30%)
-- Merchandising: share gondola (35%), posicionamento (30%), promocao (20%), organizacao (15%)
-
-**Outdoors:**
-- Midia: tamanho m2 (40%), fluxo veicular (35%), visibilidade distancia (25%)
-- Merchandising: disponibilidade estoque (50%), acesso facil (30%), sinalizacao (20%)
-
----
-
-## Fase 7: Ordem de Implementacao
-
-### Semana 1 - Fundacao
-1. Criar migracao SQL com todas as tabelas
-2. Criar hooks base (useAnaliseConfig, useAnaliseEstrategica)
-3. Criar AnaliseEstrategicaLayout
-4. Criar pagina de configuracao basica
-
-### Semana 2 - Core
-1. Implementar logica de clusterizacao (useClusterizacao)
-2. Criar DashboardAnalise com KPIs
-3. Criar paginas de clusters (Conveniencia e Outdoors)
-4. Criar componentes de visualizacao (ClusterCard, charts)
-
-### Semana 3 - Insights
-1. Implementar geracao de insights (useInsights)
-2. Criar paginas de insights
-3. Criar pagina comparativa
-4. Criar pagina de relatorios
-
-### Semana 4 - Integracao
-1. Atualizar ModuleSelection.tsx
-2. Atualizar App.tsx com rotas
-3. Adicionar configuracao em ConfiguracoesLayout
-4. Testes de integracao
-
----
-
-## Secao Tecnica: Detalhes de Implementacao
-
-### Estrutura de Tipos TypeScript
-
-```typescript
-interface ClusterConfig {
-  id: string;
-  nome: string;
-  tipo_pdv: 'conveniencia' | 'outdoor';
-  cor_hex: string;
-  criterios_midia: Record<string, number>;
-  criterios_merchandising: Record<string, number>;
-  peso_midia: number;
-  peso_merchandising: number;
-  ativo: boolean;
-}
-
-interface ClusterCalculo {
-  id: string;
-  pdv_id: string;
-  pdv_tipo: 'conveniencia' | 'outdoor';
-  cluster_id: string;
-  pontuacao_total: number;
-  pontuacao_midia: number;
-  pontuacao_merchandising: number;
-  gap_midia_merch: number;
-  potencial_aproveitamento: number;
-}
-
-interface Insight {
-  id: string;
-  titulo: string;
-  descricao: string;
-  tipo: 'tendencia' | 'alerta' | 'oportunidade';
-  pdv_tipo: 'conveniencia' | 'outdoor' | 'ambos';
-  modulo_foco: 'midia' | 'merchandising' | 'integrado';
-  acoes_recomendadas: string[];
-  impacto_estimado: number;
+// Na funcao availableModules, adicionar:
+if (moduleId === 'analise') {
+  return ['super_admin', 'director'].includes(profile?.role || '');
 }
 ```
 
-### Garantias de Seguranca
+5. Atualizar handleModuleSelect para incluir 'analise':
+```
+setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise');
+```
 
-- Todas as queries aos modulos existentes sao SELECT apenas
-- Nenhuma modificacao em tabelas de Midia Externa ou Merchandising
-- Cache implementado para reduzir carga
-- Timeout em consultas (30s padrao)
-- Logs de todas as analises realizadas
+---
+
+## Fase 4: Integracao com App.tsx
+
+### Adicionar imports
+```
+import { AnaliseEstrategicaLayout } from './components/layout/AnaliseEstrategicaLayout';
+import DashboardAnalise from './pages/analise-estrategica/DashboardAnalise';
+import ClustersConveniencia from './pages/analise-estrategica/ClustersConveniencia';
+import ClustersOutdoors from './pages/analise-estrategica/ClustersOutdoors';
+import ComparativoClusters from './pages/analise-estrategica/ComparativoClusters';
+import InsightsPage from './pages/analise-estrategica/InsightsPage';
+import RelatoriosAnalise from './pages/analise-estrategica/RelatoriosAnalise';
+import ConfigAnaliseEstrategica from './pages/analise-estrategica/ConfigAnaliseEstrategica';
+```
+
+### Adicionar rotas (seguindo padrao dos outros modulos)
+```
+{/* Análise Estratégica Module Routes */}
+<Route 
+  path="/analise-estrategica"
+  element={
+    <ProtectedRoute>
+      <RequireRole allowedRoles={['super_admin', 'director']}>
+        <AnaliseEstrategicaLayout>
+          <Outlet />
+        </AnaliseEstrategicaLayout>
+      </RequireRole>
+    </ProtectedRoute>
+  }
+>
+  <Route path="dashboard" element={<DashboardAnalise />} />
+  <Route path="clusters/conveniencia" element={<ClustersConveniencia />} />
+  <Route path="clusters/outdoors" element={<ClustersOutdoors />} />
+  <Route path="clusters/comparativo" element={<ComparativoClusters />} />
+  <Route path="insights" element={<InsightsPage />} />
+  <Route path="relatorios" element={<RelatoriosAnalise />} />
+  <Route 
+    path="config" 
+    element={
+      <RequireRole allowedRoles={['super_admin']}>
+        <ConfigAnaliseEstrategica />
+      </RequireRole>
+    } 
+  />
+</Route>
+```
+
+---
+
+## Fase 5: Configuracoes Padrao do Modulo
+
+### Adicionar configuracao ao useModuleSettings
+
+Criar registro padrao para o modulo 'analise' no banco ou no hook:
+- title: 'Analise Estrategica'
+- description: 'Insights e clusterizacao de PDVs'
+- icon_color: '#10b981' (emerald-500)
+- button_color: '#10b981'
+
+---
+
+## Estrutura Final de Arquivos
+
+```
+src/pages/analise-estrategica/
+  DashboardAnalise.tsx         # Dashboard com KPIs e visao geral
+  ClustersConveniencia.tsx     # Clusters de PDVs de conveniencia
+  ClustersOutdoors.tsx         # Clusters de outdoors
+  ComparativoClusters.tsx      # Comparativo entre tipos
+  InsightsPage.tsx             # Listagem e gestao de insights
+  RelatoriosAnalise.tsx        # Relatorios estrategicos
+  ConfigAnaliseEstrategica.tsx # Configuracao de pesos e criterios
+```
+
+---
+
+## Permissoes de Acesso
+
+| Pagina | super_admin | director |
+|--------|-------------|----------|
+| Dashboard | Sim | Sim |
+| Clusters Conveniencia | Sim | Sim |
+| Clusters Outdoors | Sim | Sim |
+| Comparativo | Sim | Sim |
+| Insights | Sim | Sim |
+| Relatorios | Sim | Sim |
+| Configuracoes | Sim | Nao |
+
+---
+
+## Ordem de Implementacao
+
+1. Criar DashboardAnalise.tsx (pagina principal)
+2. Criar ClustersConveniencia.tsx e ClustersOutdoors.tsx
+3. Criar ComparativoClusters.tsx
+4. Criar InsightsPage.tsx
+5. Criar RelatoriosAnalise.tsx
+6. Criar ConfigAnaliseEstrategica.tsx
+7. Atualizar ModuleContext.tsx (adicionar 'analise')
+8. Atualizar ModuleSelection.tsx (adicionar card e filtro)
+9. Atualizar App.tsx (adicionar rotas)
 
 ---
 
 ## Resultado Esperado
 
-Apos implementacao completa:
-
-1. **Novo modulo** visivel na selecao de modulos (apenas Super Admin e Diretores)
-2. **Dashboard estrategico** com visao combinada de Midia + Merchandising
-3. **Analise segmentada** entre PDVs de Conveniencia e Outdoors
-4. **Insights automaticos** baseados em gap analysis
-5. **Configuracao flexivel** de criterios e pesos por tipo de PDV
-6. **Relatorios estrategicos** para tomada de decisao
-
-Os modulos Midia Externa e Merchandising continuam 100% funcionais sem nenhuma alteracao.
+Apos implementacao:
+1. Card "Analise Estrategica" visivel na pagina de selecao de modulos (apenas Super Admin e Diretores)
+2. Sidebar propria com navegacao entre as paginas
+3. Dashboard com visao geral de KPIs e clusters
+4. Analise segmentada entre Conveniencia e Outdoors
+5. Insights automaticos baseados em gap analysis
+6. Configuracao flexivel de pesos e criterios (apenas Super Admin)
