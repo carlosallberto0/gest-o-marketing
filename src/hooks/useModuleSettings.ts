@@ -18,6 +18,7 @@ export interface ModuleAppearanceSettings {
   financeiro: ModuleAppearance;
   agencia: ModuleAppearance;
   loteamentos: ModuleAppearance;
+  analise: ModuleAppearance;
 }
 
 const defaultModuleSettings: ModuleAppearanceSettings = {
@@ -69,6 +70,14 @@ const defaultModuleSettings: ModuleAppearanceSettings = {
     button_color: '#14b8a6',
     features: ['Empreendimentos', 'Contratos de Venda', 'Pagamentos', 'Relatórios', 'Dashboard'],
   },
+  analise: {
+    title: 'Análise Estratégica',
+    description: 'Insights e clusterização inteligente de PDVs com análise de gaps entre Mídia e Merchandising.',
+    image_url: null,
+    icon_color: '#10b981',
+    button_color: '#10b981',
+    features: ['Clusters de PDVs', 'Gap Analysis', 'Insights Automáticos', 'Relatórios Estratégicos', 'Comparativos'],
+  },
 };
 
 export function useModuleSettings() {
@@ -99,6 +108,7 @@ export function useModuleSettings() {
         financeiro: { ...defaultModuleSettings.financeiro, ...storedSettings.financeiro },
         agencia: { ...defaultModuleSettings.agencia, ...storedSettings.agencia },
         loteamentos: { ...defaultModuleSettings.loteamentos, ...storedSettings.loteamentos },
+        analise: { ...defaultModuleSettings.analise, ...storedSettings.analise },
       };
     },
   });

@@ -57,6 +57,7 @@ import { FinanceiroLayout } from "./components/layout/FinanceiroLayout";
 import { ConfiguracoesLayout } from "./components/layout/ConfiguracoesLayout";
 import { AgenciaLayout } from "./components/layout/AgenciaLayout";
 import { LoteamentosLayout } from "./components/layout/LoteamentosLayout";
+import { AnaliseEstrategicaLayout } from "./components/layout/AnaliseEstrategicaLayout";
 import DashboardConfiguracoes from "./pages/configuracoes/DashboardConfiguracoes";
 import DashboardAgencia from "./pages/agencia/DashboardAgencia";
 import Agencias from "./pages/agencia/Agencias";
@@ -64,6 +65,13 @@ import AgenciaDemandas from "./pages/agencia/AgenciaDemandas";
 import AgenciaVideos from "./pages/agencia/AgenciaVideos";
 import AgenciaFotos from "./pages/agencia/AgenciaFotos";
 import DashboardLoteamentos from "./pages/loteamentos/DashboardLoteamentos";
+import DashboardAnalise from "./pages/analise-estrategica/DashboardAnalise";
+import ClustersConveniencia from "./pages/analise-estrategica/ClustersConveniencia";
+import ClustersOutdoors from "./pages/analise-estrategica/ClustersOutdoors";
+import ComparativoClusters from "./pages/analise-estrategica/ComparativoClusters";
+import InsightsPage from "./pages/analise-estrategica/InsightsPage";
+import RelatoriosAnalise from "./pages/analise-estrategica/RelatoriosAnalise";
+import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseEstrategica";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 
@@ -560,6 +568,35 @@ const AppRoutes = () => (
       }
     >
       <Route path="dashboard" element={<DashboardLoteamentos />} />
+    </Route>
+
+    {/* Análise Estratégica Module Routes */}
+    <Route 
+      path="/analise-estrategica"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'director']}>
+            <AnaliseEstrategicaLayout>
+              <Outlet />
+            </AnaliseEstrategicaLayout>
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="dashboard" element={<DashboardAnalise />} />
+      <Route path="clusters/conveniencia" element={<ClustersConveniencia />} />
+      <Route path="clusters/outdoors" element={<ClustersOutdoors />} />
+      <Route path="clusters/comparativo" element={<ComparativoClusters />} />
+      <Route path="insights" element={<InsightsPage />} />
+      <Route path="relatorios" element={<RelatoriosAnalise />} />
+      <Route 
+        path="config" 
+        element={
+          <RequireRole allowedRoles={['super_admin']}>
+            <ConfigAnaliseEstrategica />
+          </RequireRole>
+        } 
+      />
     </Route>
 
     <Route path="*" element={<NotFound />} />
