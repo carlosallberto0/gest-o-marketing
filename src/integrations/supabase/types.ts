@@ -393,6 +393,266 @@ export type Database = {
         }
         Relationships: []
       }
+      analise_clusters_calculo: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          data_calculo: string
+          gap_midia_merch: number
+          id: string
+          pdv_id: string
+          pdv_tipo: string
+          pontuacao_detalhada: Json
+          pontuacao_merchandising: number
+          pontuacao_midia: number
+          pontuacao_total: number
+          potencial_aproveitamento: number
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          data_calculo?: string
+          gap_midia_merch?: number
+          id?: string
+          pdv_id: string
+          pdv_tipo: string
+          pontuacao_detalhada?: Json
+          pontuacao_merchandising?: number
+          pontuacao_midia?: number
+          pontuacao_total?: number
+          potencial_aproveitamento?: number
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          data_calculo?: string
+          gap_midia_merch?: number
+          id?: string
+          pdv_id?: string
+          pdv_tipo?: string
+          pontuacao_detalhada?: Json
+          pontuacao_merchandising?: number
+          pontuacao_midia?: number
+          pontuacao_total?: number
+          potencial_aproveitamento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_clusters_calculo_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "analise_clusters_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_clusters_calculo_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_clusters_config: {
+        Row: {
+          ativo: boolean
+          cor_hex: string
+          created_at: string
+          criterios_merchandising: Json
+          criterios_midia: Json
+          faixa_max: number
+          faixa_min: number
+          id: string
+          nome: string
+          ordem: number
+          peso_merchandising: number
+          peso_midia: number
+          tipo_pdv: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor_hex?: string
+          created_at?: string
+          criterios_merchandising?: Json
+          criterios_midia?: Json
+          faixa_max?: number
+          faixa_min?: number
+          id?: string
+          nome: string
+          ordem?: number
+          peso_merchandising?: number
+          peso_midia?: number
+          tipo_pdv: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor_hex?: string
+          created_at?: string
+          criterios_merchandising?: Json
+          criterios_midia?: Json
+          faixa_max?: number
+          faixa_min?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          peso_merchandising?: number
+          peso_midia?: number
+          tipo_pdv?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      analise_config: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_insights: {
+        Row: {
+          acoes_recomendadas: Json
+          created_at: string
+          dados: Json
+          data_geracao: string
+          descricao: string
+          id: string
+          impacto_estimado: number
+          lido: boolean
+          modulo_foco: string
+          pdv_id: string | null
+          pdv_tipo: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          acoes_recomendadas?: Json
+          created_at?: string
+          dados?: Json
+          data_geracao?: string
+          descricao: string
+          id?: string
+          impacto_estimado?: number
+          lido?: boolean
+          modulo_foco: string
+          pdv_id?: string | null
+          pdv_tipo: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          acoes_recomendadas?: Json
+          created_at?: string
+          dados?: Json
+          data_geracao?: string
+          descricao?: string
+          id?: string
+          impacto_estimado?: number
+          lido?: boolean
+          modulo_foco?: string
+          pdv_id?: string | null
+          pdv_tipo?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_insights_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_relatorios: {
+        Row: {
+          agendamento_cron: string | null
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          parametros: Json
+          pdv_tipo: string | null
+          ultima_geracao: string | null
+          updated_at: string
+        }
+        Insert: {
+          agendamento_cron?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          parametros?: Json
+          pdv_tipo?: string | null
+          ultima_geracao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agendamento_cron?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          parametros?: Json
+          pdv_tipo?: string | null
+          ultima_geracao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_relatorios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_relatorios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
