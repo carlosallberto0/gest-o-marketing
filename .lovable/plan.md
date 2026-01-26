@@ -1,260 +1,265 @@
 
-# Plano: Continuar Implementacao do Modulo Analise Estrategica
+# Plano de Implementacao: Importacao de Usuarios em Massa (Gerentes)
 
-## Resumo do Estado Atual
+## Visao Geral
 
-### Ja Criado (Fundacao Tecnica)
-- 5 tabelas no banco de dados com RLS (analise_clusters_config, analise_clusters_calculo, analise_insights, analise_relatorios, analise_config)
-- Tipos TypeScript (src/types/analise-estrategica.ts)
-- 4 Hooks (useAnaliseConfig, useAnaliseEstrategica, useClusterizacao, useInsightsGeneration)
-- Layout do modulo (AnaliseEstrategicaLayout.tsx) com sidebar completa
-- 5 Componentes base (ClusterCard, InsightCard, ClusterDistributionChart, GapAnalysisChart, ScoreComparisonChart)
-
-### Pendente (Este Plano)
-- 7 Paginas do modulo
-- Integracao com App.tsx (rotas)
-- Integracao com ModuleSelection.tsx (card do modulo)
-- Integracao com ModuleContext.tsx (tipo 'analise')
+Criar uma funcionalidade para importar usuarios (especialmente gerentes) em massa via arquivo Excel ou CSV, seguindo o padrao ja existente no sistema (BulkImportDialog) e utilizando a edge function `create-user` ja implementada.
 
 ---
 
-## Fase 1: Criar Paginas do Modulo
+## Fase 1: Estrutura de Arquivos
 
-### 1.1 DashboardAnalise.tsx
-Caminho: src/pages/analise-estrategica/DashboardAnalise.tsx
+### Novos Arquivos a Criar
 
-Conteudo:
-- KPIs principais (Total PDVs, Score Medio, Clusters Criticos, Insights Nao Lidos)
-- Grafico de distribuicao de clusters (conveniencia vs outdoors lado a lado)
-- Lista de insights recentes (ultimos 5)
-- Botao para recalcular clusters
-- Cards de acesso rapido para relatorios
+```text
+src/hooks/
+  useBulkUserImport.ts           # Hook de logica de importacao
 
-Componentes usados: ClusterDistributionChart, InsightCard, ScoreCard
-
-### 1.2 ClustersConveniencia.tsx
-Caminho: src/pages/analise-estrategica/ClustersConveniencia.tsx
-
-Conteudo:
-- Header com titulo e botao recalcular
-- Grid de ClusterCards mostrando distribuicao
-- Tabela de PDVs classificados com:
-  - Nome do PDV
-  - Cluster (badge colorido)
-  - Score Total
-  - Score Midia
-  - Score Merchandising
-  - Gap
-- Filtros por cluster
-
-### 1.3 ClustersOutdoors.tsx
-Caminho: src/pages/analise-estrategica/ClustersOutdoors.tsx
-
-Similar ao ClustersConveniencia mas filtrado para tipo 'outdoor'
-
-### 1.4 ComparativoClusters.tsx
-Caminho: src/pages/analise-estrategica/ComparativoClusters.tsx
-
-Conteudo:
-- Comparativo lado a lado entre Conveniencia e Outdoors
-- ScoreComparisonChart mostrando medias
-- GapAnalysisChart destacando PDVs com maiores gaps
-- Tabela resumo com top 10 gaps
-
-### 1.5 InsightsPage.tsx
-Caminho: src/pages/analise-estrategica/InsightsPage.tsx
-
-Conteudo:
-- Filtros por tipo (Tendencia, Alerta, Oportunidade)
-- Filtros por modulo foco (Midia, Merchandising, Integrado)
-- Grid de InsightCards
-- Botao para gerar novos insights
-- Marcar como lido individual/em massa
-
-### 1.6 RelatoriosAnalise.tsx
-Caminho: src/pages/analise-estrategica/RelatoriosAnalise.tsx
-
-Conteudo:
-- Lista de relatorios salvos
-- Botao para criar novo relatorio
-- Filtros por tipo PDV
-- Download em PDF/Excel
-- Agendamento de relatorios automaticos
-
-### 1.7 ConfigAnaliseEstrategica.tsx
-Caminho: src/pages/analise-estrategica/ConfigAnaliseEstrategica.tsx
-
-Conteudo:
-- Tabs: Geral, Conveniencia, Outdoors
-- Tab Geral: ativar/desativar modulo, permissoes
-- Tab Conveniencia: configurar pesos (40% midia / 60% merch), criterios, faixas de clusters
-- Tab Outdoors: configurar pesos (70% midia / 30% merch), criterios, faixas de clusters
-- Preview das faixas de pontuacao
-
----
-
-## Fase 2: Integracao com ModuleContext
-
-### Modificar src/contexts/ModuleContext.tsx
-
-Adicionar 'analise' ao tipo ActiveModule:
+src/components/dialogs/
+  BulkUserImportDialog.tsx       # Dialog de importacao em massa
 ```
-type ActiveModule = 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise' | null;
+
+### Arquivos a Modificar
+
+```text
+src/pages/Users.tsx              # Adicionar botao "Importar" no header
 ```
 
 ---
 
-## Fase 3: Integracao com ModuleSelection
+## Fase 2: Hook de Importacao (useBulkUserImport.ts)
 
-### Modificar src/pages/ModuleSelection.tsx
+### Campos Suportados na Planilha
 
-1. Adicionar icone ao moduleIcons:
+| Coluna | Obrigatorio | Exemplo | Descricao |
+|--------|-------------|---------|-----------|
+| nome | Sim | "Carlos Silva" | Nome completo do gerente |
+| email | Sim | "carlos@empresa.com" | Email unico |
+| perfil | Sim | "gerente" | Valores: gerente, diretor, coordenador_compras, convenience_coordinator |
+| pdv | Nao | "Posto Centro" | Nome do PDV para vincular (caso gerente) |
+| modulos | Sim | "merchandising,media" | Modulos separados por virgula ou ponto-virgula |
+
+### Funcionalidades do Hook
+
+```text
+Funcoes principais:
+- generateUserTemplate() -> Gera CSV modelo
+- parseExcelFile(file) -> Suporte a .xlsx e .csv
+- validateRecords(records) -> Valida emails, perfis e PDVs
+- processImport(records) -> Cria usuarios via edge function
+- exportErrorLog(errors) -> Exporta log de erros
+
+Estados:
+- isProcessing: boolean
+- progress: number (0-100)
+- summary: { total, criados, erros[] }
 ```
-import { TrendingUp } from 'lucide-react';
 
-const moduleIcons = {
-  // ... existentes
-  analise: TrendingUp,
+### Logica de Importacao
+
+```text
+1. Parsear arquivo (XLSX ou CSV)
+2. Normalizar headers (ignorar acentos/maiusculas)
+3. Validar campos obrigatorios
+4. Buscar PDVs existentes para mapeamento
+5. Para cada registro valido:
+   - Chamar edge function create-user
+   - Aguardar resposta (access_link ou erro)
+   - Registrar resultado
+6. Gerar resumo final
+```
+
+---
+
+## Fase 3: Componente de Dialog (BulkUserImportDialog.tsx)
+
+### Fluxo de Telas (4 Steps)
+
+```text
+Step 1: UPLOAD
+  - Area de drag-and-drop
+  - Botao "Baixar Template"
+  - Formatos aceitos: .xlsx, .csv
+  - Instrucoes sobre campos
+
+Step 2: PREVIEW
+  - Resumo: X usuarios a criar
+  - Tabela com preview dos primeiros 10
+  - Avisos de validacao (emails duplicados, PDVs nao encontrados)
+  - Opcoes: Ignorar duplicados
+
+Step 3: PROCESSING
+  - Barra de progresso
+  - Contador: X de Y processados
+  - Animacao de loading
+
+Step 4: RESULT
+  - Resumo: X criados, Y erros
+  - Lista de links de acesso gerados
+  - Botao "Baixar Log de Erros" (se houver)
+  - Botao "Baixar Links de Acesso" (CSV com links)
+  - Botao "Concluir"
+```
+
+### Modelo de Template CSV
+
+```csv
+nome;email;perfil;pdv;modulos
+Carlos Silva;carlos@empresa.com;gerente;Posto Centro;merchandising,media
+Maria Santos;maria@empresa.com;diretor;;merchandising,media
+Joao Ferreira;joao@empresa.com;gerente;Posto Sul;media
+```
+
+---
+
+## Fase 4: Modificacao da Pagina de Usuarios
+
+### Atualizar src/pages/Users.tsx
+
+Header com dois botoes:
+
+```text
+[+ Novo Usuario]  [Importar CSV]
+```
+
+O botao "Importar CSV" abre o BulkUserImportDialog.
+
+### Restricao de Acesso
+
+Botao de importacao visivel apenas para `super_admin` e `admin`.
+
+---
+
+## Fase 5: Tratamento de Erros
+
+### Validacoes Pre-Importacao
+
+| Validacao | Mensagem |
+|-----------|----------|
+| Email vazio | "Linha X: Email obrigatorio" |
+| Email invalido | "Linha X: Email invalido" |
+| Email duplicado no arquivo | "Linha X: Email duplicado" |
+| Perfil invalido | "Linha X: Perfil deve ser gerente, diretor, etc" |
+| PDV nao encontrado | "Linha X: PDV 'Nome' nao encontrado" |
+| Modulos vazios | "Linha X: Pelo menos um modulo obrigatorio" |
+
+### Erros Durante Processamento
+
+| Erro | Tratamento |
+|------|------------|
+| Email ja registrado | Registrar erro, continuar proximo |
+| Erro na edge function | Registrar erro, continuar proximo |
+| Timeout | Registrar erro, continuar proximo |
+
+---
+
+## Fase 6: Exportacao de Resultados
+
+### Arquivo de Links de Acesso
+
+Apos importacao bem-sucedida, gerar CSV com:
+
+```csv
+nome;email;perfil;link_acesso
+Carlos Silva;carlos@empresa.com;gerente;https://gestao-e-marketing.lovable.app/acesso/abc123
+Maria Santos;maria@empresa.com;diretor;https://gestao-e-marketing.lovable.app/acesso/xyz789
+```
+
+### Arquivo de Log de Erros
+
+Para registros com falha:
+
+```csv
+linha;nome;email;erro
+3;Joao Ferreira;joao@empresa.com;Email ja registrado no sistema
+5;Ana Costa;ana@empresa.com;PDV 'Posto Inexistente' nao encontrado
+```
+
+---
+
+## Detalhes Tecnicos
+
+### Parsing de Excel com XLSX
+
+```typescript
+import * as XLSX from 'xlsx';
+
+const parseExcelFile = async (file: File) => {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  return jsonData;
 };
 ```
 
-2. Adicionar path ao modulePaths:
-```
-const modulePaths = {
-  // ... existentes
-  analise: '/analise-estrategica/dashboard',
-};
+### Integracao com Edge Function Existente
+
+Reutilizar a mesma logica do `useCreateUser`:
+
+```typescript
+const createUserResult = await supabase.functions.invoke('create-user', {
+  body: {
+    name: record.nome,
+    email: record.email,
+    role: record.perfil,
+    modules: record.modulos,
+    pdvId: pdvMatch?.id || undefined,
+  },
+});
 ```
 
-3. Adicionar 'analise' ao moduleKeys:
-```
-const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise'] as const;
-```
+### Mapeamento de PDVs
 
-4. Atualizar filtro de modulos disponiveis:
-```
-// Na funcao availableModules, adicionar:
-if (moduleId === 'analise') {
-  return ['super_admin', 'director'].includes(profile?.role || '');
-}
-```
+```typescript
+// Buscar todos os PDVs uma vez antes de processar
+const { data: pdvs } = await supabase
+  .from('pdvs')
+  .select('id, code, name');
 
-5. Atualizar handleModuleSelect para incluir 'analise':
-```
-setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise');
-```
+// Mapear por nome (case-insensitive)
+const pdvMap = new Map(pdvs.map(p => [p.name.toLowerCase(), p.id]));
 
----
-
-## Fase 4: Integracao com App.tsx
-
-### Adicionar imports
-```
-import { AnaliseEstrategicaLayout } from './components/layout/AnaliseEstrategicaLayout';
-import DashboardAnalise from './pages/analise-estrategica/DashboardAnalise';
-import ClustersConveniencia from './pages/analise-estrategica/ClustersConveniencia';
-import ClustersOutdoors from './pages/analise-estrategica/ClustersOutdoors';
-import ComparativoClusters from './pages/analise-estrategica/ComparativoClusters';
-import InsightsPage from './pages/analise-estrategica/InsightsPage';
-import RelatoriosAnalise from './pages/analise-estrategica/RelatoriosAnalise';
-import ConfigAnaliseEstrategica from './pages/analise-estrategica/ConfigAnaliseEstrategica';
-```
-
-### Adicionar rotas (seguindo padrao dos outros modulos)
-```
-{/* Análise Estratégica Module Routes */}
-<Route 
-  path="/analise-estrategica"
-  element={
-    <ProtectedRoute>
-      <RequireRole allowedRoles={['super_admin', 'director']}>
-        <AnaliseEstrategicaLayout>
-          <Outlet />
-        </AnaliseEstrategicaLayout>
-      </RequireRole>
-    </ProtectedRoute>
-  }
->
-  <Route path="dashboard" element={<DashboardAnalise />} />
-  <Route path="clusters/conveniencia" element={<ClustersConveniencia />} />
-  <Route path="clusters/outdoors" element={<ClustersOutdoors />} />
-  <Route path="clusters/comparativo" element={<ComparativoClusters />} />
-  <Route path="insights" element={<InsightsPage />} />
-  <Route path="relatorios" element={<RelatoriosAnalise />} />
-  <Route 
-    path="config" 
-    element={
-      <RequireRole allowedRoles={['super_admin']}>
-        <ConfigAnaliseEstrategica />
-      </RequireRole>
-    } 
-  />
-</Route>
+// Encontrar PDV pelo nome na planilha
+const pdvId = pdvMap.get(record.pdv?.toLowerCase());
 ```
 
 ---
 
-## Fase 5: Configuracoes Padrao do Modulo
+## Interface Final
 
-### Adicionar configuracao ao useModuleSettings
-
-Criar registro padrao para o modulo 'analise' no banco ou no hook:
-- title: 'Analise Estrategica'
-- description: 'Insights e clusterizacao de PDVs'
-- icon_color: '#10b981' (emerald-500)
-- button_color: '#10b981'
-
----
-
-## Estrutura Final de Arquivos
+### Botao na Pagina de Usuarios
 
 ```
-src/pages/analise-estrategica/
-  DashboardAnalise.tsx         # Dashboard com KPIs e visao geral
-  ClustersConveniencia.tsx     # Clusters de PDVs de conveniencia
-  ClustersOutdoors.tsx         # Clusters de outdoors
-  ComparativoClusters.tsx      # Comparativo entre tipos
-  InsightsPage.tsx             # Listagem e gestao de insights
-  RelatoriosAnalise.tsx        # Relatorios estrategicos
-  ConfigAnaliseEstrategica.tsx # Configuracao de pesos e criterios
+[+ Novo Usuario]  [Importar CSV]
 ```
 
----
+### Dialog de Importacao
 
-## Permissoes de Acesso
-
-| Pagina | super_admin | director |
-|--------|-------------|----------|
-| Dashboard | Sim | Sim |
-| Clusters Conveniencia | Sim | Sim |
-| Clusters Outdoors | Sim | Sim |
-| Comparativo | Sim | Sim |
-| Insights | Sim | Sim |
-| Relatorios | Sim | Sim |
-| Configuracoes | Sim | Nao |
+- Largura: max-w-3xl
+- Altura: max-h-[90vh] com scroll
+- Seguir design do BulkImportDialog existente
+- Cores e icones consistentes com o sistema
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar DashboardAnalise.tsx (pagina principal)
-2. Criar ClustersConveniencia.tsx e ClustersOutdoors.tsx
-3. Criar ComparativoClusters.tsx
-4. Criar InsightsPage.tsx
-5. Criar RelatoriosAnalise.tsx
-6. Criar ConfigAnaliseEstrategica.tsx
-7. Atualizar ModuleContext.tsx (adicionar 'analise')
-8. Atualizar ModuleSelection.tsx (adicionar card e filtro)
-9. Atualizar App.tsx (adicionar rotas)
+1. Criar `useBulkUserImport.ts` (hook completo com parsing, validacao e processamento)
+2. Criar `BulkUserImportDialog.tsx` (4 steps: upload, preview, processing, result)
+3. Atualizar `Users.tsx` (adicionar botao e importar dialog)
+4. Testar com arquivo de exemplo
 
 ---
 
 ## Resultado Esperado
 
-Apos implementacao:
-1. Card "Analise Estrategica" visivel na pagina de selecao de modulos (apenas Super Admin e Diretores)
-2. Sidebar propria com navegacao entre as paginas
-3. Dashboard com visao geral de KPIs e clusters
-4. Analise segmentada entre Conveniencia e Outdoors
-5. Insights automaticos baseados em gap analysis
-6. Configuracao flexivel de pesos e criterios (apenas Super Admin)
+1. Botao "Importar" disponivel na pagina /users para Super Admin
+2. Template CSV/Excel para download com campos corretos
+3. Validacao de dados antes da importacao
+4. Processamento com barra de progresso
+5. Exportacao de links de acesso gerados
+6. Log de erros para registros que falharam
+
+Todos os usuarios criados via importacao receberao links de acesso pessoais (exceto super_admin que recebe senha temporaria).
