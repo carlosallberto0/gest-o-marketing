@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProfiles, useDeleteProfile, useReactivateProfile, usePermanentDeleteProfile, Profile } from '@/hooks/useProfiles';
+import { useAuth } from '@/hooks/useAuth';
 import { getRoleLabel } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,8 @@ import {
   Loader2,
   Pencil,
   UserCheck,
-  UserX
+  UserX,
+  Upload
 } from 'lucide-react';
 import {
   Select,
@@ -56,6 +58,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NewUserDialog } from '@/components/dialogs/NewUserDialog';
 import { EditUserDialog } from '@/components/dialogs/EditUserDialog';
+import { BulkUserImportDialog } from '@/components/dialogs/BulkUserImportDialog';
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -93,8 +96,11 @@ export function UsersContent() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editUser, setEditUser] = useState<Profile | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+
+  const { profile } = useAuth();
 
   const { data: users = [], isLoading } = useProfiles();
   const { mutate: deactivateProfile } = useDeleteProfile();
@@ -148,10 +154,18 @@ export function UsersContent() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Usuários</h1>
             <p className="text-muted-foreground mt-1">Gestão de usuários do sistema</p>
           </div>
-          <Button onClick={() => setIsNewUserOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Usuário
-          </Button>
+          <div className="flex gap-2">
+            {['super_admin', 'admin'].includes(profile?.role || '') && (
+              <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar CSV
+              </Button>
+            )}
+            <Button onClick={() => setIsNewUserOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Usuário
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -337,6 +351,7 @@ export function UsersContent() {
 
         <NewUserDialog open={isNewUserOpen} onOpenChange={setIsNewUserOpen} />
         <EditUserDialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)} user={editUser} />
+        <BulkUserImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
           <AlertDialogContent>
