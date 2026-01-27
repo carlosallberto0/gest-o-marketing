@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     }
 
     // URL PÚBLICA CANÔNICA - SEMPRE usar este domínio para evitar redirecionamentos errados
-    const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+    const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
 
     // Determine redirect based on role
     const redirectByRole: Record<string, string> = {

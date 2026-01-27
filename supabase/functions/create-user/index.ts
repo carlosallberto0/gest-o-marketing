@@ -108,7 +108,7 @@ serve(async (req) => {
       tokenExpiresAt = expiresAt.toISOString();
       
       // URL PÚBLICA CANÔNICA - SEMPRE usar este domínio, independente de onde o admin está
-      const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+      const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
       accessLink = `${PUBLIC_APP_URL}/acesso/${accessToken}`;
       
       console.log('Access link generated for user:', email, 'URL:', accessLink);

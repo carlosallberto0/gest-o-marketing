@@ -5,7 +5,7 @@
  */
 
 // URL pública canônica do sistema - ÚNICA FONTE DA VERDADE
-const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
 
 export function usePublicAppUrl() {
   return PUBLIC_APP_URL;
