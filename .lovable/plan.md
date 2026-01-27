@@ -1,104 +1,90 @@
 
 
-# Plano de Correcao: Atualizar URLs de Acesso
+# Plano de Correcao: Preview/Capa do WhatsApp Nao Carrega
 
-## Problema Identificado
+## Diagnostico do Problema
 
-O sistema esta usando a URL `https://gestao-e-marketing.lovable.app`, mas a URL publicada real do projeto e `https://retail-rise-guide.lovable.app`. Isso faz com que os links de acesso dos usuarios nao funcionem.
+### Causa Raiz Identificada
+A "capa" (preview) do link no WhatsApp nao esta carregando devido a **dois problemas** no `index.html`:
+
+1. **URL da imagem com caracteres especiais mal formatados**: A meta tag `og:image` contem `&amp;` (entidade HTML) no nome do arquivo, mas os crawlers do WhatsApp esperam a URL pura ou codificada em URL-encoding (`%26`).
+
+2. **Meta tag `og:url` ausente**: O WhatsApp precisa saber qual e a URL canonica do site para fazer o scraping correto das meta tags.
+
+### URLs Atuais (Problematicas)
+```
+og:image: https://...social-1769533978054-capa_marketing_&amp;_gestão.jpg
+```
+O `&amp;` e interpretado literalmente como parte da URL, quebrando o link.
 
 ---
 
-## Arquivos a Modificar
+## Solucao Proposta
 
-### 1. src/hooks/usePublicAppUrl.ts
+### Modificar: index.html
 
-**Linha 8**: Alterar a constante PUBLIC_APP_URL
+**Alteracoes necessarias:**
 
-```typescript
-// DE:
-const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
+1. **Adicionar `og:url`** com o dominio canonico correto (`https://retail-rise-guide.lovable.app`)
 
-// PARA:
-const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
+2. **Corrigir URLs de imagem** removendo o `&amp;` e usando URL-encoding correto (`%26`) ou caracteres ASCII simples
+
+3. **Adicionar fallback de imagem** com URL alternativa sem caracteres especiais (recomendado)
+
+### Codigo Antes:
+```html
+<meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_&amp;_gestão.jpg">
+<meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_&amp;_gestão.jpg">
 ```
 
----
-
-### 2. supabase/functions/generate-access-link/index.ts
-
-**Linha 123**: Alterar a URL no endpoint de geracao de links
-
-```typescript
-// DE:
-const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
-
-// PARA:
-const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
+### Codigo Depois:
+```html
+<meta property="og:url" content="https://retail-rise-guide.lovable.app">
+<meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_%26_gest%C3%A3o.jpg">
+<meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_%26_gest%C3%A3o.jpg">
 ```
 
----
-
-### 3. supabase/functions/validate-access-token/index.ts
-
-**Linha 93**: Alterar a URL no endpoint de validacao de tokens
-
-```typescript
-// DE:
-const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
-
-// PARA:
-const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
-```
+**Explicacao dos URL-encodings:**
+- `&` (E comercial) = `%26`
+- `ã` (A com til) = `%C3%A3`
 
 ---
 
-### 4. supabase/functions/create-user/index.ts
+## Resumo das Alteracoes
 
-**Linha 75**: Alterar a URL na criacao de usuarios
-
-```typescript
-// DE:
-const PUBLIC_APP_URL = 'https://gestao-e-marketing.lovable.app';
-
-// PARA:
-const PUBLIC_APP_URL = 'https://retail-rise-guide.lovable.app';
-```
+| Arquivo | Alteracao |
+|---------|-----------|
+| `index.html` | Adicionar `og:url` com dominio canonico |
+| `index.html` | Corrigir `og:image` com URL-encoding correto |
+| `index.html` | Corrigir `twitter:image` com URL-encoding correto |
 
 ---
 
-## Impacto da Mudanca
+## Como Funciona o Preview do WhatsApp
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| URL base | gestao-e-marketing.lovable.app | retail-rise-guide.lovable.app |
-| Links novos | Funcionarao | Funcionarao |
-| Links antigos | Nao funcionavam | Nao funcionarao (dominio antigo) |
-| Super Admin | Nao afetado (usa login normal) | Nao afetado (usa login normal) |
+Quando um usuario envia um link pelo WhatsApp, o servidor do WhatsApp faz uma requisicao HTTP para a URL e busca as seguintes meta tags:
 
----
+1. `og:title` - Titulo exibido no preview
+2. `og:description` - Descricao curta
+3. `og:image` - Imagem de capa (1200x630px recomendado)
+4. `og:url` - URL canonica
 
-## Acao Pos-Implementacao
-
-Apos aplicar as alteracoes, sera necessario **regenerar os links de acesso** para os usuarios que ja foram cadastrados. Isso pode ser feito de duas formas:
-
-1. **Individual**: Na pagina de Usuarios, clicar no icone de link ao lado de cada usuario para gerar um novo link
-
-2. **Em massa**: Reimportar a planilha de usuarios (os usuarios existentes serao ignorados com erro "email ja registrado", mas voce pode usar a funcionalidade de regenerar links individualmente)
+Se a imagem nao estiver acessivel ou a URL estiver mal formatada, o WhatsApp nao consegue gerar o preview.
 
 ---
 
-## Ordem de Execucao
+## Impacto
 
-1. Atualizar usePublicAppUrl.ts (hook do frontend)
-2. Atualizar generate-access-link/index.ts (edge function)
-3. Atualizar validate-access-token/index.ts (edge function)
-4. Atualizar create-user/index.ts (edge function)
-5. Testar criando um novo usuario
-6. Regenerar links para usuarios existentes
+- **Super Admin**: Nao afetado (esta correcao e apenas visual)
+- **Links de Acesso**: Todos os links enviados via WhatsApp terao a capa/preview funcionando corretamente
+- **Cache do WhatsApp**: Apos a correcao, pode levar alguns minutos para o WhatsApp atualizar o cache. Voce pode forcar a atualizacao usando a ferramenta de debug do Facebook: https://developers.facebook.com/tools/debug/
 
 ---
 
-## Super Admin - Nao Afetado
+## Ordem de Implementacao
 
-O Super Admin continua usando login tradicional (email/senha) atraves da tela /auth. Esta mudanca afeta apenas os links de acesso personalizados usados por gerentes, diretores e coordenadores.
+1. Atualizar `index.html` com as correcoes de meta tags
+2. Fazer deploy (publicar)
+3. Testar enviando um link pelo WhatsApp
+4. Se necessario, limpar cache no Facebook Debug Tool
 
