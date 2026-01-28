@@ -164,84 +164,86 @@ export default function MediaDashboard() {
           </div>
         )}
 
-        {/* Status Overview */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Status Distribution */}
-          <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-foreground">Status dos Outdoors</h3>
-                <p className="text-sm text-muted-foreground">Distribuição por status</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {[
-                { label: 'Operacionais', count: stats?.operationalOutdoors || 0, status: 'operational', icon: CheckCircle },
-                { label: 'Não Operacionais', count: stats?.nonOperationalOutdoors || 0, status: 'non_operational', icon: AlertTriangle },
-                { label: 'Aguardando Avaliação', count: stats?.pendingEvaluations || 0, status: 'pending_evaluation', icon: Megaphone },
-              ].map((item, index) => (
-                <div key={item.label} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <item.icon className={cn(
-                        "h-4 w-4",
-                        item.status === 'operational' ? 'text-success' :
-                        item.status === 'pending_evaluation' ? 'text-warning' : 'text-destructive'
-                      )} />
-                      <span className="text-sm font-medium text-foreground">{item.label}</span>
-                    </div>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-medium",
-                      getStatusColor(item.status)
-                    )}>
-                      {item.count}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700",
-                        item.status === 'operational' ? 'bg-success' :
-                        item.status === 'pending_evaluation' ? 'bg-warning' : 'bg-destructive'
-                      )}
-                      style={{ width: `${(stats?.totalOutdoors || 0) > 0 ? (item.count / (stats?.totalOutdoors || 1)) * 100 : 0}%`, transitionDelay: `${index * 100}ms` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions - Hidden for managers and directors */}
-          {!isManager && !isDirector && (
+        {/* Status Overview - Hidden for managers */}
+        {!isManager && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Status Distribution */}
             <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
-                  <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
+                  <h3 className="font-semibold text-foreground">Status dos Outdoors</h3>
+                  <p className="text-sm text-muted-foreground">Distribuição por status</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
-                  <Megaphone className="h-5 w-5" />
-                  <span className="text-xs">Ver Outdoors</span>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
-                  <FileText className="h-5 w-5" />
-                  <span className="text-xs">Contratos</span>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="text-xs">Nova Avaliação</span>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
-                  <Truck className="h-5 w-5" />
-                  <span className="text-xs">Ordens de Serviço</span>
-                </Button>
+              <div className="space-y-4">
+                {[
+                  { label: 'Operacionais', count: stats?.operationalOutdoors || 0, status: 'operational', icon: CheckCircle },
+                  { label: 'Não Operacionais', count: stats?.nonOperationalOutdoors || 0, status: 'non_operational', icon: AlertTriangle },
+                  { label: 'Aguardando Avaliação', count: stats?.pendingEvaluations || 0, status: 'pending_evaluation', icon: Megaphone },
+                ].map((item, index) => (
+                  <div key={item.label} className="animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <item.icon className={cn(
+                          "h-4 w-4",
+                          item.status === 'operational' ? 'text-success' :
+                          item.status === 'pending_evaluation' ? 'text-warning' : 'text-destructive'
+                        )} />
+                        <span className="text-sm font-medium text-foreground">{item.label}</span>
+                      </div>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full font-medium",
+                        getStatusColor(item.status)
+                      )}>
+                        {item.count}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full rounded-full transition-all duration-700",
+                          item.status === 'operational' ? 'bg-success' :
+                          item.status === 'pending_evaluation' ? 'bg-warning' : 'bg-destructive'
+                        )}
+                        style={{ width: `${(stats?.totalOutdoors || 0) > 0 ? (item.count / (stats?.totalOutdoors || 1)) * 100 : 0}%`, transitionDelay: `${index * 100}ms` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Quick Actions - Hidden for managers and directors */}
+            {!isDirector && (
+              <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
+                    <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
+                    <Megaphone className="h-5 w-5" />
+                    <span className="text-xs">Ver Outdoors</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
+                    <FileText className="h-5 w-5" />
+                    <span className="text-xs">Contratos</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="text-xs">Nova Avaliação</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
+                    <Truck className="h-5 w-5" />
+                    <span className="text-xs">Ordens de Serviço</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Monthly Review Summary - Only for super_admin */}
         {isSuperAdmin && (
@@ -294,8 +296,8 @@ export default function MediaDashboard() {
           </div>
         )}
 
-        {/* Recent Outdoors - Hidden for directors */}
-        {!isDirector && (
+        {/* Recent Outdoors - Hidden for directors and managers */}
+        {!isDirector && !isManager && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground text-lg">Outdoors Recentes</h3>

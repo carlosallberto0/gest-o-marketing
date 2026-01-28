@@ -31,7 +31,8 @@ import {
   LayoutGrid,
   DollarSign,
   RefreshCcw,
-  FileText
+  FileText,
+  Users
 } from 'lucide-react';
 import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
 import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
@@ -39,6 +40,7 @@ import { FieldOptionsSettings } from '@/components/settings/FieldOptionsSettings
 import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearanceSettings';
 import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
 import { ReportSettingsManager } from '@/components/settings/ReportSettingsManager';
+import { ManagerMenuSettings } from '@/components/settings/ManagerMenuSettings';
 import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -251,7 +253,7 @@ export function SettingsContent() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-5xl overflow-x-auto", isSuperAdmin ? "grid-cols-12" : "grid-cols-3")}>
+          <TabsList className={cn("grid w-full max-w-5xl overflow-x-auto", isSuperAdmin ? "grid-cols-13" : "grid-cols-3")}>
             <TabsTrigger value="branding">
               <Image className="h-4 w-4 mr-2" />
               Marca
@@ -316,6 +318,12 @@ export function SettingsContent() {
               <TabsTrigger value="reports">
                 <FileText className="h-4 w-4 mr-2" />
                 Relatórios
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="managers">
+                <Users className="h-4 w-4 mr-2" />
+                Gerentes
               </TabsTrigger>
             )}
           </TabsList>
@@ -763,6 +771,13 @@ export function SettingsContent() {
           {isSuperAdmin && (
             <TabsContent value="reports" className="space-y-6">
               <ReportSettingsManager />
+            </TabsContent>
+          )}
+
+          {/* Managers Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="managers" className="space-y-6">
+              <ManagerMenuSettings />
             </TabsContent>
           )}
         </Tabs>
