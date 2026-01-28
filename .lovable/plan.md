@@ -1,90 +1,262 @@
 
+# Plano: Controle de Menu para Gerentes com Redirecionamento Automatico
 
-# Plano de Correcao: Preview/Capa do WhatsApp Nao Carrega
+## Resumo da Solicitacao
 
-## Diagnostico do Problema
-
-### Causa Raiz Identificada
-A "capa" (preview) do link no WhatsApp nao esta carregando devido a **dois problemas** no `index.html`:
-
-1. **URL da imagem com caracteres especiais mal formatados**: A meta tag `og:image` contem `&amp;` (entidade HTML) no nome do arquivo, mas os crawlers do WhatsApp esperam a URL pura ou codificada em URL-encoding (`%26`).
-
-2. **Meta tag `og:url` ausente**: O WhatsApp precisa saber qual e a URL canonica do site para fazer o scraping correto das meta tags.
-
-### URLs Atuais (Problematicas)
-```
-og:image: https://...social-1769533978054-capa_marketing_&amp;_gestão.jpg
-```
-O `&amp;` e interpretado literalmente como parte da URL, quebrando o link.
+O usuario precisa de tres funcionalidades:
+1. Esconder "Status dos Outdoors" e "Outdoors Recentes" do perfil Gerente
+2. Redirecionar automaticamente o Gerente para "Avaliar Outdoor" ao acessar o modulo
+3. Permitir ao Super Admin ativar/desativar opcoes de menu para Gerentes nas configuracoes
 
 ---
 
-## Solucao Proposta
+## Fase 1: Banco de Dados
 
-### Modificar: index.html
+### Nova Configuracao em `system_settings`
 
-**Alteracoes necessarias:**
+Criar uma nova entrada na tabela `system_settings` para armazenar as permissoes de menu por perfil:
 
-1. **Adicionar `og:url`** com o dominio canonico correto (`https://retail-rise-guide.lovable.app`)
-
-2. **Corrigir URLs de imagem** removendo o `&amp;` e usando URL-encoding correto (`%26`) ou caracteres ASCII simples
-
-3. **Adicionar fallback de imagem** com URL alternativa sem caracteres especiais (recomendado)
-
-### Codigo Antes:
-```html
-<meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_&amp;_gestão.jpg">
-<meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_&amp;_gestão.jpg">
+```text
+key: manager_menu_permissions
+value: {
+  "media": {
+    "avaliar_outdoor": true,
+    "solicitacoes_manutencao": true,
+    "solicitar_materiais": true
+  },
+  "merchandising": {
+    "avaliacao_pdv": true,
+    "solicitar_materiais": true,
+    "dashboard": false,
+    "historico": true
+  },
+  "default_redirect": {
+    "media": "/outdoor-evaluation",
+    "merchandising": "/checklist"
+  }
+}
 ```
 
-### Codigo Depois:
-```html
-<meta property="og:url" content="https://retail-rise-guide.lovable.app">
-<meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_%26_gest%C3%A3o.jpg">
-<meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/4zP6jb2laCZiG3Updpb4nutitrQ2/social-images/social-1769533978054-capa_marketing_%26_gest%C3%A3o.jpg">
+Este formato permitira:
+- Controlar visibilidade de cada item de menu por modulo
+- Definir a rota padrao de redirecionamento quando o gerente acessa cada modulo
+
+---
+
+## Fase 2: Hook de Permissoes de Menu
+
+### Novo arquivo: `src/hooks/useManagerMenuPermissions.ts`
+
+```text
+Funcionalidades:
+- useManagerMenuPermissions(): Busca as permissoes atuais
+- useUpdateManagerMenuPermissions(): Atualiza as permissoes
+- isMenuItemEnabled(module, menuKey): Verifica se item esta ativo
+- getManagerDefaultRoute(module): Retorna rota padrao de redirecionamento
+
+Valores padrao:
+- Todos os itens atuais do gerente ativos
+- Redirecionamento padrao: /outdoor-evaluation (media), /checklist (merchandising)
 ```
 
-**Explicacao dos URL-encodings:**
-- `&` (E comercial) = `%26`
-- `ã` (A com til) = `%C3%A3`
+---
+
+## Fase 3: Modificacoes na Interface
+
+### 3.1 MediaDashboard.tsx
+
+**Alteracoes:**
+- Esconder completamente a secao "Status dos Outdoors" para gerentes
+- Esconder a secao "Outdoors Recentes" para gerentes
+- Manter apenas o header com o botao "Avaliar Outdoor"
+
+```text
+Codigo atual (linha 90):
+{!isManager && (
+  // Stats cards...
+)}
+
+Adicionar tambem:
+- Esconder o card "Status Distribution" (linhas 168-213) para gerentes
+- Esconder "Outdoors Recentes" (linhas 297-343) para gerentes
+```
+
+### 3.2 ModuleSelection.tsx
+
+**Alteracoes:**
+- Ao selecionar o modulo, verificar se o usuario e gerente
+- Se for gerente, redirecionar para a rota configurada (padrao: /outdoor-evaluation)
+- Usar o hook useManagerMenuPermissions para obter a rota
+
+```text
+handleModuleSelect(moduleId, path) {
+  if (profile?.role === 'manager') {
+    const managerPath = getManagerDefaultRoute(moduleId);
+    navigate(managerPath || path);
+  } else {
+    navigate(path);
+  }
+}
+```
+
+### 3.3 AppLayout.tsx
+
+**Alteracoes:**
+- Filtrar os itens de menu usando as permissoes configuradas
+- Integrar com o hook useManagerMenuPermissions
+
+```text
+Logica atual (linha 181-185):
+const filteredMenuItems = menuItems.filter(...)
+
+Nova logica:
+- Alem das roles, verificar tambem se o item esta ativo nas permissoes
+- Para gerentes: checar isMenuItemEnabled(activeModule, item.menuKey)
+```
 
 ---
 
-## Resumo das Alteracoes
+## Fase 4: Interface de Configuracao (Super Admin)
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `index.html` | Adicionar `og:url` com dominio canonico |
-| `index.html` | Corrigir `og:image` com URL-encoding correto |
-| `index.html` | Corrigir `twitter:image` com URL-encoding correto |
+### Novo componente: `src/components/settings/ManagerMenuSettings.tsx`
+
+```text
+Interface:
+- Card com titulo "Permissoes de Menu para Gerentes"
+- Selecionar modulo (Midia Externa, Merchandising)
+- Lista de itens de menu com Switch para cada um
+- Campo para definir rota padrao de redirecionamento
+- Botao Salvar
+
+Itens de menu controlaveis para Midia Externa:
+- Avaliar Outdoor (sempre visivel - nao pode desativar)
+- Solicitacoes de Manutencao
+- Solicitar Materiais
+
+Itens de menu controlaveis para Merchandising:
+- Dashboard
+- Avaliacao de PDV (sempre visivel)
+- Historico de Avaliacoes
+- Solicitar Materiais
+```
+
+### 4.2 Adicionar aba em Settings.tsx
+
+```text
+Nova TabsTrigger: "Gerentes"
+Icone: Users
+Valor: "managers"
+Conteudo: <ManagerMenuSettings />
+```
 
 ---
 
-## Como Funciona o Preview do WhatsApp
+## Fase 5: Arquivos a Criar/Modificar
 
-Quando um usuario envia um link pelo WhatsApp, o servidor do WhatsApp faz uma requisicao HTTP para a URL e busca as seguintes meta tags:
-
-1. `og:title` - Titulo exibido no preview
-2. `og:description` - Descricao curta
-3. `og:image` - Imagem de capa (1200x630px recomendado)
-4. `og:url` - URL canonica
-
-Se a imagem nao estiver acessivel ou a URL estiver mal formatada, o WhatsApp nao consegue gerar o preview.
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| src/hooks/useManagerMenuPermissions.ts | CRIAR | Hook para gerenciar permissoes de menu |
+| src/components/settings/ManagerMenuSettings.tsx | CRIAR | Interface de configuracao |
+| src/pages/MediaDashboard.tsx | MODIFICAR | Esconder secoes para gerente |
+| src/pages/ModuleSelection.tsx | MODIFICAR | Redirecionar gerente para rota configurada |
+| src/components/layout/AppLayout.tsx | MODIFICAR | Filtrar menu baseado em permissoes |
+| src/pages/Settings.tsx | MODIFICAR | Adicionar aba "Gerentes" |
 
 ---
 
-## Impacto
+## Detalhes Tecnicos
 
-- **Super Admin**: Nao afetado (esta correcao e apenas visual)
-- **Links de Acesso**: Todos os links enviados via WhatsApp terao a capa/preview funcionando corretamente
-- **Cache do WhatsApp**: Apos a correcao, pode levar alguns minutos para o WhatsApp atualizar o cache. Voce pode forcar a atualizacao usando a ferramenta de debug do Facebook: https://developers.facebook.com/tools/debug/
+### Estrutura do Hook useManagerMenuPermissions
+
+```typescript
+interface ManagerMenuPermissions {
+  media: {
+    avaliar_outdoor: boolean;
+    solicitacoes_manutencao: boolean;
+    solicitar_materiais: boolean;
+  };
+  merchandising: {
+    dashboard: boolean;
+    avaliacao_pdv: boolean;
+    historico: boolean;
+    solicitar_materiais: boolean;
+  };
+  default_redirect: {
+    media: string;
+    merchandising: string;
+  };
+}
+```
+
+### Mapeamento de Menu Keys
+
+Para conectar as permissoes aos itens do AppLayout:
+
+```text
+Midia Externa:
+- /outdoor-evaluation -> avaliar_outdoor
+- /maintenance-requests -> solicitacoes_manutencao
+- /material-requests -> solicitar_materiais
+
+Merchandising:
+- /merchandising/dashboard -> dashboard
+- /checklist -> avaliacao_pdv
+- /history -> historico
+- /material-requests -> solicitar_materiais
+```
+
+### Componente ManagerMenuSettings
+
+```text
+Layout:
++------------------------------------------+
+| Permissoes de Menu para Gerentes         |
++------------------------------------------+
+| Modulo: [Midia Externa v]                |
++------------------------------------------+
+| Rota Padrao: [/outdoor-evaluation    ]   |
+| (Para onde o gerente vai ao entrar)      |
++------------------------------------------+
+| Itens do Menu:                           |
+|                                          |
+| [x] Avaliar Outdoor       (obrigatorio)  |
+| [x] Solicitacoes de Manutencao           |
+| [x] Solicitar Materiais                  |
++------------------------------------------+
+| [Salvar Alteracoes]                      |
++------------------------------------------+
+```
+
+---
+
+## Comportamento Esperado
+
+### Para Gerentes:
+1. Ao fazer login e selecionar Midia Externa, vai direto para /outdoor-evaluation
+2. No menu lateral, ve apenas os itens habilitados pelo Super Admin
+3. No Dashboard (se acessar diretamente), nao ve "Status dos Outdoors" nem "Outdoors Recentes"
+
+### Para Super Admin:
+1. Em Configuracoes > Gerentes, pode ativar/desativar cada item de menu
+2. Pode definir a pagina padrao de entrada para gerentes em cada modulo
+3. Nao pode desativar itens obrigatorios (ex: Avaliar Outdoor e obrigatorio)
 
 ---
 
 ## Ordem de Implementacao
 
-1. Atualizar `index.html` com as correcoes de meta tags
-2. Fazer deploy (publicar)
-3. Testar enviando um link pelo WhatsApp
-4. Se necessario, limpar cache no Facebook Debug Tool
+1. Criar hook useManagerMenuPermissions.ts
+2. Modificar MediaDashboard.tsx (esconder secoes)
+3. Modificar ModuleSelection.tsx (redirecionamento)
+4. Modificar AppLayout.tsx (filtrar menu)
+5. Criar ManagerMenuSettings.tsx
+6. Modificar Settings.tsx (adicionar aba)
 
+---
+
+## Notas de Seguranca
+
+- As permissoes sao apenas visuais (ocultam menu items)
+- As rotas continuam protegidas pelo RequireRole
+- Gerentes nao conseguem acessar rotas administrativas mesmo que tentem navegar diretamente
+- O Super Admin pode restaurar as configuracoes padrao a qualquer momento
