@@ -47,6 +47,7 @@ import {
 import { NotificationsPopover } from '@/components/notifications/NotificationsPopover';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
+import { useManagerMenuPermissions, isMenuItemEnabled } from '@/hooks/useManagerMenuPermissions';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -75,6 +76,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [systemLogo, setSystemLogo] = useState<string | null>(null);
   const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { data: managerPermissions } = useManagerMenuPermissions();
+  
+  const isManager = profile?.role === 'manager';
 
   // Load system settings
   useEffect(() => {
@@ -181,6 +185,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   const filteredMenuItems = menuItems.filter(item => {
     if (!profile) return false;
     if (!canAccessRoute(item.roles)) return false;
+    
+    // For managers, check if the menu item is enabled in permissions
+    if (isManager && (activeModule === 'media' || activeModule === 'merchandising')) {
+      if (!isMenuItemEnabled(managerPermissions, activeModule, item.path)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 

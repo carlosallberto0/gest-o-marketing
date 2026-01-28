@@ -9,6 +9,7 @@ import { useModuleSettings } from '@/hooks/useModuleSettings';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
+import { useManagerMenuPermissions, getManagerDefaultRoute } from '@/hooks/useManagerMenuPermissions';
 
 const moduleIcons = {
   merchandising: ClipboardCheck,
@@ -61,8 +62,10 @@ export default function ModuleSelection() {
   const { setActiveModule } = useModule();
   const navigate = useNavigate();
   const { data: moduleSettings, isLoading: settingsLoading } = useModuleSettings();
+  const { data: managerPermissions } = useManagerMenuPermissions();
 
   const isSuperAdmin = profile?.role === 'super_admin';
+  const isManager = profile?.role === 'manager';
 
   // Redirect pending users to pending approval page
   useEffect(() => {
@@ -91,7 +94,14 @@ export default function ModuleSelection() {
 
   const handleModuleSelect = (moduleId: string, path: string) => {
     setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise');
-    navigate(path);
+    
+    // For managers, redirect to their configured default route
+    if (isManager && (moduleId === 'media' || moduleId === 'merchandising')) {
+      const managerPath = getManagerDefaultRoute(managerPermissions, moduleId);
+      navigate(managerPath);
+    } else {
+      navigate(path);
+    }
   };
 
   const handleLogout = async () => {
