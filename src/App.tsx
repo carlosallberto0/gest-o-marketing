@@ -74,6 +74,7 @@ import RelatoriosAnalise from "./pages/analise-estrategica/RelatoriosAnalise";
 import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseEstrategica";
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
+import { RequireManagerMenuPermission } from "@/components/auth/RequireManagerMenuPermission";
 
 const queryClient = new QueryClient();
 
@@ -274,7 +275,9 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager', 'collaborator']}>
-            <MaterialRequests />
+            <RequireManagerMenuPermission>
+              <MaterialRequests />
+            </RequireManagerMenuPermission>
           </RequireRole>
         </ProtectedRoute>
       } 
@@ -382,7 +385,9 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <MaintenanceRequests />
+            <RequireManagerMenuPermission>
+              <MaintenanceRequests />
+            </RequireManagerMenuPermission>
           </RequireRole>
         </ProtectedRoute>
       } 

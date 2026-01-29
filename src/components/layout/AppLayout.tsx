@@ -47,7 +47,12 @@ import {
 import { NotificationsPopover } from '@/components/notifications/NotificationsPopover';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { cn } from '@/lib/utils';
-import { useManagerMenuPermissions, isMenuItemEnabled } from '@/hooks/useManagerMenuPermissions';
+import { 
+  useManagerMenuPermissions, 
+  isMenuItemEnabled, 
+  pathToMenuKey,
+  isPathMandatory 
+} from '@/hooks/useManagerMenuPermissions';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -76,7 +81,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [systemLogo, setSystemLogo] = useState<string | null>(null);
   const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const { data: managerPermissions } = useManagerMenuPermissions();
+  const { data: managerPermissions, isLoading: permissionsLoading } = useManagerMenuPermissions();
   
   const isManager = profile?.role === 'manager';
 
@@ -186,10 +191,25 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (!profile) return false;
     if (!canAccessRoute(item.roles)) return false;
     
-    // For managers, check if the menu item is enabled in permissions
+    // For managers, apply deny-by-default logic for configurable menu items
     if (isManager && (activeModule === 'media' || activeModule === 'merchandising')) {
-      if (!isMenuItemEnabled(managerPermissions, activeModule, item.path)) {
-        return false;
+      // Check if this path is configurable for managers
+      const isConfigurable = pathToMenuKey[activeModule]?.[item.path] !== undefined;
+      
+      if (isConfigurable) {
+        // Mandatory items always show
+        if (isPathMandatory(activeModule, item.path)) {
+          return true;
+        }
+        
+        // For configurable non-mandatory items:
+        // - undefined (loading) = hide (deny-by-default)
+        // - false = hide
+        // - true = show
+        const allowed = isMenuItemEnabled(managerPermissions, permissionsLoading, activeModule, item.path);
+        if (allowed !== true) {
+          return false;
+        }
       }
     }
     
