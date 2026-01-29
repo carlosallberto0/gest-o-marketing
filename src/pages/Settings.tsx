@@ -253,80 +253,82 @@ export function SettingsContent() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className={cn("grid w-full max-w-5xl overflow-x-auto", isSuperAdmin ? "grid-cols-13" : "grid-cols-3")}>
-            <TabsTrigger value="branding">
-              <Image className="h-4 w-4 mr-2" />
-              Marca
-            </TabsTrigger>
-            {isSuperAdmin && (
-              <TabsTrigger value="login-screen">
-                <LogIn className="h-4 w-4 mr-2" />
-                Tela Inicial
+          <div className="overflow-x-auto pb-2 -mx-1 px-1">
+            <TabsList className="inline-flex h-auto gap-1 bg-muted/50 p-1 flex-wrap md:flex-nowrap min-w-max">
+              <TabsTrigger value="branding" className="data-[state=active]:bg-background">
+                <Image className="h-4 w-4 mr-2" />
+                Marca
               </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="modules">
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Módulos
+              {isSuperAdmin && (
+                <TabsTrigger value="login-screen" className="data-[state=active]:bg-background">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Tela Inicial
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="modules" className="data-[state=active]:bg-background">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Módulos
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="appearance" className="data-[state=active]:bg-background">
+                <Palette className="h-4 w-4 mr-2" />
+                Aparência
               </TabsTrigger>
-            )}
-            <TabsTrigger value="appearance">
-              <Palette className="h-4 w-4 mr-2" />
-              Aparência
-            </TabsTrigger>
-            <TabsTrigger value="notifications">
-              <Bell className="h-4 w-4 mr-2" />
-              Notificações
-            </TabsTrigger>
-            {isSuperAdmin && (
-              <TabsTrigger value="toast-style">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Toast
+              <TabsTrigger value="notifications" className="data-[state=active]:bg-background">
+                <Bell className="h-4 w-4 mr-2" />
+                Notificações
               </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="checklist">
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Checklist
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="evaluations">
-                <CalendarClock className="h-4 w-4 mr-2" />
-                Avaliações
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="cycle">
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                Ciclo
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="fields">
-                <Settings2 className="h-4 w-4 mr-2" />
-                Campos
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="costs">
-                <DollarSign className="h-4 w-4 mr-2" />
-                Custos
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="reports">
-                <FileText className="h-4 w-4 mr-2" />
-                Relatórios
-              </TabsTrigger>
-            )}
-            {isSuperAdmin && (
-              <TabsTrigger value="managers">
-                <Users className="h-4 w-4 mr-2" />
-                Gerentes
-              </TabsTrigger>
-            )}
-          </TabsList>
+              {isSuperAdmin && (
+                <TabsTrigger value="toast-style" className="data-[state=active]:bg-background">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Toast
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="checklist" className="data-[state=active]:bg-background">
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Checklist
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="evaluations" className="data-[state=active]:bg-background">
+                  <CalendarClock className="h-4 w-4 mr-2" />
+                  Avaliações
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="cycle" className="data-[state=active]:bg-background">
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Ciclo
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="fields" className="data-[state=active]:bg-background">
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Campos
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="costs" className="data-[state=active]:bg-background">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Custos
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="reports" className="data-[state=active]:bg-background">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Relatórios
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="managers" className="data-[state=active]:bg-background">
+                  <Users className="h-4 w-4 mr-2" />
+                  Gerentes
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           {/* Branding Tab */}
           <TabsContent value="branding" className="space-y-6">
