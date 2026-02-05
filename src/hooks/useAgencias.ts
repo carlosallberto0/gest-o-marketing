@@ -211,6 +211,29 @@ export function useUpdateAgenciaDemanda() {
   });
 }
 
+export function useDeleteAgenciaDemanda() {
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useAlertToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('agencia_demandas')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencia-demandas'] });
+      success('Demanda excluída com sucesso!');
+    },
+    onError: (error: Error) => {
+      showError(`Erro ao excluir demanda: ${error.message}`);
+    },
+  });
+}
+
 // Hook para Vídeos
 export function useAgenciaVideos() {
   return useQuery({
@@ -363,6 +386,32 @@ export function useDeleteAgenciaFoto() {
     },
     onError: (error: Error) => {
       showError(`Erro ao excluir álbum: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateAgenciaFoto() {
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useAlertToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...foto }: Partial<AgenciaFoto> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('agencia_fotos')
+        .update(foto)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencia-fotos'] });
+      success('Álbum atualizado com sucesso!');
+    },
+    onError: (error: Error) => {
+      showError(`Erro ao atualizar álbum: ${error.message}`);
     },
   });
 }

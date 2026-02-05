@@ -208,6 +208,29 @@ export function useUpdateLoteamentoPagamento() {
   });
 }
 
+export function useDeleteLoteamentoPagamento() {
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useAlertToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('loteamentos_pagamentos')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loteamentos-pagamentos'] });
+      success('Pagamento excluído com sucesso!');
+    },
+    onError: (error: Error) => {
+      showError(`Erro ao excluir pagamento: ${error.message}`);
+    },
+  });
+}
+
 // Hook para Contratos
 export function useLoteamentosContratos() {
   return useQuery({

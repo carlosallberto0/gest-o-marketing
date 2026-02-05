@@ -73,3 +73,64 @@ export function useUpdateCampaignStatus() {
     },
   });
 }
+
+interface UpdateCampaignInput {
+  id: string;
+  name?: string;
+  description?: string | null;
+  type?: Campaign['type'];
+  start_date?: string;
+  end_date?: string;
+  target_pdv_ids?: string[];
+  required_materials?: any[];
+  kpi_targets?: {
+    targetScore: number;
+    targetCoverage: number;
+  };
+}
+
+export function useUpdateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: UpdateCampaignInput) => {
+      const { error } = await supabase
+        .from('campaigns')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      showToast.success('Campanha atualizada com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error updating campaign:', error);
+      showToast.error('Erro ao atualizar campanha');
+    },
+  });
+}
+
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      showToast.success('Campanha excluída com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error deleting campaign:', error);
+      showToast.error('Erro ao excluir campanha');
+    },
+  });
+}
