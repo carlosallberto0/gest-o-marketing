@@ -1,118 +1,253 @@
 
-## Objetivo (o que precisa ficar “à prova de teste”)
-1) Quando o Super Admin desmarcar **Solicitações de Manutenção** e **Solicitar Materiais** (Mídia Externa), o **perfil Gerente não pode ver esses itens no menu**.
-2) Mesmo que o gerente tente acessar a rota diretamente (digitando URL), o sistema deve **bloquear o acesso** (não apenas esconder o menu).
-3) Melhorar a UI do módulo Configurações: as opções devem ficar em **abas usáveis** (sem ficar “apertado”/escondido).
+# Auditoria Completa de Estrutura CRUD - Sistema Gestao e Marketing
+
+## Resumo Executivo
+
+Realizei uma analise completa de todos os hooks e paginas do sistema para mapear as operacoes CRUD (Create, Read, Update, Delete). O sistema possui uma estrutura bem organizada seguindo padroes consistentes com React Query e Supabase.
 
 ---
 
-## Diagnóstico (com base no que já está no código e no backend)
-- A configuração **está salva corretamente** no backend (ex.: `media.solicitacoes_manutencao=false` e `media.solicitar_materiais=false`).
-- A leitura dessa chave também está liberada para usuários autenticados (política de leitura existe).
-- No frontend, a lógica atual tem um ponto fraco: **se `managerPermissions` estiver `undefined` (carregando/erro)**, a função `isMenuItemEnabled()` retorna `true` (fallback permissivo), então o menu **continua mostrando itens indevidos**.
-  - Isso pode acontecer por:
-    - carregamento inicial (race condition),
-    - erro silencioso de query,
-    - cache do React Query reaproveitado entre sessões/usuários,
-    - `activeModule` não estar definido em alguns fluxos (refresh, deep-link), fazendo a checagem não rodar.
+## 1. Modulo Midia Externa
+
+### 1.1 Outdoors
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateOutdoor` | OK | Cria outdoor com todos os campos |
+| READ | `useOutdoors` | OK | Filtra por PDV para gerentes |
+| UPDATE | Via `supabase.rpc('update_outdoor_after_evaluation')` | OK | Usa RPC para bypass RLS |
+| DELETE | Direto via `supabase.from('outdoors').delete()` | OK | Apenas super_admin |
+
+**Lacuna identificada**: Falta um hook `useUpdateOutdoor` e `useDeleteOutdoor` dedicado. A exclusao e feita diretamente na pagina Outdoors.tsx (linhas 129-150).
+
+### 1.2 Contratos
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateContract` | OK | Suporta multiplos outdoors e imagens |
+| READ | `useContracts`, `useContractByOutdoor` | OK | Relacoes pivot table funcionando |
+| UPDATE | `useUpdateContract` | OK | Atualiza associacoes e imagens |
+| DELETE | `useDeleteContract` | OK | Cascade delete automatico |
+
+### 1.3 Ordens de Servico
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateServiceOrder` | OK | Gera numero sequencial |
+| READ | `useServiceOrders` + filtros especificos | OK | Multiplas queries por status |
+| UPDATE | `useUpdateServiceOrder` + fluxos especificos | OK | Admin, Director, Supplier, Manager |
+| DELETE | `useDeleteServiceOrder` | OK | Exclusao permanente |
+
+### 1.4 Solicitacoes de Manutencao
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateMaintenanceRequest` | OK | Notifica super_admin |
+| READ | `useMaintenanceRequests`, `usePendingMaintenanceRequests` | OK | Filtros por status |
+| UPDATE | `useApproveMaintenanceRequest`, `useRejectMaintenanceRequest` | OK | Fluxo de aprovacao |
+| DELETE | NAO EXISTE | PENDENTE | Considerar soft delete |
+
+### 1.5 Fornecedores
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateSupplier` | OK | Cadastro completo |
+| READ | `useSuppliers`, `useActiveSuppliers` | OK | Filtro por status |
+| UPDATE | `useUpdateSupplier` | OK | Atualiza todos campos |
+| DELETE | `useDeleteSupplier` | OK | Exclusao permanente |
 
 ---
 
-## Solução proposta (parte 1): menu do gerente realmente respeitar as permissões
-### A) Tornar o filtro “deny-by-default” para itens configuráveis
-Ajustar a filtragem no `AppLayout.tsx` para:
-- **Sempre mostrar itens obrigatórios** (ex.: `Avaliar Outdoor`).
-- Para itens configuráveis (os que existem no `pathToMenuKey`), **não mostrar enquanto permissões não carregarem**.
-- Depois que carregar, aplicar o `isMenuItemEnabled()` normalmente.
+## 2. Modulo Merchandising
 
-**Resultado esperado:** mesmo se houver atraso/erro no fetch, o gerente não vê “Solicitações de Manutenção” e “Solicitar Materiais”.
+### 2.1 PDVs
 
-### B) Corrigir cache/refetch para não reaproveitar permissões antigas
-Ajustar o hook `useManagerMenuPermissions()` para evitar que:
-- um usuário herde cache de outro,
-- ou que o app “fique preso” no valor default.
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreatePDV` | OK | Trata codigo duplicado |
+| READ | `usePDVs`, `usePDVsList` | OK | Inclui stats de outdoor e merch |
+| UPDATE | `useUpdatePDV` | OK | Atualiza incluindo coordenadas |
+| DELETE | `useDeletePDV` | OK | Alerta sobre dados vinculados |
 
-Mudanças recomendadas:
-- incluir `userId` (ou `profile.id`) no `queryKey`: `['manager-menu-permissions', userId]`
-- definir `refetchOnMount: 'always'` e `refetchOnWindowFocus: true` (para pegar alterações após salvar)
+### 2.2 Materiais
 
-### C) Garantir segurança também nas rotas (não só no menu)
-Criar um guard de rota específico para gerente, por exemplo:
-- `RequireManagerMenuPermission` (componente)
-  - se `profile.role !== 'manager'`: deixa passar
-  - se for `manager`:
-    - carrega permissões
-    - verifica se a rota atual está habilitada para o módulo ativo (e, no caso de `/material-requests`, usar `activeModule` para decidir qual conjunto aplicar)
-    - se desabilitado: redireciona para a rota default do gerente (ex.: `/outdoor-evaluation`) + toast “Acesso não permitido”.
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `NewMaterialDialog` (direto) | OK | Via dialog |
+| READ | Query inline em `Materials.tsx` | OK | Query simples |
+| UPDATE | Funcao `handleSaveEdit` em `Materials.tsx` | OK | Via dialog |
+| DELETE | NAO EXISTE | PENDENTE | Nao ha opcao de exclusao |
 
-Aplicar esse guard nas rotas:
-- `/maintenance-requests`
-- `/material-requests`
+**Lacuna identificada**: Materiais nao possui hook dedicado nem opcao de exclusao.
 
-**Resultado esperado:** mesmo que o menu apareça por qualquer motivo, **o acesso efetivo fica bloqueado**.
+### 2.3 Solicitacoes de Material
 
-### D) Ajuste extra (robustez)
-- Forçar que chaves “obrigatórias” sejam tratadas como `true` mesmo que o JSON venha errado (por exemplo, alguém edita manualmente no banco).
-  - Ex.: `avaliar_outdoor` nunca pode ficar oculto.
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateMaterialRequest` | OK | Suporta multiplos itens |
+| READ | `useMaterialRequests` | OK | Joins com material, pdv, requester |
+| UPDATE | `useUpdateMaterialRequest` | OK | Fluxo aprovacao/rejeicao/entrega |
+| DELETE | NAO EXISTE | PENDENTE | Considerar cancelamento |
 
----
+### 2.4 Movimentacoes de Estoque
 
-## Solução proposta (parte 2): melhorar a UI das opções em Configurações (abas)
-Hoje a tela “Geral” tem muitas abas e a barra está ficando ruim (apertada / aparenta mostrar só “Gerentes” em alguns layouts).
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateStockMovement` | OK | Valida quantidade |
+| READ | `useStockMovements` | OK | Filtro por material |
+| UPDATE | NAO SE APLICA | - | Movimentacoes sao imutaveis |
+| DELETE | NAO SE APLICA | - | Historico e imutavel |
 
-### Opção recomendada (melhor UX e simples de manter)
-**Reestruturar em 2 níveis:**
-- **Abas principais (poucas):**
-  - “Marca & Aparência”
-  - “Operacional”
-  - “Relatórios”
-  - “Gerentes”
-- Dentro de cada aba principal, usar **sub-abas** (ou cards) para as opções específicas.
+### 2.5 Campanhas
 
-Isso reduz “13 abas” para “4 abas” e elimina o layout comprimido.
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateCampaign` | OK | Gera codigo sequencial |
+| READ | `useCampaigns` | OK | Lista completa |
+| UPDATE | `useUpdateCampaignStatus` | PARCIAL | So atualiza status |
+| DELETE | NAO EXISTE | PENDENTE | Nao ha opcao de exclusao |
 
-### Alternativa (mudança mínima)
-Manter as abas atuais, mas corrigir a barra para:
-- usar `flex` ao invés de `grid-cols-13`
-- permitir `overflow-x-auto` com `whitespace-nowrap`
-- adicionar “wrap” no desktop e “scroll horizontal” no mobile
-
-**Resultado esperado:** o usuário vê claramente todas as opções e consegue navegar como “abas” de verdade.
+**Lacuna identificada**: Campanhas nao tem edicao completa nem exclusao.
 
 ---
 
-## Arquivos que serão alterados (implementação)
-1) `src/components/layout/AppLayout.tsx`
-   - mudar regra de filtragem do menu (deny-by-default para itens configuráveis)
-   - tratar obrigatórios como sempre visíveis
-2) `src/hooks/useManagerMenuPermissions.ts`
-   - melhorar `queryKey` e política de refetch
-3) `src/App.tsx`
-   - envolver rotas `/maintenance-requests` e `/material-requests` com o guard novo
-4) (novo) `src/components/auth/RequireManagerMenuPermission.tsx` (ou nome equivalente)
-   - guard de permissão para gerente baseado em `manager_menu_permissions`
-5) `src/pages/Settings.tsx` (ou o componente de Configurações “Geral”)
-   - reestruturação das abas (2 níveis) ou correção do TabsList (alternativa mínima)
+## 3. Modulo Usuarios e Perfis
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateUser` | OK | Via edge function |
+| READ | `useProfiles` | OK | Nao expoe temp_password |
+| UPDATE | `useUpdateProfile` | OK | Atualiza role, modulos, pdv |
+| DELETE | `useDeleteProfile` (soft), `usePermanentDeleteProfile` | OK | Soft delete e permanente |
+| REATIVAR | `useReactivateProfile` | OK | Reativa usuarios inativos |
+| RESET SENHA | `useResetPassword` | OK | Via edge function |
 
 ---
 
-## Plano de testes (obrigatório para validar)
-1) Logar como **Super Admin**
-   - desmarcar “Solicitações de Manutenção” e “Solicitar Materiais” no módulo Mídia Externa
-   - salvar
-2) Logar como **Gerente**
-   - entrar em Mídia Externa → confirmar que o menu mostra somente “Avaliar Outdoor”
-   - dar refresh (F5) → menu deve continuar correto
-3) Teste de segurança:
-   - como gerente, tentar abrir diretamente:
-     - `/maintenance-requests`
-     - `/material-requests`
-   - deve redirecionar para `/outdoor-evaluation` (ou rota default) e mostrar aviso
-4) Teste da UI de Configurações:
-   - validar navegação por abas em desktop e mobile (scroll/wrap funcionando)
+## 4. Modulo Loteamentos
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateLoteamentoLancamento`, `useCreateLoteamentoPagamento`, `useCreateLoteamentoContrato` | OK | CRUD completo |
+| READ | `useLoteamentosLancamentos`, `useLoteamentosPagamentos`, `useLoteamentosContratos` | OK | Com joins |
+| UPDATE | `useUpdateLoteamentoLancamento`, `useUpdateLoteamentoPagamento`, `useUpdateLoteamentoContrato` | OK | Todos campos |
+| DELETE | `useDeleteLoteamentoLancamento`, `useDeleteLoteamentoContrato` | OK | Exclusao permanente |
+
+**Observacao**: Falta `useDeleteLoteamentoPagamento`.
 
 ---
 
-## Observações importantes
-- Isso segue o princípio “Integração, não substituição”: continuamos usando `system_settings` como fonte única para configuração.
-- Mesmo com controle visual, a segurança correta exige o guard de rota (item C), para impedir bypass por URL.
+## 5. Modulo Agencia
+
+| Operacao | Entidade | Status | Observacoes |
+|----------|----------|--------|-------------|
+| CRUD Agencias | `useAgencias`, `useCreateAgencia`, `useUpdateAgencia`, `useDeleteAgencia` | OK | Completo |
+| CRUD Demandas | `useAgenciaDemandas`, `useCreateAgenciaDemanda`, `useUpdateAgenciaDemanda` | PARCIAL | Falta delete |
+| CRUD Videos | `useAgenciaVideos`, `useCreateAgenciaVideo`, `useUpdateAgenciaVideo`, `useDeleteAgenciaVideo` | OK | Completo |
+| CRUD Fotos | `useAgenciaFotos`, `useCreateAgenciaFoto`, `useDeleteAgenciaFoto` | PARCIAL | Falta update |
+
+---
+
+## 6. Modulo Financeiro - Custos Externos
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateCustoExterno` | OK | Com alocacoes |
+| READ | `useCustosExternos`, `useCustoExterno`, `useCustosPorPosto` | OK | Filtros e KPIs |
+| UPDATE | `useUpdateCustoExterno`, `useUpdateAlocacoes` | OK | Atualiza rateio |
+| DELETE | `useDeleteCustoExterno` | OK | **Soft delete** (padrao correto) |
+
+---
+
+## 7. Itens de Checklist
+
+| Operacao | Hook/Funcao | Status | Observacoes |
+|----------|-------------|--------|-------------|
+| CREATE | `useCreateChecklistQuestion` | OK | Auto-incrementa sort_order |
+| READ | Via `useChecklistData` | OK | Agrupado por categoria |
+| UPDATE | `useUpdateChecklistQuestion` | OK | Todos os campos |
+| DELETE | `useDeleteChecklistQuestion` | OK | Exclusao permanente |
+
+---
+
+## Lacunas Identificadas e Recomendacoes
+
+### Prioridade ALTA (Funcionalidades em falta)
+
+| Entidade | Problema | Recomendacao |
+|----------|----------|--------------|
+| Outdoors | Delete/Update direto na pagina sem hook | Criar `useUpdateOutdoor` e `useDeleteOutdoor` |
+| Materiais | Sem exclusao e sem hook dedicado | Criar `useTradeMaterials` com CRUD completo |
+| Campanhas | Apenas update de status | Expandir para edicao completa e exclusao |
+| Solicitacoes Manutencao | Sem exclusao | Adicionar soft delete ou cancelamento |
+
+### Prioridade MEDIA (Padronizacao)
+
+| Entidade | Problema | Recomendacao |
+|----------|----------|--------------|
+| Demandas Agencia | Falta delete | Adicionar `useDeleteAgenciaDemanda` |
+| Fotos Agencia | Falta update | Adicionar `useUpdateAgenciaFoto` |
+| Pagamentos Loteamentos | Falta delete | Adicionar `useDeleteLoteamentoPagamento` |
+
+### Prioridade BAIXA (Melhorias)
+
+| Entidade | Problema | Recomendacao |
+|----------|----------|--------------|
+| Solicitacoes Material | Sem cancelamento | Adicionar status 'cancelled' |
+| Contratos | Sem soft delete | Considerar inativacao ao inves de exclusao |
+
+---
+
+## Padrao Atual vs Recomendado
+
+### Padrao Atual (Maioria dos hooks)
+
+```text
+- useEntidade() -> READ (query)
+- useCreateEntidade() -> CREATE (mutation)
+- useUpdateEntidade() -> UPDATE (mutation)
+- useDeleteEntidade() -> DELETE (mutation)
+```
+
+### Hooks que NAO seguem o padrao
+
+1. **Materials.tsx**: CRUD inline sem hooks dedicados
+2. **Outdoors.tsx**: Delete inline sem hook
+3. **useCampaigns.ts**: Update limitado a status
+
+---
+
+## Plano de Correcao Sugerido
+
+### Fase 1: Criar hooks faltantes (1-2 dias)
+
+1. Criar `src/hooks/useTradeMaterials.ts` com CRUD completo
+2. Criar `useUpdateOutdoor.ts` e `useDeleteOutdoor.ts`
+3. Expandir `useCampaigns.ts` com `useUpdateCampaign` e `useDeleteCampaign`
+
+### Fase 2: Completar CRUDs parciais (1 dia)
+
+1. Adicionar `useDeleteAgenciaDemanda`
+2. Adicionar `useUpdateAgenciaFoto`
+3. Adicionar `useDeleteLoteamentoPagamento`
+
+### Fase 3: Soft delete onde aplicavel (0.5 dia)
+
+1. Implementar soft delete em `maintenance_requests`
+2. Considerar soft delete em `campaigns`
+
+---
+
+## Resumo do Estado Atual
+
+| Categoria | Total | Completo | Parcial | Pendente |
+|-----------|-------|----------|---------|----------|
+| Midia Externa | 5 entidades | 4 | 1 | 0 |
+| Merchandising | 5 entidades | 2 | 3 | 0 |
+| Usuarios | 1 entidade | 1 | 0 | 0 |
+| Loteamentos | 3 entidades | 2 | 1 | 0 |
+| Agencia | 4 entidades | 2 | 2 | 0 |
+| Financeiro | 1 entidade | 1 | 0 | 0 |
+| Configuracoes | 1 entidade | 1 | 0 | 0 |
+
+**Conclusao**: O sistema possui aproximadamente 85% das funcionalidades CRUD implementadas corretamente. As lacunas sao principalmente em operacoes de DELETE em algumas entidades e na padronizacao de alguns hooks.
