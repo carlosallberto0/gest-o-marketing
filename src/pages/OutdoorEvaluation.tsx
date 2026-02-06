@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { GeoPhotoUpload, GeoPhotoData } from '@/components/ui/geo-photo-upload';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { 
   Select,
@@ -33,7 +34,8 @@ import {
   ChevronRight,
   ExternalLink,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -95,12 +97,13 @@ export default function OutdoorEvaluation() {
   const createMaintenanceRequest = useCreateMaintenanceRequest();
   const { profile } = useAuth();
 
-  // Group outdoors by PDV and filter only those needing evaluation
+  const isSuperView = ['super_admin', 'admin', 'director'].includes(profile?.role || '');
+
+  // Group outdoors by PDV and filter only those needing evaluation (manager view)
   const pdvsWithPendingOutdoors = useMemo(() => {
     const pdvMap = new Map<string, { pdvId: string; pdvName: string; outdoors: typeof outdoors }>();
     
     outdoors.forEach(outdoor => {
-      // Only include outdoors that need evaluation (pending or non_operational)
       if (outdoor.status === 'pending_evaluation' || outdoor.status === 'non_operational') {
         const existing = pdvMap.get(outdoor.pdvId);
         if (existing) {
@@ -118,7 +121,60 @@ export default function OutdoorEvaluation() {
     return Array.from(pdvMap.values());
   }, [outdoors]);
 
-  const selectedPdvData = pdvsWithPendingOutdoors.find(p => p.pdvId === selectedPdv);
+  // Super admin view: ALL PDVs with total/evaluated/pending counts
+  const allPdvsWithStats = useMemo(() => {
+    if (!isSuperView) return [];
+
+    const pdvMap = new Map<string, {
+      pdvId: string;
+      pdvName: string;
+      totalOutdoors: number;
+      evaluatedCount: number;
+      pendingCount: number;
+      outdoors: typeof outdoors;
+    }>();
+
+    outdoors.forEach(outdoor => {
+      const existing = pdvMap.get(outdoor.pdvId);
+      const isEvaluated = outdoor.status === 'operational';
+      if (existing) {
+        existing.totalOutdoors++;
+        existing.outdoors.push(outdoor);
+        if (isEvaluated) existing.evaluatedCount++;
+        else existing.pendingCount++;
+      } else {
+        pdvMap.set(outdoor.pdvId, {
+          pdvId: outdoor.pdvId,
+          pdvName: outdoor.pdvName,
+          totalOutdoors: 1,
+          evaluatedCount: isEvaluated ? 1 : 0,
+          pendingCount: isEvaluated ? 0 : 1,
+          outdoors: [outdoor],
+        });
+      }
+    });
+
+    return Array.from(pdvMap.values()).sort((a, b) => {
+      // Pendentes primeiro, depois por nome
+      if (a.pendingCount > 0 && b.pendingCount === 0) return -1;
+      if (a.pendingCount === 0 && b.pendingCount > 0) return 1;
+      return a.pdvName.localeCompare(b.pdvName);
+    });
+  }, [outdoors, isSuperView]);
+
+  // Global summary for super admin
+  const globalSummary = useMemo(() => {
+    if (!isSuperView) return null;
+    const total = outdoors.length;
+    const evaluated = outdoors.filter(o => o.status === 'operational').length;
+    const pending = total - evaluated;
+    const percentage = total > 0 ? Math.round((evaluated / total) * 100) : 0;
+    return { total, evaluated, pending, percentage };
+  }, [outdoors, isSuperView]);
+
+  const selectedPdvData = isSuperView
+    ? allPdvsWithStats.find(p => p.pdvId === selectedPdv)
+    : pdvsWithPendingOutdoors.find(p => p.pdvId === selectedPdv);
   const outdoor = outdoors.find(o => o.id === selectedOutdoor);
 
   const statusOptions: { value: OutdoorStatus; label: string; icon: React.ReactNode; color: string }[] = [
@@ -195,13 +251,22 @@ export default function OutdoorEvaluation() {
     );
   }
 
-  if (pdvsWithPendingOutdoors.length === 0) {
+  // For manager: show empty state if no pending. For super admin: show if no outdoors at all
+  const showEmptyState = isSuperView ? outdoors.length === 0 : pdvsWithPendingOutdoors.length === 0;
+
+  if (showEmptyState) {
     return (
       <AppLayout>
         <div className="max-w-2xl mx-auto text-center py-12">
           <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Todos os outdoors estão OK!</h2>
-          <p className="text-muted-foreground">Não há outdoors pendentes de avaliação no momento.</p>
+          <h2 className="text-xl font-semibold mb-2">
+            {isSuperView ? 'Nenhum outdoor cadastrado' : 'Todos os outdoors estão OK!'}
+          </h2>
+          <p className="text-muted-foreground">
+            {isSuperView 
+              ? 'Não há outdoors cadastrados no sistema ainda.'
+              : 'Não há outdoors pendentes de avaliação no momento.'}
+          </p>
           <Button className="mt-4" onClick={() => navigate('/outdoors')}>
             Ver todos os outdoors
           </Button>
@@ -221,8 +286,100 @@ export default function OutdoorEvaluation() {
           </p>
         </div>
 
-        {/* PDV Selection Cards */}
-        {!selectedPdv && (
+        {/* Global Summary - Super Admin only */}
+        {isSuperView && globalSummary && !selectedPdv && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{globalSummary.total}</p>
+                <p className="text-xs text-muted-foreground">Total de Outdoors</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-success">{globalSummary.evaluated}</p>
+                <p className="text-xs text-muted-foreground">Avaliados</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-warning">{globalSummary.pending}</p>
+                <p className="text-xs text-muted-foreground">Pendentes</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4 text-center">
+                <p className={cn(
+                  "text-2xl font-bold",
+                  globalSummary.percentage >= 80 ? 'text-success' : globalSummary.percentage >= 50 ? 'text-warning' : 'text-destructive'
+                )}>{globalSummary.percentage}%</p>
+                <p className="text-xs text-muted-foreground">Concluído</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* PDV Selection Cards - Super Admin View */}
+        {isSuperView && !selectedPdv && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Progresso por Posto
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {allPdvsWithStats.map(pdv => {
+                const percentage = pdv.totalOutdoors > 0 ? Math.round((pdv.evaluatedCount / pdv.totalOutdoors) * 100) : 0;
+                return (
+                  <Card 
+                    key={pdv.pdvId} 
+                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+                    onClick={() => setSelectedPdv(pdv.pdvId)}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <span className="flex items-center gap-2">
+                          <Building className="h-5 w-5 text-primary" />
+                          {pdv.pdvName}
+                        </span>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {pdv.evaluatedCount}/{pdv.totalOutdoors} avaliados
+                        </span>
+                        <span className={cn(
+                          "font-semibold",
+                          percentage === 100 ? 'text-success' : percentage >= 50 ? 'text-warning' : 'text-destructive'
+                        )}>
+                          {percentage}%
+                        </span>
+                      </div>
+                      <Progress value={percentage} className="h-2" />
+                      <div className="flex items-center gap-2">
+                        {pdv.pendingCount > 0 ? (
+                          <Badge variant="soft-warning">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {pdv.pendingCount} pendente(s)
+                          </Badge>
+                        ) : (
+                          <Badge variant="soft-success">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Todos avaliados
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* PDV Selection Cards - Manager View */}
+        {!isSuperView && !selectedPdv && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Postos com Outdoors Pendentes</h2>
             <div className="grid gap-4 md:grid-cols-2">
@@ -240,12 +397,10 @@ export default function OutdoorEvaluation() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {pdv.outdoors.length} outdoor(s) pendente(s)
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {pdv.outdoors.length} outdoor(s) pendente(s)
+                      </Badge>
                       <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </CardContent>
@@ -262,7 +417,9 @@ export default function OutdoorEvaluation() {
               <Button variant="outline" onClick={() => setSelectedPdv('')}>
                 ← Voltar
               </Button>
-              <h2 className="text-lg font-semibold">{selectedPdvData.pdvName} - Outdoors Pendentes</h2>
+              <h2 className="text-lg font-semibold">
+                {selectedPdvData.pdvName} - {isSuperView ? 'Todos os Outdoors' : 'Outdoors Pendentes'}
+              </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {selectedPdvData.outdoors.map(out => (
