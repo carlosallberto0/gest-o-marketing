@@ -1,74 +1,59 @@
 
 
-# Visibilidade de Avaliacao para Super Admin - Totais por Posto
+# Correcao da Contagem de Avaliacao e Lista de Cobranca
 
-## Problema Atual
+## Problema 1: Contagem errada de "avaliados"
 
-A tela de "Avaliacao Mensal de Outdoor" mostra apenas os postos que possuem outdoors **pendentes**, exibindo somente a quantidade pendente. O Super Admin nao consegue ver de forma clara:
-- Quantos outdoors cada posto possui no total
-- Quantos ja foram avaliados
-- Quantos ainda faltam
+O sistema atual conta como "avaliado" apenas outdoors com status `operational`. Porem, um outdoor avaliado como `non_operational` tambem foi avaliado -- o gerente fez a avaliacao, so que o resultado foi "nao operacional". A logica correta e:
 
-## Solucao
+- **Avaliado** = qualquer status diferente de `pending_evaluation` (inclui `operational` E `non_operational`)
+- **Pendente** = apenas `pending_evaluation`
 
-Modificar a pagina `OutdoorEvaluation.tsx` para que, quando o usuario for **super_admin** (ou admin/diretor), a listagem de postos exiba:
+### Onde corrigir
 
-1. **Todos os postos** (nao apenas os com pendencias) -- para visao completa
-2. Para cada posto, mostrar:
-   - Total de outdoors do posto
-   - Quantos ja foram avaliados (status `operational`)
-   - Quantos estao pendentes (`pending_evaluation`, `non_operational`)
-   - Uma barra de progresso visual (ex: 3/7 avaliados)
-3. Manter o comportamento atual para **gerentes** (que so veem seus postos pendentes)
+No arquivo `src/pages/OutdoorEvaluation.tsx`, existem 3 pontos que usam a logica errada:
 
-## Alteracoes Tecnicas
+1. **Linha 139** (`allPdvsWithStats`): `const isEvaluated = outdoor.status === 'operational'` deve mudar para `outdoor.status !== 'pending_evaluation'`
+2. **Linha 169** (`globalSummary`): `outdoors.filter(o => o.status === 'operational')` deve mudar para `outdoors.filter(o => o.status !== 'pending_evaluation')`
 
-### Arquivo: `src/pages/OutdoorEvaluation.tsx`
+Isso corrige tanto os cards de cada posto quanto o resumo global no topo.
 
-**1. Novo `useMemo` para agrupar todos os outdoors por PDV (visao super_admin)**
+---
 
-Criar um segundo agrupamento que inclui TODOS os outdoors (nao so pendentes), calculando:
-- `totalOutdoors`: quantidade total
-- `evaluatedCount`: quantidade com status `operational` (avaliados/em dia)
-- `pendingCount`: quantidade com status diferente de `operational`
+## Problema 2: Gerar lista de postos pendentes para cobranca
 
-**2. Condicionar a exibicao baseada no perfil**
+Adicionar para o Super Admin:
+- Um botao "Gerar Lista de Pendentes" visivel na tela principal (quando nenhum posto esta selecionado)
+- Ao clicar, gera uma lista (pode ser exportada ou copiada) contendo:
+  - Nome do posto
+  - Quantidade total de outdoors
+  - Quantidade pendente
+  - Nome do gerente responsavel (se houver)
+- Opcao de selecionar/desselecionar postos individuais antes de gerar
 
-- Se `profile.role === 'super_admin'` (ou `admin`, `director`): mostrar todos os postos com os contadores totais
-- Se `profile.role === 'manager'`: manter comportamento atual (so pendentes)
+### Implementacao
 
-**3. Redesign dos cards de PDV para super_admin**
+No mesmo arquivo `OutdoorEvaluation.tsx`:
+- Adicionar estado `selectedForReport` (Set de pdvIds)
+- Adicionar checkboxes nos cards de postos pendentes
+- Adicionar botao "Selecionar todos pendentes" e "Gerar Lista"
+- Funcao de exportar para Excel (usando a lib `xlsx` ja instalada) ou copiar como texto
 
-Cada card mostrara:
-- Nome do posto
-- Badge com progresso: "X/Y avaliados"
-- Barra de progresso (`Progress` component) mostrando percentual
-- Badge de pendentes (se houver)
-- Indicador visual: verde (100%), amarelo (parcial), vermelho (nenhum avaliado)
+### Dados do gerente
 
-**4. Seção de resumo geral (topo, apenas super_admin)**
+Para mostrar o nome do gerente de cada posto na lista, sera necessario buscar essa informacao. O hook `useOutdoors` ja retorna `pdvName` mas nao o gerente. Opcoes:
+- Fazer uma query separada para buscar gerentes dos PDVs (via `pdvs.manager_id` -> `profiles.name`)
+- Ou usar o hook `usePDVsList` que ja pode ter essa info
 
-Adicionar um resumo com:
-- Total de outdoors no sistema
-- Total avaliados
-- Total pendentes
-- Percentual geral
+Vou verificar e usar a forma mais simples.
 
-### Exemplo visual do card (super_admin):
+---
 
-```text
-+------------------------------------------+
-| Posto Sao Roque Orizona                  |
-| [=======-----] 5/10 avaliados (50%)      |
-| 5 outdoor(s) pendente(s)                 |
-+------------------------------------------+
-```
-
-## Arquivos Modificados
+## Arquivos modificados
 
 | Arquivo | Alteracao |
 |---------|----------|
-| `src/pages/OutdoorEvaluation.tsx` | Adicionar logica de agrupamento completo, cards com contadores, resumo geral |
+| `src/pages/OutdoorEvaluation.tsx` | Corrigir logica de contagem; adicionar selecao de postos e geracao de lista |
 
-Nenhuma alteracao de banco de dados necessaria -- os dados ja existem na query `useOutdoors`.
+Nenhuma alteracao de banco necessaria.
 
