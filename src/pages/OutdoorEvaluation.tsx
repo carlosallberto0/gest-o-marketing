@@ -4,7 +4,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useOutdoors, useCreateMediaEvaluation } from '@/hooks/useOutdoorData';
 import { useCreateMaintenanceRequest } from '@/hooks/useMaintenanceRequests';
 import { useAuth } from '@/hooks/useAuth';
+import { usePDVs } from '@/hooks/usePDVs';
 import { getStatusColor, getStatusLabel } from '@/lib/helpers';
+import { exportToExcel } from '@/lib/excelExport';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { GeoPhotoUpload, GeoPhotoData } from '@/components/ui/geo-photo-upload';
@@ -12,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Select,
   SelectContent,
@@ -35,7 +38,9 @@ import {
   ExternalLink,
   Wrench,
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  FileSpreadsheet,
+  CheckSquare
 } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -95,9 +100,13 @@ export default function OutdoorEvaluation() {
   const { data: outdoors = [], isLoading } = useOutdoors();
   const createEvaluation = useCreateMediaEvaluation();
   const createMaintenanceRequest = useCreateMaintenanceRequest();
+  const { data: pdvsData = [] } = usePDVs();
   const { profile } = useAuth();
 
   const isSuperView = ['super_admin', 'admin', 'director'].includes(profile?.role || '');
+
+  // State for pending report selection
+  const [selectedForReport, setSelectedForReport] = useState<Set<string>>(new Set());
 
   // Group outdoors by PDV and filter only those needing evaluation (manager view)
   const pdvsWithPendingOutdoors = useMemo(() => {
@@ -128,15 +137,22 @@ export default function OutdoorEvaluation() {
     const pdvMap = new Map<string, {
       pdvId: string;
       pdvName: string;
+      managerName: string;
       totalOutdoors: number;
       evaluatedCount: number;
       pendingCount: number;
       outdoors: typeof outdoors;
     }>();
 
+    // Build manager name map from pdvsData
+    const managerMap = new Map<string, string>();
+    pdvsData.forEach(p => {
+      if (p.manager) managerMap.set(p.id, p.manager.name);
+    });
+
     outdoors.forEach(outdoor => {
       const existing = pdvMap.get(outdoor.pdvId);
-      const isEvaluated = outdoor.status === 'operational';
+      const isEvaluated = outdoor.status !== 'pending_evaluation';
       if (existing) {
         existing.totalOutdoors++;
         existing.outdoors.push(outdoor);
@@ -146,6 +162,7 @@ export default function OutdoorEvaluation() {
         pdvMap.set(outdoor.pdvId, {
           pdvId: outdoor.pdvId,
           pdvName: outdoor.pdvName,
+          managerName: managerMap.get(outdoor.pdvId) || 'Sem gerente',
           totalOutdoors: 1,
           evaluatedCount: isEvaluated ? 1 : 0,
           pendingCount: isEvaluated ? 0 : 1,
@@ -166,11 +183,61 @@ export default function OutdoorEvaluation() {
   const globalSummary = useMemo(() => {
     if (!isSuperView) return null;
     const total = outdoors.length;
-    const evaluated = outdoors.filter(o => o.status === 'operational').length;
+    const evaluated = outdoors.filter(o => o.status !== 'pending_evaluation').length;
     const pending = total - evaluated;
     const percentage = total > 0 ? Math.round((evaluated / total) * 100) : 0;
     return { total, evaluated, pending, percentage };
-  }, [outdoors, isSuperView]);
+  }, [outdoors, isSuperView, pdvsData]);
+
+  // Pending PDVs for report selection
+  const pendingPdvs = useMemo(() => {
+    return allPdvsWithStats.filter(p => p.pendingCount > 0);
+  }, [allPdvsWithStats]);
+
+  const toggleReportSelection = (pdvId: string) => {
+    setSelectedForReport(prev => {
+      const next = new Set(prev);
+      if (next.has(pdvId)) next.delete(pdvId);
+      else next.add(pdvId);
+      return next;
+    });
+  };
+
+  const selectAllPending = () => {
+    setSelectedForReport(new Set(pendingPdvs.map(p => p.pdvId)));
+  };
+
+  const deselectAll = () => {
+    setSelectedForReport(new Set());
+  };
+
+  const handleExportPendingList = () => {
+    const selectedPdvsList = allPdvsWithStats.filter(p => selectedForReport.has(p.pdvId));
+    if (selectedPdvsList.length === 0) {
+      showToast.error('Selecione ao menos um posto');
+      return;
+    }
+
+    const data = selectedPdvsList.map(p => ({
+      posto: p.pdvName,
+      gerente: p.managerName,
+      total_outdoors: p.totalOutdoors,
+      avaliados: p.evaluatedCount,
+      pendentes: p.pendingCount,
+      percentual: p.totalOutdoors > 0 ? `${Math.round((p.evaluatedCount / p.totalOutdoors) * 100)}%` : '0%',
+    }));
+
+    exportToExcel(data, [
+      { header: 'Posto', key: 'posto', width: 30 },
+      { header: 'Gerente', key: 'gerente', width: 25 },
+      { header: 'Total Outdoors', key: 'total_outdoors', width: 15 },
+      { header: 'Avaliados', key: 'avaliados', width: 12 },
+      { header: 'Pendentes', key: 'pendentes', width: 12 },
+      { header: '% Concluído', key: 'percentual', width: 12 },
+    ], `pendentes_avaliacao_${new Date().toISOString().split('T')[0]}`);
+
+    showToast.success(`Lista exportada com ${selectedPdvsList.length} posto(s)`);
+  };
 
   const selectedPdvData = isSuperView
     ? allPdvsWithStats.find(p => p.pdvId === selectedPdv)
@@ -322,22 +389,57 @@ export default function OutdoorEvaluation() {
         {/* PDV Selection Cards - Super Admin View */}
         {isSuperView && !selectedPdv && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Progresso por Posto
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Progresso por Posto
+              </h2>
+              {pendingPdvs.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectedForReport.size === pendingPdvs.length ? deselectAll : selectAllPending}
+                  >
+                    <CheckSquare className="h-4 w-4 mr-1" />
+                    {selectedForReport.size === pendingPdvs.length ? 'Desmarcar Todos' : 'Selecionar Pendentes'}
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleExportPendingList}
+                    disabled={selectedForReport.size === 0}
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-1" />
+                    Gerar Lista ({selectedForReport.size})
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               {allPdvsWithStats.map(pdv => {
                 const percentage = pdv.totalOutdoors > 0 ? Math.round((pdv.evaluatedCount / pdv.totalOutdoors) * 100) : 0;
+                const hasPending = pdv.pendingCount > 0;
                 return (
                   <Card 
                     key={pdv.pdvId} 
-                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+                    className={cn(
+                      "cursor-pointer hover:shadow-lg transition-all hover:border-primary",
+                      selectedForReport.has(pdv.pdvId) && "ring-2 ring-primary border-primary"
+                    )}
                     onClick={() => setSelectedPdv(pdv.pdvId)}
                   >
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center justify-between text-base">
                         <span className="flex items-center gap-2">
+                          {hasPending && (
+                            <Checkbox
+                              checked={selectedForReport.has(pdv.pdvId)}
+                              onCheckedChange={() => toggleReportSelection(pdv.pdvId)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mr-1"
+                            />
+                          )}
                           <Building className="h-5 w-5 text-primary" />
                           {pdv.pdvName}
                         </span>
@@ -357,18 +459,21 @@ export default function OutdoorEvaluation() {
                         </span>
                       </div>
                       <Progress value={percentage} className="h-2" />
-                      <div className="flex items-center gap-2">
-                        {pdv.pendingCount > 0 ? (
-                          <Badge variant="soft-warning">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {pdv.pendingCount} pendente(s)
-                          </Badge>
-                        ) : (
-                          <Badge variant="soft-success">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Todos avaliados
-                          </Badge>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {pdv.pendingCount > 0 ? (
+                            <Badge variant="soft-warning">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {pdv.pendingCount} pendente(s)
+                            </Badge>
+                          ) : (
+                            <Badge variant="soft-success">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Todos avaliados
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{pdv.managerName}</span>
                       </div>
                     </CardContent>
                   </Card>
