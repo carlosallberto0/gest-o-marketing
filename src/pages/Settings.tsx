@@ -32,7 +32,9 @@ import {
   DollarSign,
   RefreshCcw,
   FileText,
-  Users
+  Users,
+  Shield,
+  ShieldCheck
 } from 'lucide-react';
 import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
 import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
@@ -41,6 +43,8 @@ import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearance
 import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
 import { ReportSettingsManager } from '@/components/settings/ReportSettingsManager';
 import { ManagerMenuSettings } from '@/components/settings/ManagerMenuSettings';
+import { FeatureFlagsSettings } from '@/components/settings/FeatureFlagsSettings';
+import { PermissionsSettings } from '@/components/settings/PermissionsSettings';
 import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -325,6 +329,18 @@ export function SettingsContent() {
                 <TabsTrigger value="managers" className="data-[state=active]:bg-background">
                   <Users className="h-4 w-4 mr-2" />
                   Gerentes
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="feature-flags" className="data-[state=active]:bg-background">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Feature Flags
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="permissions" className="data-[state=active]:bg-background">
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Permissões
                 </TabsTrigger>
               )}
             </TabsList>
@@ -780,6 +796,20 @@ export function SettingsContent() {
           {isSuperAdmin && (
             <TabsContent value="managers" className="space-y-6">
               <ManagerMenuSettings />
+            </TabsContent>
+          )}
+
+          {/* Feature Flags Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="feature-flags" className="space-y-6">
+              <FeatureFlagsSettings />
+            </TabsContent>
+          )}
+
+          {/* Permissions Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="permissions" className="space-y-6">
+              <PermissionsSettings />
             </TabsContent>
           )}
         </Tabs>

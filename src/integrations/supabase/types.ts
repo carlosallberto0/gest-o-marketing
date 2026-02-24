@@ -2010,6 +2010,36 @@ export type Database = {
           },
         ]
       }
+      module_feature_flags: {
+        Row: {
+          created_at: string | null
+          enabled: boolean
+          feature_key: string
+          id: string
+          module_key: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          module_key: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          module_key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notificacoes_sistema: {
         Row: {
           criada_em: string | null
@@ -2499,6 +2529,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          entity_key: string
+          granted: boolean
+          id: string
+          module_key: string
+          permission_key: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_key?: string
+          granted?: boolean
+          id?: string
+          module_key: string
+          permission_key: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_key?: string
+          granted?: boolean
+          id?: string
+          module_key?: string
+          permission_key?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       service_order_items: {
         Row: {
@@ -3248,6 +3314,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_role: { Args: never; Returns: boolean }
+      is_feature_enabled: {
+        Args: { p_feature?: string; p_module: string }
+        Returns: boolean
+      }
       notificar_diretores_aprovadores: {
         Args: {
           p_id_referencia?: string

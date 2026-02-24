@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ModuleCard } from '@/components/ui/module-card';
 import { useModuleSettings } from '@/hooks/useModuleSettings';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
@@ -62,6 +63,7 @@ export default function ModuleSelection() {
   const { setActiveModule } = useModule();
   const navigate = useNavigate();
   const { data: moduleSettings, isLoading: settingsLoading } = useModuleSettings();
+  const { isModuleEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const { data: managerPermissions } = useManagerMenuPermissions();
 
   const isSuperAdmin = profile?.role === 'super_admin';
@@ -78,6 +80,9 @@ export default function ModuleSelection() {
   
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
+    // Feature flag check: se o módulo está desabilitado, ninguém acessa (exceto super_admin)
+    if (!isSuperAdmin && !isModuleEnabled(moduleId)) return false;
+
     // Super Admin only modules
     if (['mapa', 'configuracoes', 'agencia', 'loteamentos'].includes(moduleId)) {
       return isSuperAdmin;
@@ -109,7 +114,7 @@ export default function ModuleSelection() {
     navigate('/auth');
   };
 
-  if (loading || settingsLoading) {
+  if (loading || settingsLoading || flagsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
