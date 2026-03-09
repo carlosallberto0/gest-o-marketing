@@ -367,12 +367,15 @@ export interface OutdoorPDFData {
   pdvName: string;
   city: string;
   photoUrl?: string;
+  currentPhotoUrl?: string | null;
   width: number;
   height: number;
   area: number;
   locationUrl?: string;
   location: string;
   status: string;
+  observations?: string | null;
+  nonOperationalReason?: string | null;
 }
 
 const outdoorStatusLabels: Record<string, string> = {
