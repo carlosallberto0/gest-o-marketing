@@ -300,7 +300,7 @@ export default function ServiceOrders() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Pendentes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              <div className="text-2xl font-bold text-warning">{stats.pending}</div>
             </CardContent>
           </Card>
           <Card>
@@ -308,7 +308,7 @@ export default function ServiceOrders() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Em Andamento</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.in_progress}</div>
+              <div className="text-2xl font-bold text-primary">{stats.in_progress}</div>
             </CardContent>
           </Card>
           <Card>
@@ -316,7 +316,7 @@ export default function ServiceOrders() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Concluídas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+              <div className="text-2xl font-bold text-success">{stats.completed}</div>
             </CardContent>
           </Card>
         </div>
@@ -337,189 +337,172 @@ export default function ServiceOrders() {
           </TabsList>
 
           <TabsContent value="orders">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por número, outdoor ou fornecedor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por número, outdoor ou fornecedor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="pending">Pendente Admin</SelectItem>
+                  <SelectItem value="pending_director">Aguardando Diretoria</SelectItem>
+                  <SelectItem value="director_approved">Aprovada Diretoria</SelectItem>
+                  <SelectItem value="in_progress">Em Execução</SelectItem>
+                  <SelectItem value="completed">Concluída</SelectItem>
+                  <SelectItem value="validated">Validada</SelectItem>
+                  <SelectItem value="correction_requested">Correção Solicitada</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="pending">Pendente Admin</SelectItem>
-                <SelectItem value="pending_director">Aguardando Diretoria</SelectItem>
-                <SelectItem value="director_approved">Aprovada Diretoria</SelectItem>
-                <SelectItem value="in_progress">Em Execução</SelectItem>
-                <SelectItem value="completed">Concluída</SelectItem>
-                <SelectItem value="validated">Validada</SelectItem>
-                <SelectItem value="correction_requested">Correção Solicitada</SelectItem>
-                <SelectItem value="cancelled">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="pending">Pendente Admin</SelectItem>
-              <SelectItem value="pending_director">Aguardando Diretoria</SelectItem>
-              <SelectItem value="director_approved">Aprovada Diretoria</SelectItem>
-              <SelectItem value="in_progress">Em Execução</SelectItem>
-              <SelectItem value="completed">Concluída</SelectItem>
-              <SelectItem value="validated">Validada</SelectItem>
-              <SelectItem value="correction_requested">Correção Solicitada</SelectItem>
-              <SelectItem value="cancelled">Cancelada</SelectItem>
-            </SelectContent>
-          </Select>
-          </div>
 
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-48">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : filteredOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                  <Wrench className="h-12 w-12 mb-4 opacity-50" />
-                  <p>Nenhuma ordem de serviço encontrada</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Outdoor</TableHead>
-                      <TableHead>Fornecedor</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders.map((order) => {
-                      const statusInfo = statusConfig[order.status];
-                      const typeInfo = typeConfig[order.type];
-                      const StatusIcon = statusInfo.icon;
-                      
-                      return (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.number}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{order.outdoor?.code}</p>
-                              <p className="text-xs text-muted-foreground">{order.outdoor?.pdv?.name}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{order.supplier?.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className={cn("text-xs", typeInfo.color)}>
-                              {typeInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={cn("text-white", statusInfo.color)}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {statusInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Intl.NumberFormat('pt-BR', { 
-                              style: 'currency', 
-                              currency: 'BRL' 
-                            }).format(order.total_cost)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {order.status === 'pending' && (
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'approved')}>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Aprovar
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status === 'approved' && (
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'in_progress')}>
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Iniciar
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status === 'in_progress' && (
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'completed')}>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Concluir
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status !== 'completed' && order.status !== 'cancelled' && (
-                                  <>
+            {/* Table */}
+            <Card>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : filteredOrders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                    <Wrench className="h-12 w-12 mb-4 opacity-50" />
+                    <p>Nenhuma ordem de serviço encontrada</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Número</TableHead>
+                          <TableHead>Outdoor</TableHead>
+                          <TableHead>Fornecedor</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredOrders.map((order) => {
+                          const statusInfo = statusConfig[order.status];
+                          const typeInfo = typeConfig[order.type];
+                          const StatusIcon = statusInfo.icon;
+                          
+                          return (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.number}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{order.outdoor?.code}</p>
+                                  <p className="text-xs text-muted-foreground">{order.outdoor?.pdv?.name}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{order.supplier?.name}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={cn("text-xs", typeInfo.color)}>
+                                  {typeInfo.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={cn("text-white", statusInfo.color)}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
+                                  {statusInfo.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {new Intl.NumberFormat('pt-BR', { 
+                                  style: 'currency', 
+                                  currency: 'BRL' 
+                                }).format(order.total_cost)}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {order.status === 'pending' && (
+                                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'approved')}>
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Aprovar
+                                      </DropdownMenuItem>
+                                    )}
+                                    {order.status === 'approved' && (
+                                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'in_progress')}>
+                                        <Play className="h-4 w-4 mr-2" />
+                                        Iniciar
+                                      </DropdownMenuItem>
+                                    )}
+                                    {order.status === 'in_progress' && (
+                                      <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'completed')}>
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Concluir
+                                      </DropdownMenuItem>
+                                    )}
+                                    {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                                          className="text-destructive"
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Cancelar
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleExportPDF(order)}>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Exportar PDF
+                                    </DropdownMenuItem>
+                                    {isSuperAdmin && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => setAdminActionDialog({ open: true, order })}
+                                        >
+                                          <Shield className="h-4 w-4 mr-2" />
+                                          Ações Administrativas
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem 
-                                      onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                                      onClick={() => handleDelete(order.id)}
                                       className="text-destructive"
                                     >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Cancelar
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Excluir
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleExportPDF(order)}>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Exportar PDF
-                                </DropdownMenuItem>
-                                {isSuperAdmin && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => setAdminActionDialog({ open: true, order })}
-                                    >
-                                      <Shield className="h-4 w-4 mr-2" />
-                                      Ações Administrativas
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => handleDelete(order.id)}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Approved Maintenance Tab */}
