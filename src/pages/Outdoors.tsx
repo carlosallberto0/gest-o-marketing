@@ -397,6 +397,19 @@ export default function Outdoors() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button 
+                variant="soft-warning" 
+                size="sm" 
+                onClick={handleApproveMaintenanceAndSend}
+                disabled={createPackageMutation.isPending}
+              >
+                {createPackageMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wrench className="h-4 w-4 mr-2" />
+                )}
+                Aprovar Manutenção
+              </Button>
+              <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleGeneratePDF}
