@@ -145,6 +145,15 @@ export default function MaintenanceApproval() {
     handleClosePackage();
   };
 
+  const handleSendToServiceOrder = async (packageId: string) => {
+    await markReadyForSO.mutateAsync(packageId);
+  };
+
+  // Reviewed packages (approved/partially_held) NOT yet sent to SO
+  const reviewedPackages = allPackages.filter(
+    p => (p.status === 'approved' || p.status === 'partially_held') && !p.ready_for_service_order
+  );
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_director':
@@ -155,6 +164,8 @@ export default function MaintenanceApproval() {
         return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">Rejeitado</Badge>;
       case 'held':
         return <Badge variant="outline" className="bg-info/10 text-info border-info">Segurada</Badge>;
+      case 'partially_held':
+        return <Badge variant="outline" className="bg-info/10 text-info border-info">Parcialmente Segurado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
