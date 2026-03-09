@@ -22,6 +22,7 @@ import { useAssignmentsByMaintenance } from '@/hooks/useSupplierAssignments';
 import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
 import { AssignSupplierDialog } from '@/components/dialogs/AssignSupplierDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { generateMaintenanceRequestsPDF, MaintenanceRequestPDFData } from '@/lib/pdfGenerator';
 import { 
   Plus, 
   Search, 
@@ -30,6 +31,7 @@ import {
   CheckCircle, 
   XCircle, 
   FileText,
+  FileDown,
   MapPin,
   User,
   Calendar,
@@ -77,7 +79,7 @@ export default function MaintenanceRequests() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
   const [requesterFilter, setRequesterFilter] = useState('all');
@@ -207,6 +209,34 @@ export default function MaintenanceRequests() {
   const outdoorsAvailableForMaintenance = outdoors?.filter(
     o => o.status === 'operational' || o.status === 'non_operational'
   ) || [];
+
+  const handleGeneratePDF = async () => {
+    if (selectedIds.size === 0 || !allRequests) return;
+    setIsGeneratingPDF(true);
+    try {
+      const selected = allRequests.filter(r => selectedIds.has(r.id));
+      const pdfData: MaintenanceRequestPDFData[] = selected.map(req => ({
+        id: req.id,
+        pdvName: req.outdoor?.pdv?.name || 'N/A',
+        outdoorCode: req.outdoor?.code || 'N/A',
+        location: req.outdoor?.location || 'Não informada',
+        urgency: req.urgency || 'normal',
+        maintenanceType: req.maintenance_type || 'corretiva',
+        reason: req.reason,
+        observations: req.observations,
+        createdAt: req.created_at,
+        registryPhotoUrl: req.outdoor?.photo_url,
+        currentPhotoUrl: req.current_photo_url || (req.photos && req.photos.length > 0 ? req.photos[0] : null),
+      }));
+      await generateMaintenanceRequestsPDF(pdfData);
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const stats = {
     total: allRequests?.length || 0,
@@ -420,6 +450,15 @@ export default function MaintenanceRequests() {
             <span className="text-sm font-medium">
               {selectedIds.size} selecionada(s)
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPDF}
+            >
+              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
+              Gerar PDF
+            </Button>
             <Button
               variant="destructive"
               size="sm"
