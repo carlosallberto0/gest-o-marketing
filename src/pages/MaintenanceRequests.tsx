@@ -219,7 +219,7 @@ export default function MaintenanceRequests() {
         id: req.id,
         pdvName: req.outdoor?.pdv?.name || 'N/A',
         outdoorCode: req.outdoor?.code || 'N/A',
-        location: req.outdoor?.location || req.outdoor?.pdv?.address || 'Não informada',
+        location: req.outdoor?.location || 'Não informada',
         urgency: req.urgency || 'normal',
         maintenanceType: req.maintenance_type || 'corretiva',
         reason: req.reason,
