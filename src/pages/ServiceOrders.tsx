@@ -165,6 +165,111 @@ export default function ServiceOrders() {
     }
   };
 
+  // Count all approved items from ready packages
+  const allApprovedItems = readyPackages.flatMap(pkg => 
+    (pkg.items || []).map(item => ({ ...item, package: pkg }))
+  );
+
+  const toggleApprovedItem = (itemId: string) => {
+    setSelectedApprovedItems(prev => {
+      const n = new Set(prev);
+      n.has(itemId) ? n.delete(itemId) : n.add(itemId);
+      return n;
+    });
+  };
+
+  const toggleSelectAllApproved = () => {
+    if (selectedApprovedItems.size === allApprovedItems.length) {
+      setSelectedApprovedItems(new Set());
+    } else {
+      setSelectedApprovedItems(new Set(allApprovedItems.map(i => i.id)));
+    }
+  };
+
+  const handleGenerateApprovalPDF = async () => {
+    if (selectedApprovedItems.size === 0) {
+      toast.warning('Selecione pelo menos um outdoor para gerar o PDF');
+      return;
+    }
+
+    setIsGeneratingApprovalPDF(true);
+    const toastId = toast.loading('Gerando PDF de Manutenção Aprovada...');
+
+    try {
+      const selectedItems = allApprovedItems.filter(i => selectedApprovedItems.has(i.id));
+
+      // Fetch evaluation photos for each outdoor
+      const outdoorIds = selectedItems.map(i => i.outdoor_id);
+      
+      const { data: newestEvals } = await supabase
+        .from('media_evaluations')
+        .select('outdoor_id, id')
+        .in('outdoor_id', outdoorIds)
+        .order('evaluated_at', { ascending: false });
+
+      const { data: oldestEvals } = await supabase
+        .from('media_evaluations')
+        .select('outdoor_id, id')
+        .in('outdoor_id', outdoorIds)
+        .order('evaluated_at', { ascending: true });
+
+      const newestEvalMap = new Map<string, string>();
+      newestEvals?.forEach(ev => {
+        if (!newestEvalMap.has(ev.outdoor_id)) newestEvalMap.set(ev.outdoor_id, ev.id);
+      });
+
+      const oldestEvalMap = new Map<string, string>();
+      oldestEvals?.forEach(ev => {
+        if (!oldestEvalMap.has(ev.outdoor_id)) oldestEvalMap.set(ev.outdoor_id, ev.id);
+      });
+
+      const allEvalIds = new Set<string>();
+      newestEvalMap.forEach(v => allEvalIds.add(v));
+      oldestEvalMap.forEach(v => allEvalIds.add(v));
+
+      const photoMap = new Map<string, string>();
+      if (allEvalIds.size > 0) {
+        const { data: photos } = await supabase
+          .from('media_evaluation_photos')
+          .select('evaluation_id, photo_url')
+          .in('evaluation_id', Array.from(allEvalIds));
+        photos?.forEach(p => {
+          if (!photoMap.has(p.evaluation_id)) photoMap.set(p.evaluation_id, p.photo_url);
+        });
+      }
+
+      const pdfData: MaintenanceApprovalPDFData[] = selectedItems.map(item => {
+        const oldestId = oldestEvalMap.get(item.outdoor_id);
+        const newestId = newestEvalMap.get(item.outdoor_id);
+        const registryPhoto = oldestId ? photoMap.get(oldestId) : undefined;
+        const currentPhoto = newestId ? photoMap.get(newestId) : undefined;
+        const pdv = item.outdoor?.pdv as any;
+
+        return {
+          code: item.outdoor?.code || 'N/A',
+          pdvName: pdv?.name || 'N/A',
+          city: pdv?.city || '',
+          state: pdv?.state || '',
+          location: item.outdoor?.location || '',
+          nonOperationalReason: item.outdoor?.non_operational_reason || null,
+          directorName: (item.package as any)?.director?.name || 'Diretoria',
+          directorNotes: item.director_notes || null,
+          reviewedAt: (item.package as any)?.reviewed_at || null,
+          registryPhotoUrl: registryPhoto ? convertGoogleDriveUrl(registryPhoto) : (item.outdoor?.photo_url ? convertGoogleDriveUrl(item.outdoor.photo_url) : undefined),
+          currentPhotoUrl: currentPhoto ? convertGoogleDriveUrl(currentPhoto) : undefined,
+        };
+      });
+
+      await generateMaintenanceApprovalPDF(pdfData);
+      toast.success('PDF gerado com sucesso!', { id: toastId });
+    } catch (error: any) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF: ' + error.message, { id: toastId });
+    } finally {
+      setIsGeneratingApprovalPDF(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
