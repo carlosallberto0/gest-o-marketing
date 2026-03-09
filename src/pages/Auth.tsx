@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +47,7 @@ export default function Auth() {
   const { data: loginSettings = defaultSettings } = useLoginScreenSettings();
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -54,8 +55,10 @@ export default function Auth() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Skip if a login submission is in progress
+      if (isSubmittingRef.current) return;
+
       if (session?.user) {
-        // Check if user is super_admin
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -64,15 +67,13 @@ export default function Auth() {
 
         if (profile?.role === 'super_admin') {
           navigate('/modules');
-        } else {
-          // Non super_admin users should use access links
-          await supabase.auth.signOut();
-          showToast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
         }
+        // Do NOT sign out here — let handleSubmit handle non-super_admin cases
       }
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (isSubmittingRef.current) return;
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
