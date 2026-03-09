@@ -177,18 +177,25 @@ export default function Outdoors() {
       const selectedOutdoorsList = filteredOutdoors.filter(o => selectedOutdoors.has(o.id));
       const outdoorIds = selectedOutdoorsList.map(o => o.id);
 
-      // Fetch latest evaluations for selected outdoors
-      const { data: evaluations } = await supabase
+      // Fetch newest evaluations (for current photo + observations)
+      const { data: newestEvals } = await supabase
         .from('media_evaluations')
         .select('outdoor_id, observations, non_operational_reason, id')
         .in('outdoor_id', outdoorIds)
         .order('evaluated_at', { ascending: false });
 
-      // Build map of latest evaluation per outdoor
-      const evalMap = new Map<string, { observations: string | null; nonOperationalReason: string | null; evalId: string }>();
-      evaluations?.forEach(ev => {
-        if (!evalMap.has(ev.outdoor_id)) {
-          evalMap.set(ev.outdoor_id, {
+      // Fetch oldest evaluations (for registry photo)
+      const { data: oldestEvals } = await supabase
+        .from('media_evaluations')
+        .select('outdoor_id, id')
+        .in('outdoor_id', outdoorIds)
+        .order('evaluated_at', { ascending: true });
+
+      // Build map of newest evaluation per outdoor
+      const newestMap = new Map<string, { observations: string | null; nonOperationalReason: string | null; evalId: string }>();
+      newestEvals?.forEach(ev => {
+        if (!newestMap.has(ev.outdoor_id)) {
+          newestMap.set(ev.outdoor_id, {
             observations: ev.observations,
             nonOperationalReason: ev.non_operational_reason,
             evalId: ev.id,
@@ -196,14 +203,25 @@ export default function Outdoors() {
         }
       });
 
-      // Fetch photos for the latest evaluations
-      const evalIds = Array.from(evalMap.values()).map(e => e.evalId);
+      // Build map of oldest evaluation per outdoor
+      const oldestMap = new Map<string, string>();
+      oldestEvals?.forEach(ev => {
+        if (!oldestMap.has(ev.outdoor_id)) {
+          oldestMap.set(ev.outdoor_id, ev.id);
+        }
+      });
+
+      // Collect all unique eval IDs to fetch photos
+      const allEvalIds = new Set<string>();
+      newestMap.forEach(v => allEvalIds.add(v.evalId));
+      oldestMap.forEach(v => allEvalIds.add(v));
+      
       const photoMap = new Map<string, string>();
-      if (evalIds.length > 0) {
+      if (allEvalIds.size > 0) {
         const { data: photos } = await supabase
           .from('media_evaluation_photos')
           .select('evaluation_id, photo_url')
-          .in('evaluation_id', evalIds);
+          .in('evaluation_id', Array.from(allEvalIds));
         
         photos?.forEach(p => {
           if (!photoMap.has(p.evaluation_id)) {
@@ -213,13 +231,15 @@ export default function Outdoors() {
       }
 
       const pdfData: OutdoorPDFData[] = selectedOutdoorsList.map(outdoor => {
-        const evalData = evalMap.get(outdoor.id);
-        const currentPhotoUrl = evalData ? photoMap.get(evalData.evalId) : undefined;
+        const newestData = newestMap.get(outdoor.id);
+        const oldestEvalId = oldestMap.get(outdoor.id);
+        const registryPhotoUrl = oldestEvalId ? photoMap.get(oldestEvalId) : undefined;
+        const currentPhotoUrl = newestData ? photoMap.get(newestData.evalId) : undefined;
         return {
           code: outdoor.code,
           pdvName: outdoor.pdvName,
           city: outdoor.pdvCity || '',
-          photoUrl: outdoor.photoUrl ? convertGoogleDriveUrl(outdoor.photoUrl) : undefined,
+          photoUrl: registryPhotoUrl ? convertGoogleDriveUrl(registryPhotoUrl) : (outdoor.photoUrl ? convertGoogleDriveUrl(outdoor.photoUrl) : undefined),
           currentPhotoUrl: currentPhotoUrl ? convertGoogleDriveUrl(currentPhotoUrl) : undefined,
           width: outdoor.width,
           height: outdoor.height,
@@ -227,8 +247,8 @@ export default function Outdoors() {
           locationUrl: outdoor.locationUrl,
           location: outdoor.location,
           status: outdoor.status,
-          observations: evalData?.observations,
-          nonOperationalReason: outdoor.nonOperationalReason || evalData?.nonOperationalReason,
+          observations: newestData?.observations,
+          nonOperationalReason: outdoor.nonOperationalReason || newestData?.nonOperationalReason,
         };
       });
       
