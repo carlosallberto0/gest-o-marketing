@@ -404,242 +404,158 @@ export async function generateOutdoorListPDF(
   outdoors: OutdoorPDFData[],
   settings?: ReportSettings
 ): Promise<void> {
-  // Get settings with fallbacks
   const headerBgColor = hexToRgb(settings?.global?.header?.background_color || '#3b82f6');
   const headerTextColor = hexToRgb(settings?.global?.header?.text_color || '#ffffff');
-  const bodyTableHeaderColor = hexToRgb(settings?.global?.body?.table_header_color || '#3b82f6');
-  const bodyStripeColor = hexToRgb(settings?.global?.body?.table_stripe_color || '#f5f5f5');
   const footerTextColor = hexToRgb(settings?.global?.footer?.text_color || '#808080');
-  
   const title = settings?.templates?.outdoors?.header_title || 
                 settings?.global?.header?.title || 
-                'RELAÇÃO DE OUTDOORS - MANUTENÇÃO';
-  const showSubtitle = settings?.global?.header?.show_subtitle !== false;
-  const showDate = settings?.global?.header?.show_date !== false;
-  const showOnAllPages = settings?.global?.header?.show_on_all_pages || false;
-  const logoUrl = settings?.global?.header?.logo_url;
-  const logoPosition = settings?.global?.header?.logo_position || 'left';
-  const logoHeight = settings?.global?.header?.logo_height || 15;
+                'RELAÇÃO DE OUTDOORS';
   const fontFamily = settings?.global?.font_family || 'helvetica';
-  
-  const marginLeft = settings?.global?.margins?.left || 14;
-  const marginRight = settings?.global?.margins?.right || 14;
-  const marginTop = settings?.global?.margins?.top || 20;
-  const marginBottom = settings?.global?.margins?.bottom || 20;
-  
+
   const doc = new jsPDF({
     orientation: settings?.global?.page_orientation || 'portrait',
     format: settings?.global?.page_format || 'a4',
   });
-  
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
-  // Load logo if configured
-  let logoBase64: string | null = null;
-  if (logoUrl) {
-    logoBase64 = await loadImageAsBase64(logoUrl);
-  }
-  
-  // Function to draw header (used on first page or all pages if configured)
-  const drawHeader = async (isFirstPage: boolean) => {
-    if (!isFirstPage && !showOnAllPages) return 45; // Return default yPos for subsequent pages
-    
-    const headerHeight = 35;
-    
-    // Header background
-    doc.setFillColor(headerBgColor.r, headerBgColor.g, headerBgColor.b);
-    doc.rect(0, 0, pageWidth, headerHeight, 'F');
-    
-    // Logo
-    if (logoBase64) {
-      const aspectRatio = 2; // Assume 2:1 aspect ratio for logo width calculation
-      const logoWidth = logoHeight * aspectRatio;
-      let logoX = marginLeft;
-      
-      if (logoPosition === 'center') {
-        logoX = (pageWidth - logoWidth) / 2;
-      } else if (logoPosition === 'right') {
-        logoX = pageWidth - marginRight - logoWidth;
-      }
-      
-      try {
-        doc.addImage(logoBase64, 'PNG', logoX, 3, logoWidth, logoHeight);
-      } catch (e) {
-        console.error('Error adding logo:', e);
-      }
-    }
-    
-    // Title - adjust position based on logo
-    doc.setTextColor(headerTextColor.r, headerTextColor.g, headerTextColor.b);
-    doc.setFontSize(18);
-    doc.setFont(fontFamily, 'bold');
-    
-    let titleY = logoBase64 ? logoHeight + 7 : 15;
-    if (logoPosition === 'center' && logoBase64) {
-      titleY = logoHeight + 10;
-    }
-    
-    doc.text(title, pageWidth / 2, titleY, { align: 'center' });
-    
-    // Subtitle with count and date
-    if (showSubtitle || showDate) {
-      doc.setFontSize(11);
-      doc.setFont(fontFamily, 'normal');
-      
-      let subtitleText = '';
-      if (showSubtitle) {
-        subtitleText += `${outdoors.length} outdoor(s)`;
-      }
-      if (showDate) {
-        if (subtitleText) subtitleText += ' • ';
-        subtitleText += `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
-      }
-      
-      if (subtitleText) {
-        const subtitleY = titleY + 11;
-        doc.text(subtitleText, pageWidth / 2, subtitleY, { align: 'center' });
-      }
-    }
-    
-    return headerHeight + 10; // Return yPos after header
-  };
-  
-  // Draw header on first page
-  let yPos = await drawHeader(true);
-  
+  const marginLeft = 10;
+  const marginRight = 10;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  // Header
+  doc.setFillColor(headerBgColor.r, headerBgColor.g, headerBgColor.b);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  doc.setTextColor(headerTextColor.r, headerTextColor.g, headerTextColor.b);
+  doc.setFontSize(16);
+  doc.setFont(fontFamily, 'bold');
+  doc.text(title, pageWidth / 2, 13, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont(fontFamily, 'normal');
+  doc.text(
+    `${outdoors.length} outdoor(s) • Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    pageWidth / 2, 23, { align: 'center' }
+  );
+
+  doc.setTextColor(0, 0, 0);
+  let yPos = 36;
+
   const imgW = 55;
   const imgH = 38;
-  // Each item: header(9) + info(~22) + image(38) + sep(6) = ~75
-  const itemHeight = 78;
-  
+  const itemHeight = 92;
+
   for (let i = 0; i < outdoors.length; i++) {
     const outdoor = outdoors[i];
-    
-    // Check if we need a new page
-    if (yPos + itemHeight > pageHeight - marginBottom) {
+
+    if (yPos + itemHeight > pageHeight - 15) {
       doc.addPage();
-      if (showOnAllPages) {
-        yPos = await drawHeader(false);
-      } else {
-        yPos = marginTop;
-      }
+      yPos = 15;
     }
-    
+
     // Item header bar
-    doc.setFillColor(bodyStripeColor.r, bodyStripeColor.g, bodyStripeColor.b);
-    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 7, 'F');
-    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(marginLeft, yPos, contentWidth, 7, 'F');
     doc.setFontSize(9);
     doc.setFont(fontFamily, 'bold');
-    doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
-    doc.text(`${i + 1}. ${outdoor.code}`, marginLeft + 2, yPos + 5);
-    
-    doc.setTextColor(100, 100, 100);
-    doc.setFont(fontFamily, 'normal');
-    const truncatedPdv = outdoor.pdvName.length > 40 ? outdoor.pdvName.substring(0, 40) + '...' : outdoor.pdvName;
-    doc.text(` - ${truncatedPdv}`, marginLeft + 2 + doc.getTextWidth(`${i + 1}. ${outdoor.code}`), yPos + 5);
-    yPos += 9;
-    
-    // Image + info side by side
-    const imgX = marginLeft;
-    const imgY = yPos;
-    const infoX = imgX + imgW + 6;
-    const contentW = pageWidth - marginLeft - marginRight;
-    
-    // Image
-    if (outdoor.photoUrl) {
-      const base64 = await loadImageAsBase64(outdoor.photoUrl);
-      if (base64) {
-        try { doc.addImage(base64, 'JPEG', imgX, imgY, imgW, imgH); } 
-        catch { drawPlaceholderBox(doc, imgX, imgY, imgW, imgH); }
-      } else {
-        drawPlaceholderBox(doc, imgX, imgY, imgW, imgH);
-      }
-    } else {
-      drawPlaceholderBox(doc, imgX, imgY, imgW, imgH);
-    }
-    
-    // Info column - compact
-    let infoY = imgY + 4;
+    doc.setTextColor(59, 130, 246);
+    doc.text(`${i + 1}. ${outdoor.code} - ${outdoor.pdvName}`, marginLeft + 2, yPos + 5);
     doc.setTextColor(0, 0, 0);
+    yPos += 9;
+
+    // Compact info - 2 columns
+    const colMid = marginLeft + contentWidth / 2;
     doc.setFontSize(8);
-    
-    const drawInfoField = (label: string, value: string) => {
+
+    const drawField = (label: string, value: string, x: number, y: number) => {
       doc.setFont(fontFamily, 'bold');
-      doc.text(label, infoX, infoY);
+      doc.text(label, x, y);
       doc.setFont(fontFamily, 'normal');
       const labelW = doc.getTextWidth(label + ' ');
-      const maxW = contentW - imgW - 6 - labelW - 2;
-      const truncVal = doc.getTextWidth(value) > maxW 
-        ? value.substring(0, Math.floor(value.length * maxW / doc.getTextWidth(value))) + '...'
+      const maxValW = (contentWidth / 2) - labelW - 4;
+      const truncVal = doc.getTextWidth(value) > maxValW
+        ? value.substring(0, Math.floor(value.length * maxValW / doc.getTextWidth(value))) + '...'
         : value;
-      doc.text(truncVal, infoX + labelW, infoY);
-      infoY += 5;
+      doc.text(truncVal, x + labelW, y);
     };
 
-    drawInfoField('Posto:', outdoor.pdvName);
-    drawInfoField('Tamanho:', `${outdoor.width}m x ${outdoor.height}m (${outdoor.area}m²)`);
-    drawInfoField('Cidade:', outdoor.city || 'Não informada');
-    drawInfoField('Status:', outdoorStatusLabels[outdoor.status] || outdoor.status);
-    
+    drawField('Posto:', outdoor.pdvName, marginLeft, yPos);
+    drawField('Status:', outdoorStatusLabels[outdoor.status] || outdoor.status, colMid, yPos);
+    yPos += 5;
+    drawField('Tamanho:', `${outdoor.width}m x ${outdoor.height}m (${outdoor.area}m²)`, marginLeft, yPos);
+    drawField('Cidade:', outdoor.city || 'Não informada', colMid, yPos);
+    yPos += 5;
+
     if (outdoor.locationUrl) {
-      doc.setFont(fontFamily, 'bold');
-      doc.text('Local:', infoX, infoY);
-      doc.setFont(fontFamily, 'normal');
-      doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
-      const displayUrl = outdoor.locationUrl.length > 40 ? outdoor.locationUrl.substring(0, 40) + '...' : outdoor.locationUrl;
-      doc.text(displayUrl, infoX + doc.getTextWidth('Local: '), infoY);
-      doc.setTextColor(0, 0, 0);
-      infoY += 5;
+      drawField('Local:', outdoor.locationUrl.length > 45 ? outdoor.locationUrl.substring(0, 45) + '...' : outdoor.locationUrl, marginLeft, yPos);
     } else if (outdoor.location) {
-      drawInfoField('Local:', outdoor.location);
+      drawField('Local:', outdoor.location, marginLeft, yPos);
     }
-    
-    yPos = imgY + imgH + 4;
-    
-    // Separator line
+    yPos += 5;
+
+    // Observations (full width, truncated to 2 lines)
+    const obsText = [outdoor.observations, outdoor.nonOperationalReason].filter(Boolean).join(' | ');
+    if (obsText) {
+      doc.setFont(fontFamily, 'bold');
+      doc.text('Obs:', marginLeft, yPos);
+      doc.setFont(fontFamily, 'normal');
+      const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
+      doc.text(obsLines.slice(0, 2), marginLeft + 11, yPos);
+      yPos += Math.min(obsLines.length, 2) * 4;
+    }
+    yPos += 2;
+
+    // Side-by-side photos
+    if (outdoor.photoUrl || outdoor.currentPhotoUrl) {
+      if (yPos + imgH + 8 > pageHeight - 15) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      const col1X = marginLeft + (contentWidth / 2 - imgW) / 2;
+      const col2X = marginLeft + contentWidth / 2 + (contentWidth / 2 - imgW) / 2;
+
+      doc.setFontSize(7);
+      doc.setFont(fontFamily, 'bold');
+      doc.setTextColor(100, 100, 100);
+      doc.text('Foto de Cadastro', col1X + imgW / 2, yPos, { align: 'center' });
+      doc.text('Foto Atual (Avaliação)', col2X + imgW / 2, yPos, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      yPos += 3;
+
+      if (outdoor.photoUrl) {
+        const b64 = await loadImageAsBase64(outdoor.photoUrl);
+        if (b64) { try { doc.addImage(b64, 'JPEG', col1X, yPos, imgW, imgH); } catch { drawPlaceholderBox(doc, col1X, yPos, imgW, imgH); } }
+        else drawPlaceholderBox(doc, col1X, yPos, imgW, imgH);
+      } else drawPlaceholderBox(doc, col1X, yPos, imgW, imgH);
+
+      if (outdoor.currentPhotoUrl) {
+        const b64 = await loadImageAsBase64(outdoor.currentPhotoUrl);
+        if (b64) { try { doc.addImage(b64, 'JPEG', col2X, yPos, imgW, imgH); } catch { drawPlaceholderBox(doc, col2X, yPos, imgW, imgH); } }
+        else drawPlaceholderBox(doc, col2X, yPos, imgW, imgH);
+      } else drawPlaceholderBox(doc, col2X, yPos, imgW, imgH);
+
+      yPos += imgH + 3;
+    }
+
+    // Separator
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
-    yPos += 5;
+    yPos += 6;
   }
-  
-  // Footer on all pages
-  const footerContent = settings?.global?.footer?.content || 
-    'Página {{pagina}} de {{total_paginas}} | Gerado em {{data_geracao}}';
-  const footerAlignment = settings?.global?.footer?.alignment || 'center';
-  const showPageNumbers = settings?.global?.footer?.show_page_numbers !== false;
-  
+
+  // Footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(footerTextColor.r, footerTextColor.g, footerTextColor.b);
-    
-    let footerText = footerContent
-      .replace('{{pagina}}', String(i))
-      .replace('{{total_paginas}}', String(pageCount))
-      .replace('{{data_geracao}}', format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }));
-    
-    if (!showPageNumbers) {
-      footerText = footerText.replace(/Página \d+ de \d+\s*\|?\s*/g, '');
-    }
-    
-    let footerX = pageWidth / 2;
-    let footerAlign: 'left' | 'center' | 'right' = 'center';
-    
-    if (footerAlignment === 'left') {
-      footerX = marginLeft;
-      footerAlign = 'left';
-    } else if (footerAlignment === 'right') {
-      footerX = pageWidth - marginRight;
-      footerAlign = 'right';
-    }
-    
-    doc.text(footerText, footerX, pageHeight - 8, { align: footerAlign });
+    doc.text(
+      `Página ${i} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+      pageWidth / 2, pageHeight - 8, { align: 'center' }
+    );
   }
-  
+
   doc.save(`relacao-outdoors-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
 
