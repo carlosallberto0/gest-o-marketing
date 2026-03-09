@@ -52,6 +52,8 @@ export default function MaintenanceApproval() {
   const [packageNotes, setPackageNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState('pending');
+
   const { data: packageDetails, isLoading: loadingDetails } = useMaintenancePackageDetails(selectedPackageId || undefined);
 
   const handleOpenPackage = (packageId: string) => {
