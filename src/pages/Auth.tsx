@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +47,7 @@ export default function Auth() {
   const { data: loginSettings = defaultSettings } = useLoginScreenSettings();
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -54,8 +55,10 @@ export default function Auth() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Skip if a login submission is in progress
+      if (isSubmittingRef.current) return;
+
       if (session?.user) {
-        // Check if user is super_admin
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -64,15 +67,13 @@ export default function Auth() {
 
         if (profile?.role === 'super_admin') {
           navigate('/modules');
-        } else {
-          // Non super_admin users should use access links
-          await supabase.auth.signOut();
-          showToast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
         }
+        // Do NOT sign out here — let handleSubmit handle non-super_admin cases
       }
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (isSubmittingRef.current) return;
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -92,12 +93,12 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    isSubmittingRef.current = true;
 
     try {
       const validation = loginSchema.safeParse(formData);
       if (!validation.success) {
         showToast.error(validation.error.errors[0].message);
-        setLoading(false);
         return;
       }
 
@@ -112,17 +113,15 @@ export default function Auth() {
         } else {
           showToast.error(error.message);
         }
-        setLoading(false);
         return;
       }
 
-      // Check if user is super_admin with retry logic to handle race conditions
       if (data.user) {
         let profile = null;
         let retries = 3;
         
         while (retries > 0 && !profile) {
-          const { data: profileData, error: profileError } = await supabase
+          const { data: profileData } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', data.user.id)
@@ -131,10 +130,6 @@ export default function Auth() {
           if (profileData) {
             profile = profileData;
             break;
-          }
-          
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
           }
           
           retries--;
@@ -146,22 +141,20 @@ export default function Auth() {
         if (!profile || profile.role !== 'super_admin') {
           await supabase.auth.signOut();
           showToast.error('Acesso restrito. Utilize o link pessoal fornecido pelo administrador.');
-          setLoading(false);
           return;
         }
 
         showToast.success('Login realizado com sucesso!');
         navigate('/modules');
-        return; // Prevent further execution after navigation
       }
     } catch (error) {
       console.error('Login error:', error);
       showToast.error('Ocorreu um erro. Tente novamente.');
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
-
   const renderBackground = () => {
     if (loginSettings?.background_type === 'slider' && loginSettings.slider_images?.length > 0) {
       return (
