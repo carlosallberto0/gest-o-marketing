@@ -698,152 +698,136 @@ export async function generateMaintenanceRequestsPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const marginLeft = 14;
-  const marginRight = 14;
+  const marginLeft = 10;
+  const marginRight = 10;
+  const contentWidth = pageWidth - marginLeft - marginRight;
 
   // Header
   doc.setFillColor(59, 130, 246);
-  doc.rect(0, 0, pageWidth, 35, 'F');
-
+  doc.rect(0, 0, pageWidth, 30, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('SOLICITAÇÕES DE MANUTENÇÃO', pageWidth / 2, 15, { align: 'center' });
-
-  doc.setFontSize(11);
+  doc.text('SOLICITAÇÕES DE MANUTENÇÃO', pageWidth / 2, 13, { align: 'center' });
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(
     `${requests.length} solicitação(ões) • Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-    pageWidth / 2,
-    27,
-    { align: 'center' }
+    pageWidth / 2, 23, { align: 'center' }
   );
 
   doc.setTextColor(0, 0, 0);
-  let yPos = 45;
+  let yPos = 36;
 
-  const imageWidth = 80;
-  const imageHeight = 55;
+  const imgW = 55;
+  const imgH = 38;
+  // Each item: header(8) + info(~32) + label(4) + images(38) + sep(6) = ~88
+  const itemHeight = 92;
 
   for (let i = 0; i < requests.length; i++) {
     const req = requests[i];
 
-    // Estimate needed height: info table (~45) + images (~70) + separator (~10) = ~125
-    const neededHeight = 130;
-    if (yPos + neededHeight > pageHeight - 20) {
+    if (yPos + itemHeight > pageHeight - 15) {
       doc.addPage();
-      yPos = 20;
+      yPos = 15;
     }
 
-    // Item header
+    // Item header bar
     doc.setFillColor(240, 240, 240);
-    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 8, 'F');
-    doc.setFontSize(10);
+    doc.rect(marginLeft, yPos, contentWidth, 7, 'F');
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(59, 130, 246);
-    doc.text(`${i + 1}. ${req.outdoorCode} - ${req.pdvName}`, marginLeft + 2, yPos + 5.5);
+    doc.text(`${i + 1}. ${req.outdoorCode} - ${req.pdvName}`, marginLeft + 2, yPos + 5);
     doc.setTextColor(0, 0, 0);
-    yPos += 12;
+    yPos += 9;
 
-    // Info table
+    // Compact info - 2 columns
+    const colMid = marginLeft + contentWidth / 2;
+    doc.setFontSize(8);
+    
+    const drawField = (label: string, value: string, x: number, y: number) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, x, y);
+      doc.setFont('helvetica', 'normal');
+      const labelW = doc.getTextWidth(label + ' ');
+      const maxValW = (contentWidth / 2) - labelW - 4;
+      const truncVal = doc.getTextWidth(value) > maxValW 
+        ? value.substring(0, Math.floor(value.length * maxValW / doc.getTextWidth(value))) + '...'
+        : value;
+      doc.text(truncVal, x + labelW, y);
+    };
+
+    drawField('Posto:', req.pdvName, marginLeft, yPos);
+    drawField('Urgência:', urgencyLabels[req.urgency] || req.urgency || '-', colMid, yPos);
+    yPos += 5;
+    drawField('Localização:', req.location || 'Não informada', marginLeft, yPos);
+    drawField('Tipo:', maintenanceTypeLabels[req.maintenanceType] || req.maintenanceType || '-', colMid, yPos);
+    yPos += 5;
+    drawField('Data:', format(new Date(req.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR }), marginLeft, yPos);
+    yPos += 5;
+
+    // Observation (full width, truncated)
     const obsText = [req.reason, req.observations].filter(Boolean).join(' | ');
+    if (obsText) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Obs:', marginLeft, yPos);
+      doc.setFont('helvetica', 'normal');
+      const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
+      doc.text(obsLines.slice(0, 2), marginLeft + 11, yPos);
+      yPos += Math.min(obsLines.length, 2) * 4;
+    }
+    yPos += 2;
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [],
-      body: [
-        ['Posto (PDV):', req.pdvName],
-        ['Outdoor:', req.outdoorCode],
-        ['Localização:', req.location || 'Não informada'],
-        ['Urgência:', urgencyLabels[req.urgency] || req.urgency || '-'],
-        ['Tipo:', maintenanceTypeLabels[req.maintenanceType] || req.maintenanceType || '-'],
-        ['Data:', format(new Date(req.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-        ['Observação:', obsText || '-'],
-      ],
-      theme: 'plain',
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 35 },
-        1: { cellWidth: 'auto' },
-      },
-      margin: { left: marginLeft },
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 5;
-
-    // Photo comparison - side by side
+    // Side-by-side photos
     if (req.registryPhotoUrl || req.currentPhotoUrl) {
-      // Check if images fit on current page
-      if (yPos + imageHeight + 15 > pageHeight - 20) {
+      if (yPos + imgH + 8 > pageHeight - 15) {
         doc.addPage();
-        yPos = 20;
+        yPos = 15;
       }
 
-      const col1X = marginLeft;
-      const col2X = marginLeft + imageWidth + 8;
+      const col1X = marginLeft + (contentWidth / 2 - imgW) / 2;
+      const col2X = marginLeft + contentWidth / 2 + (contentWidth / 2 - imgW) / 2;
 
-      // Labels
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100, 100, 100);
-      doc.text('Foto de Cadastro', col1X + imageWidth / 2, yPos, { align: 'center' });
-      doc.text('Foto Atual (Avaliação)', col2X + imageWidth / 2, yPos, { align: 'center' });
+      doc.text('Foto de Cadastro', col1X + imgW / 2, yPos, { align: 'center' });
+      doc.text('Foto Atual', col2X + imgW / 2, yPos, { align: 'center' });
       doc.setTextColor(0, 0, 0);
-      yPos += 4;
+      yPos += 3;
 
-      // Registry photo (left)
       if (req.registryPhotoUrl) {
-        const base64 = await loadImageAsBase64(req.registryPhotoUrl);
-        if (base64) {
-          try {
-            doc.addImage(base64, 'JPEG', col1X, yPos, imageWidth, imageHeight);
-          } catch {
-            drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
-          }
-        } else {
-          drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
-        }
-      } else {
-        drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
-      }
+        const b64 = await loadImageAsBase64(req.registryPhotoUrl);
+        if (b64) { try { doc.addImage(b64, 'JPEG', col1X, yPos, imgW, imgH); } catch { drawPlaceholder(doc, col1X, yPos, imgW, imgH); } }
+        else drawPlaceholder(doc, col1X, yPos, imgW, imgH);
+      } else drawPlaceholder(doc, col1X, yPos, imgW, imgH);
 
-      // Current photo (right)
       if (req.currentPhotoUrl) {
-        const base64 = await loadImageAsBase64(req.currentPhotoUrl);
-        if (base64) {
-          try {
-            doc.addImage(base64, 'JPEG', col2X, yPos, imageWidth, imageHeight);
-          } catch {
-            drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
-          }
-        } else {
-          drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
-        }
-      } else {
-        drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
-      }
+        const b64 = await loadImageAsBase64(req.currentPhotoUrl);
+        if (b64) { try { doc.addImage(b64, 'JPEG', col2X, yPos, imgW, imgH); } catch { drawPlaceholder(doc, col2X, yPos, imgW, imgH); } }
+        else drawPlaceholder(doc, col2X, yPos, imgW, imgH);
+      } else drawPlaceholder(doc, col2X, yPos, imgW, imgH);
 
-      yPos += imageHeight + 5;
+      yPos += imgH + 3;
     }
 
     // Separator
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
-    yPos += 8;
+    yPos += 6;
   }
 
-  // Footer on all pages
+  // Footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(128, 128, 128);
     doc.text(
       `Página ${i} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: 'center' }
+      pageWidth / 2, pageHeight - 8, { align: 'center' }
     );
   }
 
@@ -853,7 +837,7 @@ export async function generateMaintenanceRequestsPDF(
 function drawPlaceholder(doc: jsPDF, x: number, y: number, w: number, h: number) {
   doc.setFillColor(230, 230, 230);
   doc.rect(x, y, w, h, 'F');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
   doc.text('[Sem imagem]', x + w / 2, y + h / 2, { align: 'center' });
   doc.setTextColor(0, 0, 0);
