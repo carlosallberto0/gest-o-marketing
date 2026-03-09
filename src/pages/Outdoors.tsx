@@ -65,6 +65,8 @@ import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
 import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
 import { useReportSettings } from '@/hooks/useReportSettings';
+import { useCreateMaintenancePackage, useOutdoorsInMaintenancePackages } from '@/hooks/useMaintenancePackages';
+import { Wrench, Send } from 'lucide-react';
 
 export default function Outdoors() {
   const navigate = useNavigate();
