@@ -451,6 +451,15 @@ export default function MaintenanceRequests() {
               {selectedIds.size} selecionada(s)
             </span>
             <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPDF}
+            >
+              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
+              Gerar PDF
+            </Button>
+            <Button
               variant="destructive"
               size="sm"
               onClick={() => setShowDeleteConfirm(true)}
