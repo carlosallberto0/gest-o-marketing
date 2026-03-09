@@ -82,6 +82,9 @@ export default function ServiceOrders() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('orders');
+  const [selectedApprovedItems, setSelectedApprovedItems] = useState<Set<string>>(new Set());
+  const [isGeneratingApprovalPDF, setIsGeneratingApprovalPDF] = useState(false);
   const [adminActionDialog, setAdminActionDialog] = useState<{
     open: boolean;
     order: any | null;
@@ -89,6 +92,7 @@ export default function ServiceOrders() {
   
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
+  const { data: readyPackages = [], isLoading: loadingPackages } = useReadyForServiceOrderPackages();
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
 
