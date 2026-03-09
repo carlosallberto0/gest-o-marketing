@@ -210,6 +210,34 @@ export default function MaintenanceRequests() {
     o => o.status === 'operational' || o.status === 'non_operational'
   ) || [];
 
+  const handleGeneratePDF = async () => {
+    if (selectedIds.size === 0 || !allRequests) return;
+    setIsGeneratingPDF(true);
+    try {
+      const selected = allRequests.filter(r => selectedIds.has(r.id));
+      const pdfData: MaintenanceRequestPDFData[] = selected.map(req => ({
+        id: req.id,
+        pdvName: req.outdoor?.pdv?.name || 'N/A',
+        outdoorCode: req.outdoor?.code || 'N/A',
+        location: req.outdoor?.location || req.outdoor?.pdv?.address || 'Não informada',
+        urgency: req.urgency || 'normal',
+        maintenanceType: req.maintenance_type || 'corretiva',
+        reason: req.reason,
+        observations: req.observations,
+        createdAt: req.created_at,
+        registryPhotoUrl: req.outdoor?.photo_url,
+        currentPhotoUrl: req.current_photo_url || (req.photos && req.photos.length > 0 ? req.photos[0] : null),
+      }));
+      await generateMaintenanceRequestsPDF(pdfData);
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const stats = {
     total: allRequests?.length || 0,
     pending: allRequests?.filter(r => r.status === 'pending_review').length || 0,
