@@ -84,10 +84,12 @@ export default function Outdoors() {
 
   const { profile } = useAuth();
   const bulkActionMutation = useBulkOutdoorActions();
+  const createPackageMutation = useCreateMaintenancePackage();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
   const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
   const { data: reportSettings } = useReportSettings();
+  const { data: outdoorsInPackages } = useOutdoorsInMaintenancePackages();
   
   const isSuperAdmin = profile?.role === 'super_admin';
 
