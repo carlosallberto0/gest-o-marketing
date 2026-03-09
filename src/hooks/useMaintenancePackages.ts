@@ -10,6 +10,7 @@ export interface MaintenancePackage {
   observations: string | null;
   director_id: string | null;
   director_notes: string | null;
+  ready_for_service_order: boolean;
   created_at: string;
   reviewed_at: string | null;
   creator?: { name: string };
@@ -84,6 +85,51 @@ export function usePendingMaintenancePackages() {
   });
 }
 
+// Fetch packages ready for service order (for Super Admin in ServiceOrders)
+export function useReadyForServiceOrderPackages() {
+  return useQuery({
+    queryKey: ['maintenance-packages', 'ready-for-so'],
+    queryFn: async (): Promise<MaintenancePackage[]> => {
+      const { data, error } = await supabase
+        .from('maintenance_approval_packages')
+        .select(`
+          *,
+          creator:created_by(name),
+          director:director_id(name)
+        `)
+        .eq('ready_for_service_order', true)
+        .in('status', ['approved', 'partially_held'])
+        .order('reviewed_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Fetch items for each package
+      const packages = (data || []) as unknown as MaintenancePackage[];
+      for (const pkg of packages) {
+        const { data: items } = await supabase
+          .from('maintenance_package_items')
+          .select(`
+            *,
+            outdoor:outdoor_id(
+              id, code, location, photo_url, non_operational_reason,
+              pdv:pdv_id(name, city, state)
+            ),
+            evaluation:evaluation_id(
+              id, observations, evaluated_at,
+              evaluator:evaluator_id(name)
+            )
+          `)
+          .eq('package_id', pkg.id)
+          .eq('status', 'approved');
+        
+        pkg.items = (items || []) as unknown as MaintenancePackageItem[];
+      }
+      
+      return packages.filter(pkg => (pkg.items?.length || 0) > 0);
+    },
+  });
+}
+
 // Fetch single package with items
 export function useMaintenancePackageDetails(packageId: string | undefined) {
   return useQuery({
@@ -153,7 +199,6 @@ export function useCreateMaintenancePackage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Create the package
       const { data: packageData, error: packageError } = await supabase
         .from('maintenance_approval_packages')
         .insert({
@@ -166,7 +211,6 @@ export function useCreateMaintenancePackage() {
 
       if (packageError) throw packageError;
 
-      // Create the items
       const itemsToInsert = input.items.map(item => ({
         package_id: packageData.id,
         outdoor_id: item.outdoor_id,
@@ -180,7 +224,6 @@ export function useCreateMaintenancePackage() {
 
       if (itemsError) throw itemsError;
 
-      // Notify directors
       await notificarDiretoresAprovadores(
         'aprovacao_manutencao',
         'Pacote de Manutenção Pendente',
@@ -221,7 +264,6 @@ export function useUpdatePackageItems() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Update each item
       for (const item of input.items) {
         const { error } = await supabase
           .from('maintenance_package_items')
@@ -236,7 +278,6 @@ export function useUpdatePackageItems() {
         if (error) throw error;
       }
 
-      // Check if all items have been reviewed
       const { data: allItems } = await supabase
         .from('maintenance_package_items')
         .select('status')
@@ -252,13 +293,12 @@ export function useUpdatePackageItems() {
         if (allRejected) {
           packageStatus = 'rejected';
         } else if (hasHeld) {
-          packageStatus = 'partially_held'; // Notifies super admin for re-evaluation
+          packageStatus = 'partially_held';
         } else if (hasApproved) {
           packageStatus = 'approved';
         }
       }
 
-      // Update package status
       const { error: packageError } = await supabase
         .from('maintenance_approval_packages')
         .update({
@@ -271,7 +311,6 @@ export function useUpdatePackageItems() {
 
       if (packageError) throw packageError;
 
-      // Notify super_admin if all reviewed
       if (allReviewed) {
         const statusLabel = 
           packageStatus === 'approved' ? 'aprovado' : 
@@ -312,6 +351,43 @@ export function useUpdatePackageItems() {
   });
 }
 
+// Mark package as ready for service order (Director action)
+export function useMarkReadyForServiceOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (packageId: string) => {
+      const { error } = await supabase
+        .from('maintenance_approval_packages')
+        .update({ ready_for_service_order: true })
+        .eq('id', packageId);
+
+      if (error) throw error;
+
+      await notificarPorRole(
+        'super_admin',
+        'ordem_servico',
+        'media',
+        'Manutenção Pronta para Ordem de Serviço',
+        'O diretor enviou um pacote de manutenção aprovado para geração de Ordem de Serviço.',
+        '/service-orders',
+        packageId,
+        'maintenance_package'
+      );
+
+      return packageId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-packages'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-package'] });
+      showToast.success('Pacote enviado para Ordem de Serviço');
+    },
+    onError: (error: Error) => {
+      showToast.error('Erro ao enviar para OS', error.message);
+    },
+  });
+}
+
 // Get count of pending packages for badge
 export function usePendingPackagesCount() {
   return useQuery({
@@ -324,6 +400,38 @@ export function usePendingPackagesCount() {
 
       if (error) throw error;
       return count || 0;
+    },
+  });
+}
+
+// Check which outdoor IDs are currently in maintenance packages
+export function useOutdoorsInMaintenancePackages() {
+  return useQuery({
+    queryKey: ['outdoors-in-maintenance-packages'],
+    queryFn: async (): Promise<Map<string, { packageStatus: string; itemStatus: string }>> => {
+      const { data, error } = await supabase
+        .from('maintenance_package_items')
+        .select(`
+          outdoor_id,
+          status,
+          package:package_id(status)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const map = new Map<string, { packageStatus: string; itemStatus: string }>();
+      data?.forEach(item => {
+        if (!map.has(item.outdoor_id)) {
+          const pkg = item.package as any;
+          map.set(item.outdoor_id, {
+            packageStatus: pkg?.status || 'unknown',
+            itemStatus: item.status,
+          });
+        }
+      });
+
+      return map;
     },
   });
 }

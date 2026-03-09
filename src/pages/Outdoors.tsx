@@ -550,6 +550,28 @@ export default function Outdoors() {
                 )}>
                   {getStatusLabel(outdoor.status)}
                 </Badge>
+                {/* Maintenance package seal */}
+                {outdoorsInPackages?.has(outdoor.id) && (() => {
+                  const info = outdoorsInPackages.get(outdoor.id)!;
+                  const isPending = info.packageStatus === 'pending_director';
+                  const isApproved = info.itemStatus === 'approved';
+                  const isRejected = info.itemStatus === 'rejected';
+                  return (
+                    <Badge className={cn(
+                      "absolute bottom-3 right-3 text-[10px]",
+                      isPending ? "bg-warning text-warning-foreground" :
+                      isApproved ? "bg-success text-success-foreground" :
+                      isRejected ? "bg-destructive text-destructive-foreground" :
+                      "bg-info text-info-foreground"
+                    )}>
+                      <Wrench className="h-3 w-3 mr-1" />
+                      {isPending ? 'Manut. Pendente' :
+                       isApproved ? 'Manut. Aprovada' :
+                       isRejected ? 'Manut. Rejeitada' :
+                       'Manut. Segurada'}
+                    </Badge>
+                  );
+                })()}
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
