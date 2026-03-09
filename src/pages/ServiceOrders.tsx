@@ -321,16 +321,49 @@ export default function ServiceOrders() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por número, outdoor ou fornecedor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="orders">Ordens de Serviço</TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="approved">
+                Manutenção Aprovada
+                {allApprovedItems.length > 0 && (
+                  <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
+                    {allApprovedItems.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="orders">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por número, outdoor ou fornecedor..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="pending">Pendente Admin</SelectItem>
+                <SelectItem value="pending_director">Aguardando Diretoria</SelectItem>
+                <SelectItem value="director_approved">Aprovada Diretoria</SelectItem>
+                <SelectItem value="in_progress">Em Execução</SelectItem>
+                <SelectItem value="completed">Concluída</SelectItem>
+                <SelectItem value="validated">Validada</SelectItem>
+                <SelectItem value="correction_requested">Correção Solicitada</SelectItem>
+                <SelectItem value="cancelled">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
