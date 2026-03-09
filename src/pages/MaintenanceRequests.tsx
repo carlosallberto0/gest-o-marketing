@@ -79,7 +79,7 @@ export default function MaintenanceRequests() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
   const [requesterFilter, setRequesterFilter] = useState('all');
