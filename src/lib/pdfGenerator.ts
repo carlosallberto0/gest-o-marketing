@@ -505,9 +505,10 @@ export async function generateOutdoorListPDF(
   // Draw header on first page
   let yPos = await drawHeader(true);
   
-  const itemHeight = 55;
-  const imageWidth = 50;
-  const imageHeight = 35;
+  const imgW = 55;
+  const imgH = 38;
+  // Each item: header(9) + info(~22) + image(38) + sep(6) = ~75
+  const itemHeight = 78;
   
   for (let i = 0; i < outdoors.length; i++) {
     const outdoor = outdoors[i];
@@ -515,7 +516,6 @@ export async function generateOutdoorListPDF(
     // Check if we need a new page
     if (yPos + itemHeight > pageHeight - marginBottom) {
       doc.addPage();
-      // Draw header on new page if configured
       if (showOnAllPages) {
         yPos = await drawHeader(false);
       } else {
@@ -523,109 +523,86 @@ export async function generateOutdoorListPDF(
       }
     }
     
-    // Item number and code header - using body stripe color
+    // Item header bar
     doc.setFillColor(bodyStripeColor.r, bodyStripeColor.g, bodyStripeColor.b);
-    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 8, 'F');
+    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 7, 'F');
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont(fontFamily, 'bold');
     doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
-    doc.text(`${i + 1}. ${outdoor.code}`, marginLeft + 2, yPos + 5.5);
+    doc.text(`${i + 1}. ${outdoor.code}`, marginLeft + 2, yPos + 5);
     
     doc.setTextColor(100, 100, 100);
     doc.setFont(fontFamily, 'normal');
     const truncatedPdv = outdoor.pdvName.length > 40 ? outdoor.pdvName.substring(0, 40) + '...' : outdoor.pdvName;
-    doc.text(` - ${truncatedPdv}`, marginLeft + 2 + doc.getTextWidth(`${i + 1}. ${outdoor.code}`), yPos + 5.5);
+    doc.text(` - ${truncatedPdv}`, marginLeft + 2 + doc.getTextWidth(`${i + 1}. ${outdoor.code}`), yPos + 5);
+    yPos += 9;
     
-    yPos += 12;
-    
-    // Image placeholder/image
+    // Image + info side by side
     const imgX = marginLeft;
     const imgY = yPos;
+    const infoX = imgX + imgW + 6;
+    const contentW = pageWidth - marginLeft - marginRight;
     
+    // Image
     if (outdoor.photoUrl) {
       const base64 = await loadImageAsBase64(outdoor.photoUrl);
       if (base64) {
-        try {
-          doc.addImage(base64, 'JPEG', imgX, imgY, imageWidth, imageHeight);
-        } catch {
-          // Fallback to placeholder
-          doc.setFillColor(230, 230, 230);
-          doc.rect(imgX, imgY, imageWidth, imageHeight, 'F');
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text('[Sem imagem]', imgX + imageWidth / 2, imgY + imageHeight / 2, { align: 'center' });
-        }
+        try { doc.addImage(base64, 'JPEG', imgX, imgY, imgW, imgH); } 
+        catch { drawPlaceholderBox(doc, imgX, imgY, imgW, imgH); }
       } else {
-        doc.setFillColor(230, 230, 230);
-        doc.rect(imgX, imgY, imageWidth, imageHeight, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text('[Sem imagem]', imgX + imageWidth / 2, imgY + imageHeight / 2, { align: 'center' });
+        drawPlaceholderBox(doc, imgX, imgY, imgW, imgH);
       }
     } else {
-      doc.setFillColor(230, 230, 230);
-      doc.rect(imgX, imgY, imageWidth, imageHeight, 'F');
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text('[Sem imagem]', imgX + imageWidth / 2, imgY + imageHeight / 2, { align: 'center' });
+      drawPlaceholderBox(doc, imgX, imgY, imgW, imgH);
     }
     
-    // Info column
-    const infoX = imgX + imageWidth + 8;
+    // Info column - compact
     let infoY = imgY + 4;
-    
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     
-    // Size
-    doc.setFont(fontFamily, 'bold');
-    doc.text('Tamanho:', infoX, infoY);
-    doc.setFont(fontFamily, 'normal');
-    doc.text(`${outdoor.width}m x ${outdoor.height}m (${outdoor.area}m²)`, infoX + 22, infoY);
-    infoY += 6;
+    const drawInfoField = (label: string, value: string) => {
+      doc.setFont(fontFamily, 'bold');
+      doc.text(label, infoX, infoY);
+      doc.setFont(fontFamily, 'normal');
+      const labelW = doc.getTextWidth(label + ' ');
+      const maxW = contentW - imgW - 6 - labelW - 2;
+      const truncVal = doc.getTextWidth(value) > maxW 
+        ? value.substring(0, Math.floor(value.length * maxW / doc.getTextWidth(value))) + '...'
+        : value;
+      doc.text(truncVal, infoX + labelW, infoY);
+      infoY += 5;
+    };
+
+    drawInfoField('Posto:', outdoor.pdvName);
+    drawInfoField('Tamanho:', `${outdoor.width}m x ${outdoor.height}m (${outdoor.area}m²)`);
+    drawInfoField('Cidade:', outdoor.city || 'Não informada');
+    drawInfoField('Status:', outdoorStatusLabels[outdoor.status] || outdoor.status);
     
-    // City
-    doc.setFont(fontFamily, 'bold');
-    doc.text('Cidade:', infoX, infoY);
-    doc.setFont(fontFamily, 'normal');
-    doc.text(outdoor.city || 'Não informada', infoX + 17, infoY);
-    infoY += 6;
-    
-    // Status
-    doc.setFont(fontFamily, 'bold');
-    doc.text('Status:', infoX, infoY);
-    doc.setFont(fontFamily, 'normal');
-    const statusText = outdoorStatusLabels[outdoor.status] || outdoor.status;
-    doc.text(statusText, infoX + 15, infoY);
-    infoY += 6;
-    
-    // Location
-    doc.setFont(fontFamily, 'bold');
-    doc.text('Localização:', infoX, infoY);
-    doc.setFont(fontFamily, 'normal');
     if (outdoor.locationUrl) {
-      const displayUrl = outdoor.locationUrl.length > 45 ? outdoor.locationUrl.substring(0, 45) + '...' : outdoor.locationUrl;
+      doc.setFont(fontFamily, 'bold');
+      doc.text('Local:', infoX, infoY);
+      doc.setFont(fontFamily, 'normal');
       doc.setTextColor(bodyTableHeaderColor.r, bodyTableHeaderColor.g, bodyTableHeaderColor.b);
-      doc.text(displayUrl, infoX + 26, infoY);
+      const displayUrl = outdoor.locationUrl.length > 40 ? outdoor.locationUrl.substring(0, 40) + '...' : outdoor.locationUrl;
+      doc.text(displayUrl, infoX + doc.getTextWidth('Local: '), infoY);
       doc.setTextColor(0, 0, 0);
+      infoY += 5;
     } else if (outdoor.location) {
-      const displayLocation = outdoor.location.length > 45 ? outdoor.location.substring(0, 45) + '...' : outdoor.location;
-      doc.text(displayLocation, infoX + 26, infoY);
-    } else {
-      doc.text('Não informada', infoX + 26, infoY);
+      drawInfoField('Local:', outdoor.location);
     }
     
-    yPos += imageHeight + 8;
+    yPos = imgY + imgH + 4;
     
     // Separator line
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
     yPos += 5;
   }
   
-  // Footer on all pages - use footer settings
+  // Footer on all pages
   const footerContent = settings?.global?.footer?.content || 
     'Página {{pagina}} de {{total_paginas}} | Gerado em {{data_geracao}}';
   const footerAlignment = settings?.global?.footer?.alignment || 'center';
@@ -634,10 +611,9 @@ export async function generateOutdoorListPDF(
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(footerTextColor.r, footerTextColor.g, footerTextColor.b);
     
-    // Replace footer variables
     let footerText = footerContent
       .replace('{{pagina}}', String(i))
       .replace('{{total_paginas}}', String(pageCount))
@@ -658,10 +634,19 @@ export async function generateOutdoorListPDF(
       footerAlign = 'right';
     }
     
-    doc.text(footerText, footerX, pageHeight - 10, { align: footerAlign });
+    doc.text(footerText, footerX, pageHeight - 8, { align: footerAlign });
   }
   
   doc.save(`relacao-outdoors-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+function drawPlaceholderBox(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setFillColor(230, 230, 230);
+  doc.rect(x, y, w, h, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('[Sem imagem]', x + w / 2, y + h / 2, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
 }
 
 // =============== MAINTENANCE REQUESTS PDF ===============
