@@ -7,10 +7,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   usePendingMaintenancePackages, 
+  useMaintenancePackages,
   useMaintenancePackageDetails, 
-  useUpdatePackageItems 
+  useUpdatePackageItems,
+  useMarkReadyForServiceOrder 
 } from '@/hooks/useMaintenancePackages';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
