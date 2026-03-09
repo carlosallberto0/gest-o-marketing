@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Table, 
   TableBody, 
@@ -39,17 +41,23 @@ import {
   Trash2,
   Wrench,
   Download,
-  Shield
+  Shield,
+  MapPin,
+  Building,
+  Package
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
+import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
-import { generateServiceOrderPDF } from '@/lib/pdfGenerator';
+import { generateServiceOrderPDF, generateMaintenanceApprovalPDF, MaintenanceApprovalPDFData } from '@/lib/pdfGenerator';
+import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Pendente Admin', color: 'bg-yellow-500', icon: Clock },
