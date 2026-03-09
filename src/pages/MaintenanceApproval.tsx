@@ -7,10 +7,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   usePendingMaintenancePackages, 
+  useMaintenancePackages,
   useMaintenancePackageDetails, 
-  useUpdatePackageItems 
+  useUpdatePackageItems,
+  useMarkReadyForServiceOrder 
 } from '@/hooks/useMaintenancePackages';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -29,7 +32,8 @@ import {
   ChevronRight,
   Wrench,
   Building,
-  PauseCircle
+  PauseCircle,
+  Send
 } from 'lucide-react';
 
 type ItemStatus = 'approved' | 'rejected' | 'held' | null;
@@ -37,7 +41,9 @@ type ItemStatus = 'approved' | 'rejected' | 'held' | null;
 export default function MaintenanceApproval() {
   const { user } = useAuth();
   const { data: packages = [], isLoading } = usePendingMaintenancePackages();
+  const { data: allPackages = [] } = useMaintenancePackages();
   const updateItems = useUpdatePackageItems();
+  const markReadyForSO = useMarkReadyForServiceOrder();
   
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Record<string, ItemStatus>>({});
@@ -45,6 +51,8 @@ export default function MaintenanceApproval() {
   const [itemReviewDates, setItemReviewDates] = useState<Record<string, string>>({});
   const [packageNotes, setPackageNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState('pending');
 
   const { data: packageDetails, isLoading: loadingDetails } = useMaintenancePackageDetails(selectedPackageId || undefined);
 
@@ -137,6 +145,15 @@ export default function MaintenanceApproval() {
     handleClosePackage();
   };
 
+  const handleSendToServiceOrder = async (packageId: string) => {
+    await markReadyForSO.mutateAsync(packageId);
+  };
+
+  // Reviewed packages (approved/partially_held) NOT yet sent to SO
+  const reviewedPackages = allPackages.filter(
+    p => (p.status === 'approved' || p.status === 'partially_held') && !p.ready_for_service_order
+  );
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_director':
@@ -147,6 +164,8 @@ export default function MaintenanceApproval() {
         return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">Rejeitado</Badge>;
       case 'held':
         return <Badge variant="outline" className="bg-info/10 text-info border-info">Segurada</Badge>;
+      case 'partially_held':
+        return <Badge variant="outline" className="bg-info/10 text-info border-info">Parcialmente Segurado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -221,58 +240,129 @@ export default function MaintenanceApproval() {
           </Card>
         </div>
 
-        {/* Packages List */}
-        {packages.length === 0 ? (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
-                <h3 className="text-lg font-medium">Nenhum pacote pendente</h3>
-                <p className="text-muted-foreground mt-1">
-                  Todos os pacotes de manutenção foram revisados
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {packages.map((pkg) => (
-              <Card key={pkg.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Pacote de Manutenção</span>
-                        {getStatusBadge(pkg.status)}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {format(new Date(pkg.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {(pkg as any).creator?.name || 'Admin'}
-                        </span>
-                      </div>
-                      {pkg.observations && (
-                        <p className="text-sm text-muted-foreground italic">
-                          "{pkg.observations}"
-                        </p>
-                      )}
-                    </div>
-                    <Button onClick={() => handleOpenPackage(pkg.id)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Revisar
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="pending">
+              Pendentes ({packages.length})
+            </TabsTrigger>
+            <TabsTrigger value="reviewed">
+              Revisados ({reviewedPackages.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending">
+            {/* Pending Packages List */}
+            {packages.length === 0 ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
+                    <h3 className="text-lg font-medium">Nenhum pacote pendente</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Todos os pacotes de manutenção foram revisados
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="grid gap-4">
+                {packages.map((pkg) => (
+                  <Card key={pkg.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-5 w-5 text-primary" />
+                            <span className="font-medium">Pacote de Manutenção</span>
+                            {getStatusBadge(pkg.status)}
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              {format(new Date(pkg.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <User className="h-4 w-4" />
+                              {(pkg as any).creator?.name || 'Admin'}
+                            </span>
+                          </div>
+                          {pkg.observations && (
+                            <p className="text-sm text-muted-foreground italic">
+                              "{pkg.observations}"
+                            </p>
+                          )}
+                        </div>
+                        <Button onClick={() => handleOpenPackage(pkg.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Revisar
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reviewed">
+            {/* Reviewed Packages - Ready to send to OS */}
+            {reviewedPackages.length === 0 ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <Send className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Nenhum pacote aguardando envio</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Pacotes revisados serão exibidos aqui para envio à Ordem de Serviço
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {reviewedPackages.map((pkg) => (
+                  <Card key={pkg.id} className="hover:shadow-md transition-shadow border-success/30">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-5 w-5 text-success" />
+                            <span className="font-medium">Pacote Revisado</span>
+                            {getStatusBadge(pkg.status)}
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              Revisado em {pkg.reviewed_at ? format(new Date(pkg.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
+                            </span>
+                          </div>
+                          {pkg.director_notes && (
+                            <p className="text-sm text-muted-foreground italic">
+                              "{pkg.director_notes}"
+                            </p>
+                          )}
+                        </div>
+                        <Button 
+                          variant="success"
+                          onClick={() => handleSendToServiceOrder(pkg.id)}
+                          disabled={markReadyForSO.isPending}
+                        >
+                          {markReadyForSO.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4 mr-2" />
+                          )}
+                          Enviar para Ordem de Serviço
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Package Details Dialog */}
         <Dialog open={!!selectedPackageId} onOpenChange={() => handleClosePackage()}>

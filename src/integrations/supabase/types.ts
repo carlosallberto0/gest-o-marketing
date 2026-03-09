@@ -1530,6 +1530,7 @@ export type Database = {
           director_notes: string | null
           id: string
           observations: string | null
+          ready_for_service_order: boolean
           reviewed_at: string | null
           status: string
         }
@@ -1540,6 +1541,7 @@ export type Database = {
           director_notes?: string | null
           id?: string
           observations?: string | null
+          ready_for_service_order?: boolean
           reviewed_at?: string | null
           status?: string
         }
@@ -1550,6 +1552,7 @@ export type Database = {
           director_notes?: string | null
           id?: string
           observations?: string | null
+          ready_for_service_order?: boolean
           reviewed_at?: string | null
           status?: string
         }

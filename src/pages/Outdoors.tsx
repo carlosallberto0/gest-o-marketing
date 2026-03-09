@@ -65,6 +65,8 @@ import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
 import { useBulkOutdoorActions } from '@/hooks/useBulkOutdoorActions';
 import { useReportSettings } from '@/hooks/useReportSettings';
+import { useCreateMaintenancePackage, useOutdoorsInMaintenancePackages } from '@/hooks/useMaintenancePackages';
+import { Wrench, Send } from 'lucide-react';
 
 export default function Outdoors() {
   const navigate = useNavigate();
@@ -82,10 +84,12 @@ export default function Outdoors() {
 
   const { profile } = useAuth();
   const bulkActionMutation = useBulkOutdoorActions();
+  const createPackageMutation = useCreateMaintenancePackage();
   const { data: outdoors = [], isLoading, refetch } = useOutdoors();
   const { data: pdvs = [] } = usePDVs();
   const { data: descriptionTypes = [] } = useSystemOptions('outdoor_description_type');
   const { data: reportSettings } = useReportSettings();
+  const { data: outdoorsInPackages } = useOutdoorsInMaintenancePackages();
   
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -161,6 +165,27 @@ export default function Outdoors() {
     setSelectedOutdoors(new Set());
     setBulkStatusAction(null);
     setShowStatusConfirmDialog(false);
+    refetch();
+  };
+
+  const handleApproveMaintenanceAndSend = async () => {
+    const selectedIds = Array.from(selectedOutdoors);
+    const nonOpIds = selectedIds.filter(id => {
+      const outdoor = outdoors.find(o => o.id === id);
+      return outdoor?.status === 'non_operational';
+    });
+
+    if (nonOpIds.length === 0) {
+      showToast.warning('Selecione pelo menos um outdoor "Não Operacional" para aprovar manutenção');
+      return;
+    }
+
+    await createPackageMutation.mutateAsync({
+      observations: `Pacote com ${nonOpIds.length} outdoor(s) não operacional(is) selecionado(s) para manutenção`,
+      items: nonOpIds.map(id => ({ outdoor_id: id })),
+    });
+
+    setSelectedOutdoors(new Set());
     refetch();
   };
 
@@ -372,6 +397,19 @@ export default function Outdoors() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button 
+                variant="soft-warning" 
+                size="sm" 
+                onClick={handleApproveMaintenanceAndSend}
+                disabled={createPackageMutation.isPending}
+              >
+                {createPackageMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wrench className="h-4 w-4 mr-2" />
+                )}
+                Aprovar Manutenção
+              </Button>
+              <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleGeneratePDF}
@@ -512,6 +550,28 @@ export default function Outdoors() {
                 )}>
                   {getStatusLabel(outdoor.status)}
                 </Badge>
+                {/* Maintenance package seal */}
+                {outdoorsInPackages?.has(outdoor.id) && (() => {
+                  const info = outdoorsInPackages.get(outdoor.id)!;
+                  const isPending = info.packageStatus === 'pending_director';
+                  const isApproved = info.itemStatus === 'approved';
+                  const isRejected = info.itemStatus === 'rejected';
+                  return (
+                    <Badge className={cn(
+                      "absolute bottom-3 right-3 text-[10px]",
+                      isPending ? "bg-warning text-warning-foreground" :
+                      isApproved ? "bg-success text-success-foreground" :
+                      isRejected ? "bg-destructive text-destructive-foreground" :
+                      "bg-info text-info-foreground"
+                    )}>
+                      <Wrench className="h-3 w-3 mr-1" />
+                      {isPending ? 'Manut. Pendente' :
+                       isApproved ? 'Manut. Aprovada' :
+                       isRejected ? 'Manut. Rejeitada' :
+                       'Manut. Segurada'}
+                    </Badge>
+                  );
+                })()}
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
