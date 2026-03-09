@@ -168,6 +168,27 @@ export default function Outdoors() {
     refetch();
   };
 
+  const handleApproveMaintenanceAndSend = async () => {
+    const selectedIds = Array.from(selectedOutdoors);
+    const nonOpIds = selectedIds.filter(id => {
+      const outdoor = outdoors.find(o => o.id === id);
+      return outdoor?.status === 'non_operational';
+    });
+
+    if (nonOpIds.length === 0) {
+      showToast.warning('Selecione pelo menos um outdoor "Não Operacional" para aprovar manutenção');
+      return;
+    }
+
+    await createPackageMutation.mutateAsync({
+      observations: `Pacote com ${nonOpIds.length} outdoor(s) não operacional(is) selecionado(s) para manutenção`,
+      items: nonOpIds.map(id => ({ outdoor_id: id })),
+    });
+
+    setSelectedOutdoors(new Set());
+    refetch();
+  };
+
   const handleGeneratePDF = async () => {
     if (selectedOutdoors.size === 0) {
       showToast.warning('Selecione pelo menos um outdoor para gerar o relatório');
