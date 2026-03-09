@@ -41,7 +41,9 @@ type ItemStatus = 'approved' | 'rejected' | 'held' | null;
 export default function MaintenanceApproval() {
   const { user } = useAuth();
   const { data: packages = [], isLoading } = usePendingMaintenancePackages();
+  const { data: allPackages = [] } = useMaintenancePackages();
   const updateItems = useUpdatePackageItems();
+  const markReadyForSO = useMarkReadyForServiceOrder();
   
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Record<string, ItemStatus>>({});
