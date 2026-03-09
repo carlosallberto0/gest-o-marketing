@@ -663,3 +663,198 @@ export async function generateOutdoorListPDF(
   
   doc.save(`relacao-outdoors-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
+
+// =============== MAINTENANCE REQUESTS PDF ===============
+
+export interface MaintenanceRequestPDFData {
+  id: string;
+  pdvName: string;
+  outdoorCode: string;
+  location: string;
+  urgency: string;
+  maintenanceType: string;
+  reason: string;
+  observations?: string | null;
+  createdAt: string;
+  registryPhotoUrl?: string | null;
+  currentPhotoUrl?: string | null;
+}
+
+const urgencyLabels: Record<string, string> = {
+  baixa: 'Baixa',
+  normal: 'Normal',
+  alta: 'Alta',
+  emergencial: 'Emergencial',
+};
+
+const maintenanceTypeLabels: Record<string, string> = {
+  preventiva: 'Preventiva',
+  corretiva: 'Corretiva',
+};
+
+export async function generateMaintenanceRequestsPDF(
+  requests: MaintenanceRequestPDFData[]
+): Promise<void> {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginLeft = 14;
+  const marginRight = 14;
+
+  // Header
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 0, pageWidth, 35, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SOLICITAÇÕES DE MANUTENÇÃO', pageWidth / 2, 15, { align: 'center' });
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `${requests.length} solicitação(ões) • Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    pageWidth / 2,
+    27,
+    { align: 'center' }
+  );
+
+  doc.setTextColor(0, 0, 0);
+  let yPos = 45;
+
+  const imageWidth = 80;
+  const imageHeight = 55;
+
+  for (let i = 0; i < requests.length; i++) {
+    const req = requests[i];
+
+    // Estimate needed height: info table (~45) + images (~70) + separator (~10) = ~125
+    const neededHeight = 130;
+    if (yPos + neededHeight > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Item header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(marginLeft, yPos, pageWidth - marginLeft - marginRight, 8, 'F');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text(`${i + 1}. ${req.outdoorCode} - ${req.pdvName}`, marginLeft + 2, yPos + 5.5);
+    doc.setTextColor(0, 0, 0);
+    yPos += 12;
+
+    // Info table
+    const obsText = [req.reason, req.observations].filter(Boolean).join(' | ');
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: [
+        ['Posto (PDV):', req.pdvName],
+        ['Outdoor:', req.outdoorCode],
+        ['Localização:', req.location || 'Não informada'],
+        ['Urgência:', urgencyLabels[req.urgency] || req.urgency || '-'],
+        ['Tipo:', maintenanceTypeLabels[req.maintenanceType] || req.maintenanceType || '-'],
+        ['Data:', format(new Date(req.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+        ['Observação:', obsText || '-'],
+      ],
+      theme: 'plain',
+      styles: { fontSize: 9, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 35 },
+        1: { cellWidth: 'auto' },
+      },
+      margin: { left: marginLeft },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 5;
+
+    // Photo comparison - side by side
+    if (req.registryPhotoUrl || req.currentPhotoUrl) {
+      // Check if images fit on current page
+      if (yPos + imageHeight + 15 > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const col1X = marginLeft;
+      const col2X = marginLeft + imageWidth + 8;
+
+      // Labels
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 100, 100);
+      doc.text('Foto de Cadastro', col1X + imageWidth / 2, yPos, { align: 'center' });
+      doc.text('Foto Atual (Avaliação)', col2X + imageWidth / 2, yPos, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      yPos += 4;
+
+      // Registry photo (left)
+      if (req.registryPhotoUrl) {
+        const base64 = await loadImageAsBase64(req.registryPhotoUrl);
+        if (base64) {
+          try {
+            doc.addImage(base64, 'JPEG', col1X, yPos, imageWidth, imageHeight);
+          } catch {
+            drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
+          }
+        } else {
+          drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
+        }
+      } else {
+        drawPlaceholder(doc, col1X, yPos, imageWidth, imageHeight);
+      }
+
+      // Current photo (right)
+      if (req.currentPhotoUrl) {
+        const base64 = await loadImageAsBase64(req.currentPhotoUrl);
+        if (base64) {
+          try {
+            doc.addImage(base64, 'JPEG', col2X, yPos, imageWidth, imageHeight);
+          } catch {
+            drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
+          }
+        } else {
+          drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
+        }
+      } else {
+        drawPlaceholder(doc, col2X, yPos, imageWidth, imageHeight);
+      }
+
+      yPos += imageHeight + 5;
+    }
+
+    // Separator
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+    yPos += 8;
+  }
+
+  // Footer on all pages
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(
+      `Página ${i} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`solicitacoes-manutencao-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+function drawPlaceholder(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setFillColor(230, 230, 230);
+  doc.rect(x, y, w, h, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text('[Sem imagem]', x + w / 2, y + h / 2, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+}

@@ -22,6 +22,7 @@ import { useAssignmentsByMaintenance } from '@/hooks/useSupplierAssignments';
 import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
 import { AssignSupplierDialog } from '@/components/dialogs/AssignSupplierDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { generateMaintenanceRequestsPDF, MaintenanceRequestPDFData } from '@/lib/pdfGenerator';
 import { 
   Plus, 
   Search, 
