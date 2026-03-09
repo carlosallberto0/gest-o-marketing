@@ -175,19 +175,62 @@ export default function Outdoors() {
     
     try {
       const selectedOutdoorsList = filteredOutdoors.filter(o => selectedOutdoors.has(o.id));
-      
-      const pdfData: OutdoorPDFData[] = selectedOutdoorsList.map(outdoor => ({
-        code: outdoor.code,
-        pdvName: outdoor.pdvName,
-        city: outdoor.pdvCity || '',
-        photoUrl: outdoor.photoUrl ? convertGoogleDriveUrl(outdoor.photoUrl) : undefined,
-        width: outdoor.width,
-        height: outdoor.height,
-        area: outdoor.area,
-        locationUrl: outdoor.locationUrl,
-        location: outdoor.location,
-        status: outdoor.status,
-      }));
+      const outdoorIds = selectedOutdoorsList.map(o => o.id);
+
+      // Fetch latest evaluations for selected outdoors
+      const { data: evaluations } = await supabase
+        .from('media_evaluations')
+        .select('outdoor_id, observations, non_operational_reason, id')
+        .in('outdoor_id', outdoorIds)
+        .order('evaluated_at', { ascending: false });
+
+      // Build map of latest evaluation per outdoor
+      const evalMap = new Map<string, { observations: string | null; nonOperationalReason: string | null; evalId: string }>();
+      evaluations?.forEach(ev => {
+        if (!evalMap.has(ev.outdoor_id)) {
+          evalMap.set(ev.outdoor_id, {
+            observations: ev.observations,
+            nonOperationalReason: ev.non_operational_reason,
+            evalId: ev.id,
+          });
+        }
+      });
+
+      // Fetch photos for the latest evaluations
+      const evalIds = Array.from(evalMap.values()).map(e => e.evalId);
+      const photoMap = new Map<string, string>();
+      if (evalIds.length > 0) {
+        const { data: photos } = await supabase
+          .from('media_evaluation_photos')
+          .select('evaluation_id, photo_url')
+          .in('evaluation_id', evalIds);
+        
+        photos?.forEach(p => {
+          if (!photoMap.has(p.evaluation_id)) {
+            photoMap.set(p.evaluation_id, p.photo_url);
+          }
+        });
+      }
+
+      const pdfData: OutdoorPDFData[] = selectedOutdoorsList.map(outdoor => {
+        const evalData = evalMap.get(outdoor.id);
+        const currentPhotoUrl = evalData ? photoMap.get(evalData.evalId) : undefined;
+        return {
+          code: outdoor.code,
+          pdvName: outdoor.pdvName,
+          city: outdoor.pdvCity || '',
+          photoUrl: outdoor.photoUrl ? convertGoogleDriveUrl(outdoor.photoUrl) : undefined,
+          currentPhotoUrl: currentPhotoUrl ? convertGoogleDriveUrl(currentPhotoUrl) : undefined,
+          width: outdoor.width,
+          height: outdoor.height,
+          area: outdoor.area,
+          locationUrl: outdoor.locationUrl,
+          location: outdoor.location,
+          status: outdoor.status,
+          observations: evalData?.observations,
+          nonOperationalReason: outdoor.nonOperationalReason || evalData?.nonOperationalReason,
+        };
+      });
       
       await generateOutdoorListPDF(pdfData, reportSettings || undefined);
       toast.success('PDF gerado com sucesso!', { id: toastId });
