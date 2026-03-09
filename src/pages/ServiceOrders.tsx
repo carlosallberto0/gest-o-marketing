@@ -381,145 +381,263 @@ export default function ServiceOrders() {
               <SelectItem value="cancelled">Cancelada</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+          </div>
 
-        {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                <Wrench className="h-12 w-12 mb-4 opacity-50" />
-                <p>Nenhuma ordem de serviço encontrada</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Outdoor</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => {
-                    const statusInfo = statusConfig[order.status];
-                    const typeInfo = typeConfig[order.type];
-                    const StatusIcon = statusInfo.icon;
-                    
-                    return (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.number}</TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{order.outdoor?.code}</p>
-                            <p className="text-xs text-muted-foreground">{order.outdoor?.pdv?.name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{order.supplier?.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={cn("text-xs", typeInfo.color)}>
-                            {typeInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn("text-white", statusInfo.color)}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Intl.NumberFormat('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL' 
-                          }).format(order.total_cost)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {order.status === 'pending' && (
-                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'approved')}>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Aprovar
-                                </DropdownMenuItem>
-                              )}
-                              {order.status === 'approved' && (
-                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'in_progress')}>
-                                  <Play className="h-4 w-4 mr-2" />
-                                  Iniciar
-                                </DropdownMenuItem>
-                              )}
-                              {order.status === 'in_progress' && (
-                                <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'completed')}>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Concluir
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'completed' && order.status !== 'cancelled' && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => handleUpdateStatus(order.id, 'cancelled')}
-                                    className="text-destructive"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Cancelar
+          {/* Table */}
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                  <Wrench className="h-12 w-12 mb-4 opacity-50" />
+                  <p>Nenhuma ordem de serviço encontrada</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Outdoor</TableHead>
+                      <TableHead>Fornecedor</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => {
+                      const statusInfo = statusConfig[order.status];
+                      const typeInfo = typeConfig[order.type];
+                      const StatusIcon = statusInfo.icon;
+                      
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.number}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{order.outdoor?.code}</p>
+                              <p className="text-xs text-muted-foreground">{order.outdoor?.pdv?.name}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{order.supplier?.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={cn("text-xs", typeInfo.color)}>
+                              {typeInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn("text-white", statusInfo.color)}>
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {statusInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('pt-BR', { 
+                              style: 'currency', 
+                              currency: 'BRL' 
+                            }).format(order.total_cost)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {order.status === 'pending' && (
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'approved')}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Aprovar
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleExportPDF(order)}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Exportar PDF
-                              </DropdownMenuItem>
-                              {isSuperAdmin && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => setAdminActionDialog({ open: true, order })}
-                                  >
-                                    <Shield className="h-4 w-4 mr-2" />
-                                    Ações Administrativas
+                                )}
+                                {order.status === 'approved' && (
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'in_progress')}>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Iniciar
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(order.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                                )}
+                                {order.status === 'in_progress' && (
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'completed')}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Concluir
+                                  </DropdownMenuItem>
+                                )}
+                                {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                                      className="text-destructive"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Cancelar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleExportPDF(order)}>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Exportar PDF
+                                </DropdownMenuItem>
+                                {isSuperAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => setAdminActionDialog({ open: true, order })}
+                                    >
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Ações Administrativas
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleDelete(order.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          </TabsContent>
+
+          {/* Approved Maintenance Tab */}
+          {isSuperAdmin && (
+            <TabsContent value="approved">
+              <div className="space-y-4">
+                {/* Bulk action bar */}
+                {selectedApprovedItems.size > 0 && (
+                  <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-4">
+                    <span className="text-sm font-medium">
+                      {selectedApprovedItems.size} outdoor(s) selecionado(s)
+                    </span>
+                    <Button 
+                      onClick={handleGenerateApprovalPDF}
+                      disabled={isGeneratingApprovalPDF}
+                    >
+                      {isGeneratingApprovalPDF ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Gerar PDF
+                    </Button>
+                  </div>
+                )}
+
+                {loadingPackages ? (
+                  <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : allApprovedItems.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12">
+                      <div className="text-center">
+                        <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium">Nenhum outdoor aprovado pendente</h3>
+                        <p className="text-muted-foreground mt-1">
+                          Outdoors aprovados pela diretoria aparecerão aqui para geração de OS
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Checkbox
+                        checked={selectedApprovedItems.size === allApprovedItems.length && allApprovedItems.length > 0}
+                        onCheckedChange={toggleSelectAllApproved}
+                      />
+                      <span className="text-sm text-muted-foreground">Selecionar todos</span>
+                    </div>
+                    <div className="grid gap-3">
+                      {allApprovedItems.map((item) => {
+                        const pdv = item.outdoor?.pdv as any;
+                        const pkg = item.package as any;
+                        return (
+                          <Card key={item.id} className={cn(
+                            "border-2 transition-colors",
+                            selectedApprovedItems.has(item.id) ? "border-primary bg-primary/5" : "border-border"
+                          )}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-4">
+                                <Checkbox
+                                  checked={selectedApprovedItems.has(item.id)}
+                                  onCheckedChange={() => toggleApprovedItem(item.id)}
+                                  className="mt-1"
+                                />
+                                {item.outdoor?.photo_url && (
+                                  <div className="w-20 h-16 rounded overflow-hidden flex-shrink-0">
+                                    <img 
+                                      src={convertGoogleDriveUrl(item.outdoor.photo_url)} 
+                                      alt={item.outdoor.code}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium">{item.outdoor?.code}</h4>
+                                    <Badge variant="success" className="text-[10px]">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Aprovado
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <Building className="h-3 w-3" />
+                                    {pdv?.name || 'PDV'} - {pdv?.city || ''}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {item.outdoor?.location}
+                                  </p>
+                                  {item.outdoor?.non_operational_reason && (
+                                    <p className="text-xs text-destructive mt-1">
+                                      Motivo: {item.outdoor.non_operational_reason}
+                                    </p>
+                                  )}
+                                  {item.director_notes && (
+                                    <p className="text-xs text-muted-foreground mt-1 italic">
+                                      Obs. diretoria: {item.director_notes}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Aprovado por: {pkg?.director?.name || 'Diretoria'} em {pkg?.reviewed_at ? format(new Date(pkg.reviewed_at), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
 
       <NewServiceOrderDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
