@@ -343,6 +343,16 @@ export default function ServiceOrders() {
                 )}
               </TabsTrigger>
             )}
+            {isSuperAdmin && (
+              <TabsTrigger value="executed">
+                Ordens Executadas
+                {supplierWorkOrders.length > 0 && (
+                  <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
+                    {supplierWorkOrders.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="orders">
