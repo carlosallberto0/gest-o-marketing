@@ -387,12 +387,15 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
           </div>
 
-          {/* Active Module Badge */}
+          {/* Active Module & Role Badge */}
           {activeModule && (
-            <div className="px-5 py-3 border-b border-sidebar-border">
+            <div className="px-5 py-3 border-b border-sidebar-border space-y-2">
               <Badge className={cn("w-full justify-center py-1.5 text-white border-0", getModuleColor())}>
                 {getModuleLabel()}
               </Badge>
+              <div className="text-[11px] text-center text-sidebar-foreground/60 font-medium">
+                Perfil: <span className="text-sidebar-foreground/90">{getRoleLabel(profile?.role || '')}</span>
+              </div>
             </div>
           )}
 
