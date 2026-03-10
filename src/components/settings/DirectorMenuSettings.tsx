@@ -51,13 +51,27 @@ export function DirectorMenuSettings() {
   }, [permissions]);
 
   const handleToggleItem = (key: string, enabled: boolean) => {
-    setLocalPermissions(prev => ({
-      ...prev,
-      media: {
-        ...prev.media,
-        [key]: enabled,
-      },
-    }));
+    setLocalPermissions(prev => {
+      const updated = {
+        ...prev,
+        media: {
+          ...prev.media,
+          [key]: enabled,
+        },
+      };
+      // If disabling the current redirect target, switch to a valid one
+      const currentRedirectKey = allRedirectOptions.find(o => o.value === prev.default_redirect.media)?.key;
+      if (!enabled && currentRedirectKey === key) {
+        const firstEnabled = Object.entries(updated.media).find(([k, v]) => v && k !== key);
+        if (firstEnabled) {
+          const opt = allRedirectOptions.find(o => o.key === firstEnabled[0]);
+          if (opt) {
+            updated.default_redirect = { ...updated.default_redirect, media: opt.value };
+          }
+        }
+      }
+      return updated;
+    });
   };
 
   const handleRedirectChange = (value: string) => {
