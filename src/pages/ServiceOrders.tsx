@@ -100,8 +100,10 @@ export default function ServiceOrders() {
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
   const { data: readyPackages = [], isLoading: loadingPackages } = useReadyForServiceOrderPackages();
+  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders } = useSupplierWorkOrders('completed');
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
+  const validateWorkOrder = useValidateWorkOrder();
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
