@@ -36,6 +36,7 @@ import PDVDetail from "./pages/PDVDetail";
 import Settings, { SettingsContent } from "./pages/Settings";
 import Reports from "./pages/Reports";
 import ServiceOrders from "./pages/ServiceOrders";
+import SupplierPanel from "./pages/SupplierPanel";
 import Suppliers, { SuppliersContent } from "./pages/Suppliers";
 import MaintenanceRequests from "./pages/MaintenanceRequests";
 import MaintenanceApproval from "./pages/MaintenanceApproval";

@@ -161,6 +161,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['super_admin', 'admin'] },
     // Director-only: menu built exclusively by getDirectorMediaItems()
     { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
+    // Supplier-only items
+    { icon: Wrench, label: 'Serviços em Andamento', path: '/supplier-panel', roles: ['supplier'] },
   ];
 
   // Admin items - system administration
