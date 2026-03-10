@@ -44,7 +44,9 @@ import {
   Shield,
   MapPin,
   Building,
-  Package
+  Package,
+  Send,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
