@@ -88,8 +88,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [systemName, setSystemName] = useState('Gestão & Marketing');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { data: managerPermissions, isLoading: permissionsLoading } = useManagerMenuPermissions();
+  const { data: directorPermissions, isLoading: directorPermissionsLoading } = useDirectorMenuPermissions();
   
   const isManager = profile?.role === 'manager';
+  const isDirector = profile?.role === 'director';
 
   // Load system settings
   useEffect(() => {
