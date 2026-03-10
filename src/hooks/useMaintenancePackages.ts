@@ -320,18 +320,27 @@ export function useUpdatePackageItems() {
       if (packageError) throw packageError;
 
       if (allReviewed) {
+        // Fetch director name and item count for rich notification
+        const { data: directorProfile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        const directorName = directorProfile?.name || 'Diretor(a)';
+        const itemCount = allItems?.length || 0;
+
         const statusLabel = 
           packageStatus === 'approved' ? 'aprovado' : 
           packageStatus === 'rejected' ? 'rejeitado' : 
-          packageStatus === 'partially_held' ? 'parcialmente segurado (aguardando reavaliação)' : 
+          packageStatus === 'partially_held' ? 'parcialmente segurado' : 
           'parcialmente aprovado';
         
         await notificarPorRole(
           'super_admin',
           'aprovacao_manutencao',
           'media',
-          hasHeld ? 'Pacote de Manutenção Aguardando Reavaliação' : 'Pacote de Manutenção Revisado',
-          `O pacote de manutenção foi ${statusLabel} pela diretoria.${hasHeld ? ' Alguns itens foram segurados para reavaliação.' : ''}`,
+          hasHeld ? 'Pacote Aguardando Reavaliação' : 'Pacote Revisado pela Diretoria',
+          `${directorName} ${statusLabel} pacote com ${itemCount} outdoor(s).${hasHeld ? ' Alguns itens foram segurados para reavaliação.' : ''}`,
           '/maintenance-requests',
           input.packageId,
           'maintenance_package'
