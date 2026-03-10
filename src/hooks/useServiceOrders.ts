@@ -348,12 +348,23 @@ export function useAdminApproveServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch outdoor info for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', data.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Notify directors with approval permission
       try {
         await supabase.rpc('notificar_diretores_aprovadores', {
           p_tipo: 'os_aprovacao',
-          p_titulo: 'OS Aguardando Aprovação',
-          p_mensagem: `Ordem de serviço ${data.number} aguardando aprovação da diretoria`,
+          p_titulo: `OS ${data.number} - ${outdoorCode} Aguardando Aprovação`,
+          p_mensagem: `OS ${data.number} para ${outdoorCode} aguardando aprovação da diretoria`,
           p_url_acao: '/diretoria/aprovacoes/os',
           p_id_referencia: id
         });
