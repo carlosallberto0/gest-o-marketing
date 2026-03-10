@@ -34,7 +34,8 @@ import {
   FileText,
   Users,
   Shield,
-  ShieldCheck
+  ShieldCheck,
+  UserCog
 } from 'lucide-react';
 import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
 import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
