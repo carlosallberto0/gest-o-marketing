@@ -224,10 +224,18 @@ export function useCreateMaintenancePackage() {
 
       if (itemsError) throw itemsError;
 
+      // Fetch creator name for rich notification
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      const creatorName = creatorProfile?.name || 'Administrador';
+
       await notificarDiretoresAprovadores(
         'aprovacao_manutencao',
         'Pacote de Manutenção Pendente',
-        `Um novo pacote com ${input.items.length} outdoor(s) não operacional(is) aguarda sua aprovação.`,
+        `${creatorName} enviou pacote com ${input.items.length} outdoor(s) não operacional(is) para aprovação.`,
         '/maintenance-approval',
         packageData.id
       );
