@@ -89,6 +89,9 @@ export function DirectorMenuSettings() {
   };
 
   const currentRedirect = localPermissions.default_redirect.media;
+  const redirectOptions = allRedirectOptions.filter(opt => 
+    (localPermissions.media as Record<string, boolean>)[opt.key] !== false
+  );
 
   if (isLoading) {
     return (
