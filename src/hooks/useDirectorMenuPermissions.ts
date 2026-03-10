@@ -163,7 +163,8 @@ export function isDirectorMenuItemEnabled(
   if (!menuKey) return true;
   if (directorMandatoryItems[menuKey]) return true;
   if (isLoading || !permissions) return undefined;
-  return (permissions.media as Record<string, boolean>)[menuKey] ?? true;
+  // Deny-by-default: if key not found, return false
+  return (permissions.media as Record<string, boolean>)[menuKey] ?? false;
 }
 
 export function getDirectorDefaultRoute(permissions: DirectorMenuPermissions | undefined): string {

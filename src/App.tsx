@@ -75,6 +75,7 @@ import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseE
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { RequireManagerMenuPermission } from "@/components/auth/RequireManagerMenuPermission";
+import { RequireDirectorMenuPermission } from "@/components/auth/RequireDirectorMenuPermission";
 
 const queryClient = new QueryClient();
 
@@ -156,7 +157,9 @@ const AppRoutes = () => (
       path="/media/dashboard" 
       element={
         <ProtectedRoute>
-          <MediaDashboard />
+          <RequireDirectorMenuPermission>
+            <MediaDashboard />
+          </RequireDirectorMenuPermission>
         </ProtectedRoute>
       } 
     />
@@ -220,7 +223,9 @@ const AppRoutes = () => (
       path="/outdoors" 
       element={
         <ProtectedRoute>
-          <Outdoors />
+          <RequireDirectorMenuPermission>
+            <Outdoors />
+          </RequireDirectorMenuPermission>
         </ProtectedRoute>
       } 
     />
@@ -335,7 +340,9 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <Reports />
+            <RequireDirectorMenuPermission>
+              <Reports />
+            </RequireDirectorMenuPermission>
           </RequireRole>
         </ProtectedRoute>
       } 
