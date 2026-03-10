@@ -162,16 +162,32 @@ export function useCreateMediaEvaluation() {
         throw outdoorError;
       }
 
-      // Send notification to super_admin and admin
+      // Fetch outdoor + PDV + evaluator name for rich notification
+      const { data: outdoorInfo } = await supabase
+        .from('outdoors')
+        .select('code, pdvs(name)')
+        .eq('id', input.outdoorId)
+        .single();
+      
+      const { data: evaluatorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const outdoorCode = (outdoorInfo as any)?.code || 'N/A';
+      const pdvName = (outdoorInfo as any)?.pdvs?.name || '';
+      const evaluatorName = evaluatorProfile?.name || 'Usuário';
       const statusLabel = input.status === 'operational' ? 'Operacional' : 'Não Operacional';
+      const locationLabel = pdvName ? `${outdoorCode} (${pdvName})` : outdoorCode;
       
       console.log('Enviando notificação para super_admin...');
       const notifResult1 = await notificarPorRole(
         'super_admin',
         'media_evaluation',
         'media',
-        'Nova Avaliação de Outdoor',
-        `Outdoor avaliado como ${statusLabel}`,
+        `Avaliação: ${locationLabel}`,
+        `${evaluatorName} avaliou ${outdoorCode} como ${statusLabel}`,
         `/outdoor/${input.outdoorId}`,
         evaluation.id,
         'media_evaluation'
@@ -183,8 +199,8 @@ export function useCreateMediaEvaluation() {
         'admin',
         'media_evaluation',
         'media',
-        'Nova Avaliação de Outdoor',
-        `Outdoor avaliado como ${statusLabel}`,
+        `Avaliação: ${locationLabel}`,
+        `${evaluatorName} avaliou ${outdoorCode} como ${statusLabel}`,
         `/outdoor/${input.outdoorId}`,
         evaluation.id,
         'media_evaluation'

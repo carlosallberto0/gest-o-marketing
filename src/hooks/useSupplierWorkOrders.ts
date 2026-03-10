@@ -217,14 +217,28 @@ export function useSubmitWorkOrder() {
 
       if (error) throw error;
 
+      // Fetch supplier name and items count for rich notification
+      let supplierName = 'Fornecedor';
+      let itemCount = 0;
+      try {
+        const wo = data as any;
+        const { data: woFull } = await supabase
+          .from('supplier_work_orders')
+          .select('supplier:suppliers(name), items:supplier_work_order_items(id)')
+          .eq('id', workOrderId)
+          .single();
+        supplierName = (woFull as any)?.supplier?.name || 'Fornecedor';
+        itemCount = (woFull as any)?.items?.length || 0;
+      } catch {}
+
       // Notify admin
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'super_admin' as any,
           p_tipo: 'work_order_completed',
           p_modulo: 'media',
-          p_titulo: 'Ordem de Serviço Concluída',
-          p_mensagem: 'Fornecedor concluiu execução de manutenção - aguardando validação',
+          p_titulo: `${supplierName} concluiu manutenção`,
+          p_mensagem: `${supplierName} concluiu manutenção de ${itemCount} outdoor(s) - aguardando validação`,
           p_url_acao: '/service-orders',
           p_id_referencia: workOrderId,
           p_tipo_referencia: 'supplier_work_order'

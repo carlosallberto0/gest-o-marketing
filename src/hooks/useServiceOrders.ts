@@ -227,14 +227,25 @@ export function useCreateServiceOrder() {
 
       if (error) throw error;
       
+      // Fetch outdoor info for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', input.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Send notification to admin
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'admin' as any,
           p_tipo: 'os_nova',
           p_modulo: 'media',
-          p_titulo: 'Nova Ordem de Serviço',
-          p_mensagem: `Nova OS ${orderNumber} aguardando aprovação`,
+          p_titulo: `Nova OS ${orderNumber} - ${outdoorCode}`,
+          p_mensagem: `Nova OS ${orderNumber} para ${outdoorCode} aguardando aprovação`,
           p_url_acao: '/admin/aprovacoes/os',
           p_id_referencia: data.id,
           p_tipo_referencia: 'service_order'
