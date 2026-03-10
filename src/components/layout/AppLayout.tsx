@@ -55,9 +55,6 @@ import {
 } from '@/hooks/useManagerMenuPermissions';
 import {
   useDirectorMenuPermissions,
-  isDirectorMenuItemEnabled,
-  directorPathToMenuKey,
-  isDirectorPathMandatory,
 } from '@/hooks/useDirectorMenuPermissions';
 
 interface AppLayoutProps {
