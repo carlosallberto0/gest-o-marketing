@@ -157,7 +157,9 @@ const AppRoutes = () => (
       path="/media/dashboard" 
       element={
         <ProtectedRoute>
-          <MediaDashboard />
+          <RequireDirectorMenuPermission>
+            <MediaDashboard />
+          </RequireDirectorMenuPermission>
         </ProtectedRoute>
       } 
     />
