@@ -102,10 +102,12 @@ export default function ServiceOrders() {
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
   const { data: readyPackages = [], isLoading: loadingPackages } = useReadyForServiceOrderPackages();
-  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders } = useSupplierWorkOrders('completed');
+  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders, refetch: refetchWorkOrders } = useSupplierWorkOrders();
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
   const validateWorkOrder = useValidateWorkOrder();
+  const deleteWorkOrder = useDeleteWorkOrder();
+  const [isInsertingTest, setIsInsertingTest] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
