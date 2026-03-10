@@ -2481,6 +2481,7 @@ export type Database = {
           pode_aprovar_os: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           status: string
+          supplier_id: string | null
           temp_password: string | null
           token_gerado_em: string | null
           token_valido_ate: string | null
@@ -2499,6 +2500,7 @@ export type Database = {
           pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
+          supplier_id?: string | null
           temp_password?: string | null
           token_gerado_em?: string | null
           token_valido_ate?: string | null
@@ -2517,6 +2519,7 @@ export type Database = {
           pode_aprovar_os?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
+          supplier_id?: string | null
           temp_password?: string | null
           token_gerado_em?: string | null
           token_valido_ate?: string | null
@@ -2529,6 +2532,13 @@ export type Database = {
             columns: ["pdv_id"]
             isOneToOne: false
             referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -3026,6 +3036,127 @@ export type Database = {
           },
         ]
       }
+      supplier_work_order_items: {
+        Row: {
+          created_at: string
+          executed: boolean
+          executed_at: string | null
+          execution_photo_url: string | null
+          id: string
+          observations: string | null
+          original_photo_url: string | null
+          outdoor_id: string
+          package_item_id: string | null
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          executed?: boolean
+          executed_at?: string | null
+          execution_photo_url?: string | null
+          id?: string
+          observations?: string | null
+          original_photo_url?: string | null
+          outdoor_id: string
+          package_item_id?: string | null
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          executed?: boolean
+          executed_at?: string | null
+          execution_photo_url?: string | null
+          id?: string
+          observations?: string | null
+          original_photo_url?: string | null
+          outdoor_id?: string
+          package_item_id?: string | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_work_order_items_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_work_order_items_package_item_id_fkey"
+            columns: ["package_item_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_package_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_work_order_items_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_work_orders: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          package_id: string
+          status: string
+          supplier_id: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          package_id: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          package_id?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_work_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_approval_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_work_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string
@@ -3302,6 +3433,7 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_supplier_id: { Args: { p_user_id: string }; Returns: string }
       has_app_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

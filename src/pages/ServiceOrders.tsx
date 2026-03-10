@@ -44,12 +44,16 @@ import {
   Shield,
   MapPin,
   Building,
-  Package
+  Package,
+  Send,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
+import { useSupplierWorkOrders, useValidateWorkOrder } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
+import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
 import { generateServiceOrderPDF, generateMaintenanceApprovalPDF, MaintenanceApprovalPDFData } from '@/lib/pdfGenerator';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { format } from 'date-fns';
@@ -89,12 +93,19 @@ export default function ServiceOrders() {
     open: boolean;
     order: any | null;
   }>({ open: false, order: null });
+  const [assignDialog, setAssignDialog] = useState<{
+    open: boolean;
+    packageId: string;
+    items: Array<{ outdoor_id: string; package_item_id?: string; original_photo_url?: string }>;
+  }>({ open: false, packageId: '', items: [] });
   
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
   const { data: readyPackages = [], isLoading: loadingPackages } = useReadyForServiceOrderPackages();
+  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders } = useSupplierWorkOrders('completed');
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
+  const validateWorkOrder = useValidateWorkOrder();
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -334,6 +345,16 @@ export default function ServiceOrders() {
                 )}
               </TabsTrigger>
             )}
+            {isSuperAdmin && (
+              <TabsTrigger value="executed">
+                Ordens Executadas
+                {supplierWorkOrders.length > 0 && (
+                  <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
+                    {supplierWorkOrders.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="orders">
@@ -515,17 +536,40 @@ export default function ServiceOrders() {
                     <span className="text-sm font-medium">
                       {selectedApprovedItems.size} outdoor(s) selecionado(s)
                     </span>
-                    <Button 
-                      onClick={handleGenerateApprovalPDF}
-                      disabled={isGeneratingApprovalPDF}
-                    >
-                      {isGeneratingApprovalPDF ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                      )}
-                      Gerar PDF
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleGenerateApprovalPDF}
+                        disabled={isGeneratingApprovalPDF}
+                        variant="outline"
+                      >
+                        {isGeneratingApprovalPDF ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4 mr-2" />
+                        )}
+                        Gerar PDF
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          // Group selected items by package
+                          const selectedItemsList = allApprovedItems.filter(i => selectedApprovedItems.has(i.id));
+                          if (selectedItemsList.length === 0) return;
+                          const pkg = selectedItemsList[0].package as any;
+                          setAssignDialog({
+                            open: true,
+                            packageId: pkg?.id || '',
+                            items: selectedItemsList.map(i => ({
+                              outdoor_id: i.outdoor_id,
+                              package_item_id: i.id,
+                              original_photo_url: i.outdoor?.photo_url || undefined,
+                            })),
+                          });
+                        }}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Enviar para Fornecedor
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -620,10 +664,128 @@ export default function ServiceOrders() {
               </div>
             </TabsContent>
           )}
+
+          {/* Executed Orders Tab */}
+          {isSuperAdmin && (
+            <TabsContent value="executed">
+              <div className="space-y-4">
+                {loadingWorkOrders ? (
+                  <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : supplierWorkOrders.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12">
+                      <div className="text-center">
+                        <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium">Nenhuma ordem executada pendente</h3>
+                        <p className="text-muted-foreground mt-1">
+                          Ordens concluídas pelos fornecedores aparecerão aqui para validação
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  supplierWorkOrders.map((wo) => (
+                    <Card key={wo.id} className="border-2">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle className="text-base">
+                            Fornecedor: {wo.supplier?.name}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Concluída em {wo.completed_at ? format(new Date(wo.completed_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
+                            {' • '}{(wo.items || []).length} outdoor(s)
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => validateWorkOrder.mutate(wo.id)}
+                          disabled={validateWorkOrder.isPending}
+                        >
+                          {validateWorkOrder.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Validar
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {(wo.items || []).map((item) => {
+                            const pdv = item.outdoor?.pdv as any;
+                            return (
+                              <div key={item.id} className="border rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <h4 className="font-medium text-sm">{item.outdoor?.code}</h4>
+                                  <span className="text-xs text-muted-foreground">
+                                    {pdv?.name} — {item.outdoor?.location}
+                                  </span>
+                                  {item.executed && (
+                                    <Badge variant="success" className="text-[10px]">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Executado {item.executed_at ? format(new Date(item.executed_at), 'dd/MM HH:mm', { locale: ptBR }) : ''}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Antes</p>
+                                    <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
+                                      {(item.original_photo_url || item.outdoor?.photo_url) ? (
+                                        <img
+                                          src={convertGoogleDriveUrl(item.original_photo_url || item.outdoor?.photo_url || '')}
+                                          alt="Antes"
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Depois</p>
+                                    <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
+                                      {item.execution_photo_url ? (
+                                        <img
+                                          src={item.execution_photo_url}
+                                          alt="Depois"
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                {item.observations && (
+                                  <p className="text-xs text-muted-foreground mt-2 italic">
+                                    Obs: {item.observations}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
       <NewServiceOrderDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
+
+      {/* Assign to Supplier Dialog */}
+      <AssignToSupplierDialog
+        open={assignDialog.open}
+        onOpenChange={(open) => setAssignDialog(prev => ({ ...prev, open }))}
+        packageId={assignDialog.packageId}
+        items={assignDialog.items}
+      />
 
       {/* Admin Actions Dialog */}
       {adminActionDialog.order && (
