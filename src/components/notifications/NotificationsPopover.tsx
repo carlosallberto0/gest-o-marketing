@@ -104,8 +104,8 @@ export function NotificationsPopover() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {naoLidas > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-              {naoLidas > 9 ? '9+' : naoLidas}
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+              {naoLidas}
             </span>
           )}
         </Button>
