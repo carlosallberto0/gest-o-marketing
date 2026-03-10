@@ -65,7 +65,7 @@ export default function ModuleSelection() {
   const { data: moduleSettings, isLoading: settingsLoading } = useModuleSettings();
   const { isModuleEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const { data: managerPermissions } = useManagerMenuPermissions();
-
+  const { data: directorPermissions } = useDirectorMenuPermissions();
   const isSuperAdmin = profile?.role === 'super_admin';
   const isManager = profile?.role === 'manager';
 
