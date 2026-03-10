@@ -333,6 +333,12 @@ export function SettingsContent() {
                 </TabsTrigger>
               )}
               {isSuperAdmin && (
+                <TabsTrigger value="directors" className="data-[state=active]:bg-background">
+                  <UserCog className="h-4 w-4 mr-2" />
+                  Diretores
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
                 <TabsTrigger value="feature-flags" className="data-[state=active]:bg-background">
                   <Shield className="h-4 w-4 mr-2" />
                   Feature Flags
