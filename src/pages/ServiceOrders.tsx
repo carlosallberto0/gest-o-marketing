@@ -373,10 +373,18 @@ export default function ServiceOrders() {
             <h1 className="text-2xl font-bold text-foreground">Ordens de Serviço</h1>
             <p className="text-muted-foreground">Gerencie as ordens de serviço para outdoors</p>
           </div>
-          <Button onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Ordem
-          </Button>
+          <div className="flex gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={handleInsertTestData} disabled={isInsertingTest}>
+                {isInsertingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                🧪 Inserir Teste
+              </Button>
+            )}
+            <Button onClick={() => setShowNewDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Ordem
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
