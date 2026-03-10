@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
-import { useSupplierWorkOrders, useValidateWorkOrder } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
 import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
@@ -102,10 +102,12 @@ export default function ServiceOrders() {
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
   const { data: readyPackages = [], isLoading: loadingPackages } = useReadyForServiceOrderPackages();
-  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders } = useSupplierWorkOrders('completed');
+  const { data: supplierWorkOrders = [], isLoading: loadingWorkOrders, refetch: refetchWorkOrders } = useSupplierWorkOrders();
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
   const validateWorkOrder = useValidateWorkOrder();
+  const deleteWorkOrder = useDeleteWorkOrder();
+  const [isInsertingTest, setIsInsertingTest] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -125,6 +127,87 @@ export default function ServiceOrders() {
     pending: orders.filter(o => o.status === 'pending').length,
     in_progress: orders.filter(o => o.status === 'in_progress').length,
     completed: orders.filter(o => o.status === 'completed').length,
+  };
+
+  const handleInsertTestData = async () => {
+    if (!confirm('Inserir dados fictícios de teste? Poderá excluí-los depois.')) return;
+    setIsInsertingTest(true);
+    const toastId = toast.loading('Inserindo dados de teste...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      // 1. Create test package
+      const { data: pkg, error: pkgErr } = await supabase
+        .from('maintenance_approval_packages')
+        .insert({
+          created_by: user.id,
+          status: 'approved',
+          ready_for_service_order: true,
+          observations: '[TESTE] Pacote fictício para teste do fluxo fornecedor',
+          reviewed_at: new Date().toISOString(),
+        } as any)
+        .select()
+        .single();
+      if (pkgErr) throw pkgErr;
+
+      const outdoorIds = [
+        '13917080-7bc7-4dcc-8799-65ec60aa0807', // OUT-42
+        '15f400fb-5764-41c6-9e31-a49e351beef1', // OUT-47
+        '089d162a-cb26-4049-83eb-f5a6d52c45f5', // OUT-37
+      ];
+
+      // 2. Create package items
+      const pkgItems = outdoorIds.map(oid => ({
+        package_id: (pkg as any).id,
+        outdoor_id: oid,
+        status: 'approved',
+      }));
+      const { data: insertedItems, error: itemsErr } = await supabase
+        .from('maintenance_package_items')
+        .insert(pkgItems as any)
+        .select();
+      if (itemsErr) throw itemsErr;
+
+      const supplierId = '013c2ec6-e846-47f9-b65f-1c6ce902d140'; // Digidoor
+
+      // 3. Create work order
+      const { data: wo, error: woErr } = await supabase
+        .from('supplier_work_orders')
+        .insert({
+          package_id: (pkg as any).id,
+          supplier_id: supplierId,
+          assigned_by: user.id,
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          notes: '[TESTE] Ordem fictícia para teste',
+        } as any)
+        .select()
+        .single();
+      if (woErr) throw woErr;
+
+      // 4. Create work order items
+      const woItems = outdoorIds.map((oid, i) => ({
+        work_order_id: (wo as any).id,
+        outdoor_id: oid,
+        package_item_id: (insertedItems as any)?.[i]?.id || null,
+        executed: true,
+        executed_at: new Date().toISOString(),
+        observations: '[TESTE] Manutenção fictícia executada',
+      }));
+      const { error: woItemsErr } = await supabase
+        .from('supplier_work_order_items')
+        .insert(woItems as any);
+      if (woItemsErr) throw woItemsErr;
+
+      toast.success('Dados de teste inseridos com sucesso!', { id: toastId });
+      refetchWorkOrders();
+    } catch (error: any) {
+      console.error('Erro ao inserir teste:', error);
+      toast.error('Erro: ' + error.message, { id: toastId });
+    } finally {
+      setIsInsertingTest(false);
+    }
   };
 
   const handleUpdateStatus = (id: string, status: ServiceOrderStatus) => {
@@ -290,10 +373,18 @@ export default function ServiceOrders() {
             <h1 className="text-2xl font-bold text-foreground">Ordens de Serviço</h1>
             <p className="text-muted-foreground">Gerencie as ordens de serviço para outdoors</p>
           </div>
-          <Button onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Ordem
-          </Button>
+          <div className="flex gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={handleInsertTestData} disabled={isInsertingTest}>
+                {isInsertingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                🧪 Inserir Teste
+              </Button>
+            )}
+            <Button onClick={() => setShowNewDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Ordem
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -698,17 +789,37 @@ export default function ServiceOrders() {
                             {' • '}{(wo.items || []).length} outdoor(s)
                           </p>
                         </div>
-                        <Button 
-                          onClick={() => validateWorkOrder.mutate(wo.id)}
-                          disabled={validateWorkOrder.isPending}
-                        >
-                          {validateWorkOrder.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 mr-2" />
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => validateWorkOrder.mutate(wo.id)}
+                            disabled={validateWorkOrder.isPending}
+                          >
+                            {validateWorkOrder.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                            )}
+                            Validar
+                          </Button>
+                          {wo.notes?.includes('[TESTE]') && (
+                            <Button 
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm('Excluir esta ordem de teste e todos os dados relacionados?')) {
+                                  deleteWorkOrder.mutate(wo.id);
+                                }
+                              }}
+                              disabled={deleteWorkOrder.isPending}
+                            >
+                              {deleteWorkOrder.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
+                              Excluir Teste
+                            </Button>
                           )}
-                          Validar
-                        </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">

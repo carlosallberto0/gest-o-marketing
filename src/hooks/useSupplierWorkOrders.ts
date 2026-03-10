@@ -247,6 +247,58 @@ export function useSubmitWorkOrder() {
   });
 }
 
+// Admin deletes a work order and its related test data (cascade)
+export function useDeleteWorkOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (workOrderId: string) => {
+      // 1. Get work order to find package_id
+      const { data: wo, error: woErr } = await supabase
+        .from('supplier_work_orders')
+        .select('id, package_id')
+        .eq('id', workOrderId)
+        .single();
+      if (woErr) throw woErr;
+
+      // 2. Delete work order items
+      await supabase
+        .from('supplier_work_order_items')
+        .delete()
+        .eq('work_order_id', workOrderId);
+
+      // 3. Delete work order
+      await supabase
+        .from('supplier_work_orders')
+        .delete()
+        .eq('id', workOrderId);
+
+      // 4. Delete package items
+      await supabase
+        .from('maintenance_package_items')
+        .delete()
+        .eq('package_id', (wo as any).package_id);
+
+      // 5. Delete the package
+      await supabase
+        .from('maintenance_approval_packages')
+        .delete()
+        .eq('id', (wo as any).package_id);
+
+      return wo;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-packages'] });
+      showToast.success('Dados de teste excluídos com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error deleting work order:', error);
+      showToast.error('Erro ao excluir dados de teste');
+    },
+  });
+}
+
 // Admin validates completed work order
 export function useValidateWorkOrder() {
   const queryClient = useQueryClient();
