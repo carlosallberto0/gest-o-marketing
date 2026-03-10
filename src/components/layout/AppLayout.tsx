@@ -201,23 +201,23 @@ export function AppLayout({ children }: AppLayoutProps) {
     
     // For managers, apply deny-by-default logic for configurable menu items
     if (isManager && (activeModule === 'media' || activeModule === 'merchandising')) {
-      // Check if this path is configurable for managers
       const isConfigurable = pathToMenuKey[activeModule]?.[item.path] !== undefined;
       
       if (isConfigurable) {
-        // Mandatory items always show
-        if (isPathMandatory(activeModule, item.path)) {
-          return true;
-        }
-        
-        // For configurable non-mandatory items:
-        // - undefined (loading) = hide (deny-by-default)
-        // - false = hide
-        // - true = show
+        if (isPathMandatory(activeModule, item.path)) return true;
         const allowed = isMenuItemEnabled(managerPermissions, permissionsLoading, activeModule, item.path);
-        if (allowed !== true) {
-          return false;
-        }
+        if (allowed !== true) return false;
+      }
+    }
+
+    // For directors in media module, apply director-specific permissions
+    if (isDirector && activeModule === 'media') {
+      const isConfigurable = directorPathToMenuKey[item.path] !== undefined;
+      
+      if (isConfigurable) {
+        if (isDirectorPathMandatory(item.path)) return true;
+        const allowed = isDirectorMenuItemEnabled(directorPermissions, directorPermissionsLoading, item.path);
+        if (allowed !== true) return false;
       }
     }
     

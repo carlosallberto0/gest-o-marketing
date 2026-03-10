@@ -806,6 +806,13 @@ export function SettingsContent() {
             </TabsContent>
           )}
 
+          {/* Directors Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="directors" className="space-y-6">
+              <DirectorMenuSettings />
+            </TabsContent>
+          )}
+
           {/* Feature Flags Tab - Super Admin Only */}
           {isSuperAdmin && (
             <TabsContent value="feature-flags" className="space-y-6">
