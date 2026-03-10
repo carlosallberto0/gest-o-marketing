@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
 import { useManagerMenuPermissions, getManagerDefaultRoute } from '@/hooks/useManagerMenuPermissions';
-
+import { useDirectorMenuPermissions, getDirectorDefaultRoute } from '@/hooks/useDirectorMenuPermissions';
 const moduleIcons = {
   merchandising: ClipboardCheck,
   media: Megaphone,
