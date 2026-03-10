@@ -48,8 +48,10 @@ import {
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
+import { useSupplierWorkOrders, useValidateWorkOrder } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
+import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
 import { generateServiceOrderPDF, generateMaintenanceApprovalPDF, MaintenanceApprovalPDFData } from '@/lib/pdfGenerator';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { format } from 'date-fns';
