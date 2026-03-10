@@ -104,6 +104,9 @@ export default function ModuleSelection() {
     if (isManager && (moduleId === 'media' || moduleId === 'merchandising')) {
       const managerPath = getManagerDefaultRoute(managerPermissions, moduleId);
       navigate(managerPath);
+    } else if (isDirector && moduleId === 'media') {
+      const directorPath = getDirectorDefaultRoute(directorPermissions);
+      navigate(directorPath);
     } else {
       navigate(path);
     }

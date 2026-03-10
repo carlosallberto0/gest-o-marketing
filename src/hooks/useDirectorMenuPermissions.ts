@@ -78,12 +78,14 @@ export function useDirectorMenuPermissions() {
       if (error) {
         if (error.code === 'PGRST116') return defaultPermissions;
         console.error('Error fetching director permissions:', error);
-        throw error;
+        return defaultPermissions;
       }
 
       const saved = (data?.value as unknown as DirectorMenuPermissions) || defaultPermissions;
+      console.log('[DirectorMenuPermissions] fetched:', JSON.stringify(saved.media));
       return enforceMandatory(saved);
     },
+    enabled: !!user?.id,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     staleTime: 0,
