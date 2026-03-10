@@ -91,6 +91,11 @@ export default function ServiceOrders() {
     open: boolean;
     order: any | null;
   }>({ open: false, order: null });
+  const [assignDialog, setAssignDialog] = useState<{
+    open: boolean;
+    packageId: string;
+    items: Array<{ outdoor_id: string; package_item_id?: string; original_photo_url?: string }>;
+  }>({ open: false, packageId: '', items: [] });
   
   const { profile } = useAuth();
   const { data: orders = [], isLoading, refetch } = useServiceOrders();
