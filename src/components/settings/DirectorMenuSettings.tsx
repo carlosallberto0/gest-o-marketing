@@ -30,12 +30,12 @@ const directorMediaMenuItems: MenuItemConfig[] = [
   { key: 'observacoes_enviadas', label: 'Observações Enviadas', required: true, description: 'Histórico de observações pessoais' },
 ];
 
-const redirectOptions = [
-  { value: '/media/dashboard', label: 'Dashboard' },
-  { value: '/outdoors', label: 'Outdoors' },
-  { value: '/maintenance-approval', label: 'Aprovar Manutenção' },
-  { value: '/reports', label: 'Relatórios' },
-  { value: '/director-observations', label: 'Observações Enviadas' },
+const allRedirectOptions = [
+  { value: '/media/dashboard', label: 'Dashboard', key: 'dashboard' },
+  { value: '/outdoors', label: 'Outdoors', key: 'outdoors' },
+  { value: '/maintenance-approval', label: 'Aprovar Manutenção', key: 'aprovar_manutencao' },
+  { value: '/reports', label: 'Relatórios', key: 'relatorios' },
+  { value: '/director-observations', label: 'Observações Enviadas', key: 'observacoes_enviadas' },
 ];
 
 export function DirectorMenuSettings() {
