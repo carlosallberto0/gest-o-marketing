@@ -487,14 +487,25 @@ export function useCompleteServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch outdoor code for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', data.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Notify manager for validation
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'manager' as any,
           p_tipo: 'os_concluida',
           p_modulo: 'media',
-          p_titulo: 'OS Concluída - Validar',
-          p_mensagem: `Ordem de serviço ${data.number} concluída - aguardando validação`,
+          p_titulo: `OS ${data.number} Concluída - ${outdoorCode}`,
+          p_mensagem: `OS ${data.number} para ${outdoorCode} concluída - aguardando validação`,
           p_url_acao: '/gerente/validacoes',
           p_id_referencia: id,
           p_tipo_referencia: 'service_order'
