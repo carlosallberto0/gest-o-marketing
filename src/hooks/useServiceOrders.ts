@@ -227,14 +227,25 @@ export function useCreateServiceOrder() {
 
       if (error) throw error;
       
+      // Fetch outdoor info for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', input.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Send notification to admin
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'admin' as any,
           p_tipo: 'os_nova',
           p_modulo: 'media',
-          p_titulo: 'Nova Ordem de Serviço',
-          p_mensagem: `Nova OS ${orderNumber} aguardando aprovação`,
+          p_titulo: `Nova OS ${orderNumber} - ${outdoorCode}`,
+          p_mensagem: `Nova OS ${orderNumber} para ${outdoorCode} aguardando aprovação`,
           p_url_acao: '/admin/aprovacoes/os',
           p_id_referencia: data.id,
           p_tipo_referencia: 'service_order'
@@ -337,12 +348,23 @@ export function useAdminApproveServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch outdoor info for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', data.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Notify directors with approval permission
       try {
         await supabase.rpc('notificar_diretores_aprovadores', {
           p_tipo: 'os_aprovacao',
-          p_titulo: 'OS Aguardando Aprovação',
-          p_mensagem: `Ordem de serviço ${data.number} aguardando aprovação da diretoria`,
+          p_titulo: `OS ${data.number} - ${outdoorCode} Aguardando Aprovação`,
+          p_mensagem: `OS ${data.number} para ${outdoorCode} aguardando aprovação da diretoria`,
           p_url_acao: '/diretoria/aprovacoes/os',
           p_id_referencia: id
         });
@@ -383,14 +405,22 @@ export function useDirectorApproveServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch director name for rich notification
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      let directorName = 'Diretoria';
+      if (currentUser) {
+        const { data: profile } = await supabase.from('profiles').select('name').eq('id', currentUser.id).single();
+        directorName = profile?.name || 'Diretoria';
+      }
+
       // Notify admin
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'admin' as any,
           p_tipo: 'os_aprovada',
           p_modulo: 'media',
-          p_titulo: 'OS Aprovada pela Diretoria',
-          p_mensagem: `Ordem de serviço ${data.number} foi aprovada pela diretoria`,
+          p_titulo: `OS ${data.number} Aprovada por ${directorName}`,
+          p_mensagem: `${directorName} aprovou OS ${data.number}`,
           p_url_acao: '/service-orders',
           p_id_referencia: id,
           p_tipo_referencia: 'service_order'
@@ -457,14 +487,25 @@ export function useCompleteServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch outdoor code for rich notification
+      let outdoorCode = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code')
+          .eq('id', data.outdoor_id)
+          .single();
+        outdoorCode = outdoorInfo?.code || '';
+      } catch {}
+
       // Notify manager for validation
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'manager' as any,
           p_tipo: 'os_concluida',
           p_modulo: 'media',
-          p_titulo: 'OS Concluída - Validar',
-          p_mensagem: `Ordem de serviço ${data.number} concluída - aguardando validação`,
+          p_titulo: `OS ${data.number} Concluída - ${outdoorCode}`,
+          p_mensagem: `OS ${data.number} para ${outdoorCode} concluída - aguardando validação`,
           p_url_acao: '/gerente/validacoes',
           p_id_referencia: id,
           p_tipo_referencia: 'service_order'

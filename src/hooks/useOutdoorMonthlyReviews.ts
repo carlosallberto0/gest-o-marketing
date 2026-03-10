@@ -138,13 +138,28 @@ export function useCreateMonthlyReview() {
       
       // Notify super_admin when outdoor needs maintenance
       if (variables.status === 'needs_maintenance') {
+        // Fetch outdoor code and PDV name for rich notification
+        let outdoorCode = '';
+        let pdvName = '';
+        try {
+          const { data: outdoorInfo } = await supabase
+            .from('outdoors')
+            .select('code, pdvs:pdv_id(name)')
+            .eq('id', variables.outdoor_id)
+            .single();
+          outdoorCode = (outdoorInfo as any)?.code || '';
+          pdvName = (outdoorInfo as any)?.pdvs?.name || '';
+        } catch {}
+
+        const locationLabel = pdvName ? `${outdoorCode} (${pdvName})` : outdoorCode;
+
         try {
           await notificarPorRole(
             'super_admin',
             'outdoor_review',
             'media',
-            'Outdoor Precisa de Manutenção',
-            'Um outdoor foi marcado como precisando de manutenção na revisão mensal',
+            `Manutenção Necessária: ${outdoorCode}`,
+            `${locationLabel} marcado como precisando de manutenção na revisão mensal`,
             '/maintenance-requests',
             data.id,
             'outdoor_monthly_review'

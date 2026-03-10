@@ -154,14 +154,29 @@ export function useCreateMaintenanceRequest() {
       const urgencyLabel = urgencyLabels[variables.urgency || 'normal'];
       const typeLabel = variables.maintenance_type === 'preventiva' ? 'Preventiva' : 'Corretiva';
       
+      // Fetch outdoor code and PDV name for rich notification
+      let outdoorCode = '';
+      let pdvName = '';
+      try {
+        const { data: outdoorInfo } = await supabase
+          .from('outdoors')
+          .select('code, pdvs:pdv_id(name)')
+          .eq('id', variables.outdoor_id)
+          .single();
+        outdoorCode = (outdoorInfo as any)?.code || '';
+        pdvName = (outdoorInfo as any)?.pdvs?.name || '';
+      } catch {}
+      
+      const locationLabel = pdvName ? `${outdoorCode} (${pdvName})` : outdoorCode;
+      
       // Notify super_admin about new maintenance request
       try {
         await notificarPorRole(
           'super_admin',
           'maintenance_request',
           'media',
-          `Nova Solicitação [${urgencyLabel}]`,
-          `Manutenção ${typeLabel}: ${variables.reason}`,
+          `Nova Solicitação [${urgencyLabel}] - ${outdoorCode}`,
+          `Manutenção ${typeLabel} em ${locationLabel}: ${variables.reason}`,
           '/maintenance-requests',
           data.id,
           'maintenance_request'

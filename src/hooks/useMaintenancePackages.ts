@@ -224,10 +224,18 @@ export function useCreateMaintenancePackage() {
 
       if (itemsError) throw itemsError;
 
+      // Fetch creator name for rich notification
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      const creatorName = creatorProfile?.name || 'Administrador';
+
       await notificarDiretoresAprovadores(
         'aprovacao_manutencao',
         'Pacote de Manutenção Pendente',
-        `Um novo pacote com ${input.items.length} outdoor(s) não operacional(is) aguarda sua aprovação.`,
+        `${creatorName} enviou pacote com ${input.items.length} outdoor(s) não operacional(is) para aprovação.`,
         '/maintenance-approval',
         packageData.id
       );
@@ -312,18 +320,27 @@ export function useUpdatePackageItems() {
       if (packageError) throw packageError;
 
       if (allReviewed) {
+        // Fetch director name and item count for rich notification
+        const { data: directorProfile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        const directorName = directorProfile?.name || 'Diretor(a)';
+        const itemCount = allItems?.length || 0;
+
         const statusLabel = 
           packageStatus === 'approved' ? 'aprovado' : 
           packageStatus === 'rejected' ? 'rejeitado' : 
-          packageStatus === 'partially_held' ? 'parcialmente segurado (aguardando reavaliação)' : 
+          packageStatus === 'partially_held' ? 'parcialmente segurado' : 
           'parcialmente aprovado';
         
         await notificarPorRole(
           'super_admin',
           'aprovacao_manutencao',
           'media',
-          hasHeld ? 'Pacote de Manutenção Aguardando Reavaliação' : 'Pacote de Manutenção Revisado',
-          `O pacote de manutenção foi ${statusLabel} pela diretoria.${hasHeld ? ' Alguns itens foram segurados para reavaliação.' : ''}`,
+          hasHeld ? 'Pacote Aguardando Reavaliação' : 'Pacote Revisado pela Diretoria',
+          `${directorName} ${statusLabel} pacote com ${itemCount} outdoor(s).${hasHeld ? ' Alguns itens foram segurados para reavaliação.' : ''}`,
           '/maintenance-requests',
           input.packageId,
           'maintenance_package'
@@ -364,12 +381,30 @@ export function useMarkReadyForServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch director name and items count for rich notification
+      const { data: { user } } = await supabase.auth.getUser();
+      let directorName = 'Diretor(a)';
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        directorName = profile?.name || 'Diretor(a)';
+      }
+
+      const { count: itemCount } = await supabase
+        .from('maintenance_package_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('package_id', packageId)
+        .eq('status', 'approved');
+
       await notificarPorRole(
         'super_admin',
         'ordem_servico',
         'media',
-        'Manutenção Pronta para Ordem de Serviço',
-        'O diretor enviou um pacote de manutenção aprovado para geração de Ordem de Serviço.',
+        'Manutenção Pronta para OS',
+        `${directorName} enviou pacote com ${itemCount || 0} outdoor(s) aprovado(s) para geração de OS.`,
         '/service-orders',
         packageId,
         'maintenance_package'
