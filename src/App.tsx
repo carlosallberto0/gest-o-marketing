@@ -75,6 +75,7 @@ import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseE
 import NotFound from "./pages/NotFound";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { RequireManagerMenuPermission } from "@/components/auth/RequireManagerMenuPermission";
+import { RequireDirectorMenuPermission } from "@/components/auth/RequireDirectorMenuPermission";
 
 const queryClient = new QueryClient();
 

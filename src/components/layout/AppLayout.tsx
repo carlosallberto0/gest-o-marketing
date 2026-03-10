@@ -195,34 +195,57 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const menuItems = getMenuItems();
 
-  const filteredMenuItems = menuItems.filter(item => {
-    if (!profile) return false;
-    if (!canAccessRoute(item.roles)) return false;
-    
-    // For managers, apply deny-by-default logic for configurable menu items
-    if (isManager && (activeModule === 'media' || activeModule === 'merchandising')) {
-      const isConfigurable = pathToMenuKey[activeModule]?.[item.path] !== undefined;
-      
-      if (isConfigurable) {
-        if (isPathMandatory(activeModule, item.path)) return true;
-        const allowed = isMenuItemEnabled(managerPermissions, permissionsLoading, activeModule, item.path);
-        if (allowed !== true) return false;
-      }
+  // Build director-specific media menu using explicit allow-list
+  const getDirectorMediaItems = (): MenuItem[] => {
+    if (!directorPermissions || directorPermissionsLoading) {
+      // While loading, show only mandatory items (deny-by-default)
+      return [
+        { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['director'] },
+        { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
+      ];
     }
 
-    // For directors in media module, apply director-specific permissions
-    if (isDirector && activeModule === 'media') {
-      const isConfigurable = directorPathToMenuKey[item.path] !== undefined;
-      
-      if (isConfigurable) {
-        if (isDirectorPathMandatory(item.path)) return true;
-        const allowed = isDirectorMenuItemEnabled(directorPermissions, directorPermissionsLoading, item.path);
-        if (allowed !== true) return false;
-      }
+    const items: MenuItem[] = [];
+    if (directorPermissions.media.dashboard) {
+      items.push({ icon: LayoutDashboard, label: 'Dashboard', path: '/media/dashboard', roles: ['director'] });
     }
-    
-    return true;
-  });
+    if (directorPermissions.media.outdoors) {
+      items.push({ icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['director'] });
+    }
+    // Mandatory: always visible
+    items.push({ icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['director'] });
+    if (directorPermissions.media.relatorios) {
+      items.push({ icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['director'] });
+    }
+    // Mandatory: always visible
+    items.push({ icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] });
+    return items;
+  };
+
+  const filteredMenuItems = (() => {
+    // For directors in media module, use explicit allow-list instead of filtering
+    if (isDirector && activeModule === 'media') {
+      return getDirectorMediaItems();
+    }
+
+    return menuItems.filter(item => {
+      if (!profile) return false;
+      if (!canAccessRoute(item.roles)) return false;
+      
+      // For managers, apply deny-by-default logic for configurable menu items
+      if (isManager && (activeModule === 'media' || activeModule === 'merchandising')) {
+        const isConfigurable = pathToMenuKey[activeModule]?.[item.path] !== undefined;
+        
+        if (isConfigurable) {
+          if (isPathMandatory(activeModule, item.path)) return true;
+          const allowed = isMenuItemEnabled(managerPermissions, permissionsLoading, activeModule, item.path);
+          if (allowed !== true) return false;
+        }
+      }
+      
+      return true;
+    });
+  })();
 
   const handleLogout = async () => {
     clearActiveModule();
