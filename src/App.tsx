@@ -223,7 +223,9 @@ const AppRoutes = () => (
       path="/outdoors" 
       element={
         <ProtectedRoute>
-          <Outdoors />
+          <RequireDirectorMenuPermission>
+            <Outdoors />
+          </RequireDirectorMenuPermission>
         </ProtectedRoute>
       } 
     />
