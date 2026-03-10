@@ -405,14 +405,22 @@ export function useDirectorApproveServiceOrder() {
 
       if (error) throw error;
 
+      // Fetch director name for rich notification
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      let directorName = 'Diretoria';
+      if (currentUser) {
+        const { data: profile } = await supabase.from('profiles').select('name').eq('id', currentUser.id).single();
+        directorName = profile?.name || 'Diretoria';
+      }
+
       // Notify admin
       try {
         await supabase.rpc('notificar_por_role', {
           p_role: 'admin' as any,
           p_tipo: 'os_aprovada',
           p_modulo: 'media',
-          p_titulo: 'OS Aprovada pela Diretoria',
-          p_mensagem: `Ordem de serviço ${data.number} foi aprovada pela diretoria`,
+          p_titulo: `OS ${data.number} Aprovada por ${directorName}`,
+          p_mensagem: `${directorName} aprovou OS ${data.number}`,
           p_url_acao: '/service-orders',
           p_id_referencia: id,
           p_tipo_referencia: 'service_order'
