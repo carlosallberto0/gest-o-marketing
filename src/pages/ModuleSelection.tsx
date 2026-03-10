@@ -68,7 +68,7 @@ export default function ModuleSelection() {
   const { data: directorPermissions } = useDirectorMenuPermissions();
   const isSuperAdmin = profile?.role === 'super_admin';
   const isManager = profile?.role === 'manager';
-
+  const isDirector = profile?.role === 'director';
   // Redirect pending users to pending approval page
   useEffect(() => {
     if (!loading && profile?.status === 'pending') {
