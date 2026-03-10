@@ -34,7 +34,8 @@ import {
   FileText,
   Users,
   Shield,
-  ShieldCheck
+  ShieldCheck,
+  UserCog
 } from 'lucide-react';
 import { OperationalCostsSettings } from '@/components/settings/OperationalCostsSettings';
 import { RegionalMultiplierSettings } from '@/components/settings/RegionalMultiplierSettings';
@@ -43,6 +44,7 @@ import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearance
 import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
 import { ReportSettingsManager } from '@/components/settings/ReportSettingsManager';
 import { ManagerMenuSettings } from '@/components/settings/ManagerMenuSettings';
+import { DirectorMenuSettings } from '@/components/settings/DirectorMenuSettings';
 import { FeatureFlagsSettings } from '@/components/settings/FeatureFlagsSettings';
 import { PermissionsSettings } from '@/components/settings/PermissionsSettings';
 import { showToast } from '@/lib/toast';
@@ -329,6 +331,12 @@ export function SettingsContent() {
                 <TabsTrigger value="managers" className="data-[state=active]:bg-background">
                   <Users className="h-4 w-4 mr-2" />
                   Gerentes
+                </TabsTrigger>
+              )}
+              {isSuperAdmin && (
+                <TabsTrigger value="directors" className="data-[state=active]:bg-background">
+                  <UserCog className="h-4 w-4 mr-2" />
+                  Diretores
                 </TabsTrigger>
               )}
               {isSuperAdmin && (
@@ -796,6 +804,13 @@ export function SettingsContent() {
           {isSuperAdmin && (
             <TabsContent value="managers" className="space-y-6">
               <ManagerMenuSettings />
+            </TabsContent>
+          )}
+
+          {/* Directors Tab - Super Admin Only */}
+          {isSuperAdmin && (
+            <TabsContent value="directors" className="space-y-6">
+              <DirectorMenuSettings />
             </TabsContent>
           )}
 
