@@ -43,6 +43,7 @@ import { ModuleAppearanceSettings } from '@/components/settings/ModuleAppearance
 import { OutdoorCycleSettings } from '@/components/settings/OutdoorCycleSettings';
 import { ReportSettingsManager } from '@/components/settings/ReportSettingsManager';
 import { ManagerMenuSettings } from '@/components/settings/ManagerMenuSettings';
+import { DirectorMenuSettings } from '@/components/settings/DirectorMenuSettings';
 import { FeatureFlagsSettings } from '@/components/settings/FeatureFlagsSettings';
 import { PermissionsSettings } from '@/components/settings/PermissionsSettings';
 import { showToast } from '@/lib/toast';
