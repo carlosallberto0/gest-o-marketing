@@ -359,6 +359,16 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/supplier-panel" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'supplier']}>
+            <SupplierPanel />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
       path="/audit-logs" 
       element={
         <ProtectedRoute>
