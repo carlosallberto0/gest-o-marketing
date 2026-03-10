@@ -19,14 +19,14 @@ export interface DirectorMenuPermissions {
 
 const defaultPermissions: DirectorMenuPermissions = {
   media: {
-    dashboard: true,
-    outdoors: true,
+    dashboard: false,
+    outdoors: false,
     aprovar_manutencao: true,
-    relatorios: true,
+    relatorios: false,
     observacoes_enviadas: true,
   },
   default_redirect: {
-    media: '/media/dashboard',
+    media: '/maintenance-approval',
   },
 };
 
