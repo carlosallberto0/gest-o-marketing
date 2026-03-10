@@ -53,6 +53,12 @@ import {
   pathToMenuKey,
   isPathMandatory 
 } from '@/hooks/useManagerMenuPermissions';
+import {
+  useDirectorMenuPermissions,
+  isDirectorMenuItemEnabled,
+  directorPathToMenuKey,
+  isDirectorPathMandatory,
+} from '@/hooks/useDirectorMenuPermissions';
 
 interface AppLayoutProps {
   children: ReactNode;
