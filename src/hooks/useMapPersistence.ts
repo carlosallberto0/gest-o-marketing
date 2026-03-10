@@ -53,7 +53,7 @@ export function useMapPersistence() {
   });
 
   // Debounce ref for saving
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced save to localStorage
   useEffect(() => {
