@@ -340,7 +340,9 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <Reports />
+            <RequireDirectorMenuPermission>
+              <Reports />
+            </RequireDirectorMenuPermission>
           </RequireRole>
         </ProtectedRoute>
       } 
