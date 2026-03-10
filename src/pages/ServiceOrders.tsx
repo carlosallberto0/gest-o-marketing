@@ -789,17 +789,37 @@ export default function ServiceOrders() {
                             {' • '}{(wo.items || []).length} outdoor(s)
                           </p>
                         </div>
-                        <Button 
-                          onClick={() => validateWorkOrder.mutate(wo.id)}
-                          disabled={validateWorkOrder.isPending}
-                        >
-                          {validateWorkOrder.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 mr-2" />
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => validateWorkOrder.mutate(wo.id)}
+                            disabled={validateWorkOrder.isPending}
+                          >
+                            {validateWorkOrder.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                            )}
+                            Validar
+                          </Button>
+                          {wo.notes?.includes('[TESTE]') && (
+                            <Button 
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm('Excluir esta ordem de teste e todos os dados relacionados?')) {
+                                  deleteWorkOrder.mutate(wo.id);
+                                }
+                              }}
+                              disabled={deleteWorkOrder.isPending}
+                            >
+                              {deleteWorkOrder.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
+                              Excluir Teste
+                            </Button>
                           )}
-                          Validar
-                        </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
