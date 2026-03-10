@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
 import { useManagerMenuPermissions, getManagerDefaultRoute } from '@/hooks/useManagerMenuPermissions';
-
+import { useDirectorMenuPermissions, getDirectorDefaultRoute } from '@/hooks/useDirectorMenuPermissions';
 const moduleIcons = {
   merchandising: ClipboardCheck,
   media: Megaphone,
@@ -65,10 +65,10 @@ export default function ModuleSelection() {
   const { data: moduleSettings, isLoading: settingsLoading } = useModuleSettings();
   const { isModuleEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const { data: managerPermissions } = useManagerMenuPermissions();
-
+  const { data: directorPermissions } = useDirectorMenuPermissions();
   const isSuperAdmin = profile?.role === 'super_admin';
   const isManager = profile?.role === 'manager';
-
+  const isDirector = profile?.role === 'director';
   // Redirect pending users to pending approval page
   useEffect(() => {
     if (!loading && profile?.status === 'pending') {
@@ -104,6 +104,9 @@ export default function ModuleSelection() {
     if (isManager && (moduleId === 'media' || moduleId === 'merchandising')) {
       const managerPath = getManagerDefaultRoute(managerPermissions, moduleId);
       navigate(managerPath);
+    } else if (isDirector && moduleId === 'media') {
+      const directorPath = getDirectorDefaultRoute(directorPermissions);
+      navigate(directorPath);
     } else {
       navigate(path);
     }

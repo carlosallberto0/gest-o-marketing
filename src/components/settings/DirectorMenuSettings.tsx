@@ -30,12 +30,12 @@ const directorMediaMenuItems: MenuItemConfig[] = [
   { key: 'observacoes_enviadas', label: 'Observações Enviadas', required: true, description: 'Histórico de observações pessoais' },
 ];
 
-const redirectOptions = [
-  { value: '/media/dashboard', label: 'Dashboard' },
-  { value: '/outdoors', label: 'Outdoors' },
-  { value: '/maintenance-approval', label: 'Aprovar Manutenção' },
-  { value: '/reports', label: 'Relatórios' },
-  { value: '/director-observations', label: 'Observações Enviadas' },
+const allRedirectOptions = [
+  { value: '/media/dashboard', label: 'Dashboard', key: 'dashboard' },
+  { value: '/outdoors', label: 'Outdoors', key: 'outdoors' },
+  { value: '/maintenance-approval', label: 'Aprovar Manutenção', key: 'aprovar_manutencao' },
+  { value: '/reports', label: 'Relatórios', key: 'relatorios' },
+  { value: '/director-observations', label: 'Observações Enviadas', key: 'observacoes_enviadas' },
 ];
 
 export function DirectorMenuSettings() {
@@ -51,13 +51,27 @@ export function DirectorMenuSettings() {
   }, [permissions]);
 
   const handleToggleItem = (key: string, enabled: boolean) => {
-    setLocalPermissions(prev => ({
-      ...prev,
-      media: {
-        ...prev.media,
-        [key]: enabled,
-      },
-    }));
+    setLocalPermissions(prev => {
+      const updated = {
+        ...prev,
+        media: {
+          ...prev.media,
+          [key]: enabled,
+        },
+      };
+      // If disabling the current redirect target, switch to a valid one
+      const currentRedirectKey = allRedirectOptions.find(o => o.value === prev.default_redirect.media)?.key;
+      if (!enabled && currentRedirectKey === key) {
+        const firstEnabled = Object.entries(updated.media).find(([k, v]) => v && k !== key);
+        if (firstEnabled) {
+          const opt = allRedirectOptions.find(o => o.key === firstEnabled[0]);
+          if (opt) {
+            updated.default_redirect = { ...updated.default_redirect, media: opt.value };
+          }
+        }
+      }
+      return updated;
+    });
   };
 
   const handleRedirectChange = (value: string) => {
@@ -75,6 +89,9 @@ export function DirectorMenuSettings() {
   };
 
   const currentRedirect = localPermissions.default_redirect.media;
+  const redirectOptions = allRedirectOptions.filter(opt => 
+    (localPermissions.media as Record<string, boolean>)[opt.key] !== false
+  );
 
   if (isLoading) {
     return (

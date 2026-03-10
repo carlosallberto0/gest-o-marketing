@@ -19,14 +19,14 @@ export interface DirectorMenuPermissions {
 
 const defaultPermissions: DirectorMenuPermissions = {
   media: {
-    dashboard: true,
-    outdoors: true,
+    dashboard: false,
+    outdoors: false,
     aprovar_manutencao: true,
-    relatorios: true,
+    relatorios: false,
     observacoes_enviadas: true,
   },
   default_redirect: {
-    media: '/media/dashboard',
+    media: '/maintenance-approval',
   },
 };
 
@@ -78,12 +78,14 @@ export function useDirectorMenuPermissions() {
       if (error) {
         if (error.code === 'PGRST116') return defaultPermissions;
         console.error('Error fetching director permissions:', error);
-        throw error;
+        return defaultPermissions;
       }
 
       const saved = (data?.value as unknown as DirectorMenuPermissions) || defaultPermissions;
+      console.log('[DirectorMenuPermissions] fetched:', JSON.stringify(saved.media));
       return enforceMandatory(saved);
     },
+    enabled: !!user?.id,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -165,8 +167,21 @@ export function isDirectorMenuItemEnabled(
 }
 
 export function getDirectorDefaultRoute(permissions: DirectorMenuPermissions | undefined): string {
-  if (!permissions) return '/media/dashboard';
-  return permissions.default_redirect?.media || '/media/dashboard';
+  if (!permissions) return '/maintenance-approval';
+  const redirect = permissions.default_redirect?.media || '/maintenance-approval';
+  // Validate that the redirect target is actually enabled
+  const menuKey = pathToMenuKey[redirect];
+  if (menuKey) {
+    const isEnabled = (permissions.media as Record<string, boolean>)[menuKey];
+    if (isEnabled === false) {
+      // Find first enabled route
+      for (const [key, enabled] of Object.entries(permissions.media)) {
+        if (enabled && menuKeyToPath[key]) return menuKeyToPath[key];
+      }
+      return '/maintenance-approval';
+    }
+  }
+  return redirect;
 }
 
 export { defaultPermissions as directorDefaultPermissions, menuKeyToPath as directorMenuKeyToPath, pathToMenuKey as directorPathToMenuKey };
