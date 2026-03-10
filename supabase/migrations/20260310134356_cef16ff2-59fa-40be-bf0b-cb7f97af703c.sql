@@ -1,0 +1,1 @@
+CREATE POLICY "Allow authenticated read director_menu_permissions" ON public.system_settings FOR SELECT TO authenticated USING (key = 'director_menu_permissions');
