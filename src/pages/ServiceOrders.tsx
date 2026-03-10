@@ -534,17 +534,40 @@ export default function ServiceOrders() {
                     <span className="text-sm font-medium">
                       {selectedApprovedItems.size} outdoor(s) selecionado(s)
                     </span>
-                    <Button 
-                      onClick={handleGenerateApprovalPDF}
-                      disabled={isGeneratingApprovalPDF}
-                    >
-                      {isGeneratingApprovalPDF ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                      )}
-                      Gerar PDF
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleGenerateApprovalPDF}
+                        disabled={isGeneratingApprovalPDF}
+                        variant="outline"
+                      >
+                        {isGeneratingApprovalPDF ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4 mr-2" />
+                        )}
+                        Gerar PDF
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          // Group selected items by package
+                          const selectedItemsList = allApprovedItems.filter(i => selectedApprovedItems.has(i.id));
+                          if (selectedItemsList.length === 0) return;
+                          const pkg = selectedItemsList[0].package as any;
+                          setAssignDialog({
+                            open: true,
+                            packageId: pkg?.id || '',
+                            items: selectedItemsList.map(i => ({
+                              outdoor_id: i.outdoor_id,
+                              package_item_id: i.id,
+                              original_photo_url: i.outdoor?.photo_url || undefined,
+                            })),
+                          });
+                        }}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Enviar para Fornecedor
+                      </Button>
+                    </div>
                   </div>
                 )}
 
