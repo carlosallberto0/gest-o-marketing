@@ -129,6 +129,87 @@ export default function ServiceOrders() {
     completed: orders.filter(o => o.status === 'completed').length,
   };
 
+  const handleInsertTestData = async () => {
+    if (!confirm('Inserir dados fictícios de teste? Poderá excluí-los depois.')) return;
+    setIsInsertingTest(true);
+    const toastId = toast.loading('Inserindo dados de teste...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      // 1. Create test package
+      const { data: pkg, error: pkgErr } = await supabase
+        .from('maintenance_approval_packages')
+        .insert({
+          created_by: user.id,
+          status: 'approved',
+          ready_for_service_order: true,
+          observations: '[TESTE] Pacote fictício para teste do fluxo fornecedor',
+          reviewed_at: new Date().toISOString(),
+        } as any)
+        .select()
+        .single();
+      if (pkgErr) throw pkgErr;
+
+      const outdoorIds = [
+        '13917080-7bc7-4dcc-8799-65ec60aa0807', // OUT-42
+        '15f400fb-5764-41c6-9e31-a49e351beef1', // OUT-47
+        '089d162a-cb26-4049-83eb-f5a6d52c45f5', // OUT-37
+      ];
+
+      // 2. Create package items
+      const pkgItems = outdoorIds.map(oid => ({
+        package_id: (pkg as any).id,
+        outdoor_id: oid,
+        status: 'approved',
+      }));
+      const { data: insertedItems, error: itemsErr } = await supabase
+        .from('maintenance_package_items')
+        .insert(pkgItems as any)
+        .select();
+      if (itemsErr) throw itemsErr;
+
+      const supplierId = '013c2ec6-e846-47f9-b65f-1c6ce902d140'; // Digidoor
+
+      // 3. Create work order
+      const { data: wo, error: woErr } = await supabase
+        .from('supplier_work_orders')
+        .insert({
+          package_id: (pkg as any).id,
+          supplier_id: supplierId,
+          assigned_by: user.id,
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          notes: '[TESTE] Ordem fictícia para teste',
+        } as any)
+        .select()
+        .single();
+      if (woErr) throw woErr;
+
+      // 4. Create work order items
+      const woItems = outdoorIds.map((oid, i) => ({
+        work_order_id: (wo as any).id,
+        outdoor_id: oid,
+        package_item_id: (insertedItems as any)?.[i]?.id || null,
+        executed: true,
+        executed_at: new Date().toISOString(),
+        observations: '[TESTE] Manutenção fictícia executada',
+      }));
+      const { error: woItemsErr } = await supabase
+        .from('supplier_work_order_items')
+        .insert(woItems as any);
+      if (woItemsErr) throw woItemsErr;
+
+      toast.success('Dados de teste inseridos com sucesso!', { id: toastId });
+      refetchWorkOrders();
+    } catch (error: any) {
+      console.error('Erro ao inserir teste:', error);
+      toast.error('Erro: ' + error.message, { id: toastId });
+    } finally {
+      setIsInsertingTest(false);
+    }
+  };
+
   const handleUpdateStatus = (id: string, status: ServiceOrderStatus) => {
     updateOrder.mutate({ id, status });
   };
