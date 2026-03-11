@@ -29,9 +29,6 @@ import MaterialRequests from "./pages/MaterialRequests";
 import Campaigns from "./pages/Campaigns";
 import Users, { UsersContent } from "./pages/Users";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminAprovacoes from "./pages/AdminAprovacoes";
-import DiretoriaAprovacoes from "./pages/DiretoriaAprovacoes";
-import GerenteValidacoes from "./pages/GerenteValidacoes";
 import PDVDetail from "./pages/PDVDetail";
 import Settings, { SettingsContent } from "./pages/Settings";
 import Reports from "./pages/Reports";
@@ -49,7 +46,7 @@ import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
 import OutdoorStatusControl from "./pages/OutdoorStatusControl";
-import SupplierManagement from "./pages/SupplierManagement";
+
 import { CustosExternosContent } from "./pages/CustosExternos";
 import { RegistrarCustoContent } from "./pages/RegistrarCusto";
 import { AjustarRateioContent } from "./pages/AjustarRateio";
@@ -170,36 +167,6 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
             <StrategicMapMapbox />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/admin/aprovacoes"
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin']}>
-            <AdminAprovacoes />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/diretoria/aprovacoes" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
-            <DiretoriaAprovacoes />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/gerente/validacoes" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <GerenteValidacoes />
           </RequireRole>
         </ProtectedRoute>
       } 
@@ -466,16 +433,6 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin']}>
             <OutdoorStatusControl />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/supplier-management" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin']}>
-            <SupplierManagement />
           </RequireRole>
         </ProtectedRoute>
       } 

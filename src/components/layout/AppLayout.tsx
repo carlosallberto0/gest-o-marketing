@@ -145,7 +145,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Fuel, label: 'Cadastro', path: '/pdvs', roles: ['super_admin', 'admin'] },
     // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin'] },
-    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: Eye, label: 'Progresso Avaliações', path: '/outdoor-evaluation', roles: ['super_admin', 'admin'] },
+    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['manager', 'collaborator'] },
     { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
     // Carga em Massa - Super Admin only
@@ -153,7 +154,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin'] },
-    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'manager'] },
+    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['manager'] },
     { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
     // Fornecedores e Relatórios

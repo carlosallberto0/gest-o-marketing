@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useMonthlyReviewSummary } from '@/hooks/useOutdoorMonthlyReviews';
 import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
@@ -12,18 +11,14 @@ import {
   AlertTriangle,
   ArrowRight,
   FileText,
-  Truck,
   CheckCircle,
   Loader2,
-  MapPin,
-  ExternalLink,
   ClipboardCheck,
   Wrench,
   DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FinancialKPICard } from '@/components/dashboard/FinancialKPICard';
 import { CostDistributionChart } from '@/components/dashboard/CostDistributionChart';
@@ -43,22 +38,8 @@ export default function MediaDashboard() {
   }, [profile?.role, navigate]);
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
-  const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
   const { data: reviewSummary, isLoading: isLoadingReviews } = useMonthlyReviewSummary();
-  const isLoading = isLoadingStats || isLoadingOutdoors || isLoadingReviews;
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'operational':
-        return <Badge className="bg-success/10 text-success border-success/20">Operacional</Badge>;
-      case 'non_operational':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Não Operacional</Badge>;
-      case 'pending_evaluation':
-        return <Badge className="bg-warning/10 text-warning border-warning/20">Aguardando</Badge>;
-      default:
-        return null;
-    }
-  };
+  const isLoading = isLoadingStats || isLoadingReviews;
 
   if (isLoading) {
     return (
@@ -85,13 +66,6 @@ export default function MediaDashboard() {
                 : 'Gestão de outdoors, contratos e ordens de serviço'}
             </p>
           </div>
-          {/* Hide "Avaliar Outdoor" button for directors */}
-          {!isDirector && (
-            <Button onClick={() => navigate('/outdoor-evaluation')} size="lg">
-              <Megaphone className="h-5 w-5 mr-2" />
-              Avaliar Outdoor
-            </Button>
-          )}
         </div>
 
         {/* Stats - Hidden for managers, Strategic KPIs for directors */}
@@ -221,35 +195,6 @@ export default function MediaDashboard() {
               </div>
             </div>
 
-            {/* Quick Actions - Hidden for managers and directors */}
-            {!isDirector && (
-              <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
-                    <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
-                    <Megaphone className="h-5 w-5" />
-                    <span className="text-xs">Ver Outdoors</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
-                    <FileText className="h-5 w-5" />
-                    <span className="text-xs">Contratos</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
-                    <CheckCircle className="h-5 w-5" />
-                    <span className="text-xs">Nova Avaliação</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
-                    <Truck className="h-5 w-5" />
-                    <span className="text-xs">Ordens de Serviço</span>
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -304,53 +249,6 @@ export default function MediaDashboard() {
           </div>
         )}
 
-        {/* Recent Outdoors - Hidden for directors and managers */}
-        {!isDirector && !isManager && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground text-lg">Outdoors Recentes</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/outdoors')}>
-                Ver todos
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {outdoors.slice(0, 6).map((outdoor, index) => (
-                <Card 
-                  key={outdoor.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-base">{outdoor.code}</CardTitle>
-                      {getStatusBadge(outdoor.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const url = outdoor.location?.startsWith('http') ? outdoor.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outdoor.location || '')}`;
-                        if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="flex items-center gap-1 text-sm text-primary hover:underline mb-2 text-left"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      <span>Ver no Google Maps</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{outdoor.width}m x {outdoor.height}m</span>
-                      <span>{outdoor.area}m²</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </AppLayout>
   );
