@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useOutdoors } from '@/hooks/useOutdoorData';
 import { useMonthlyReviewSummary } from '@/hooks/useOutdoorMonthlyReviews';
 import { getStatusColor } from '@/lib/helpers';
 import { useNavigate } from 'react-router-dom';
@@ -12,18 +11,14 @@ import {
   AlertTriangle,
   ArrowRight,
   FileText,
-  Truck,
   CheckCircle,
   Loader2,
-  MapPin,
-  ExternalLink,
   ClipboardCheck,
   Wrench,
   DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FinancialKPICard } from '@/components/dashboard/FinancialKPICard';
 import { CostDistributionChart } from '@/components/dashboard/CostDistributionChart';
