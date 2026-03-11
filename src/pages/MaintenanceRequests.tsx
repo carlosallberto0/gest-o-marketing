@@ -40,7 +40,8 @@ import {
   Trash2,
   Filter,
   Image,
-  Building
+  Building,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
