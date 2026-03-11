@@ -38,9 +38,8 @@ export default function MediaDashboard() {
   }, [profile?.role, navigate]);
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
-  const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
   const { data: reviewSummary, isLoading: isLoadingReviews } = useMonthlyReviewSummary();
-  const isLoading = isLoadingStats || isLoadingOutdoors || isLoadingReviews;
+  const isLoading = isLoadingStats || isLoadingReviews;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
