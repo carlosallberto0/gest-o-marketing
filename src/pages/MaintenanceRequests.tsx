@@ -167,6 +167,29 @@ export default function MaintenanceRequests() {
     setSelectedRequest(null);
   };
 
+  const handleDirectAssign = async (request: MaintenanceRequest) => {
+    try {
+      await approveRequest.mutateAsync(request.id);
+      setSelectedRequest(null);
+      setDirectAssignRequest(request);
+      setAssignDialogOpen(true);
+    } catch {
+      // Error toast already shown by the hook
+    }
+  };
+
+  const handleSendToDirector = async () => {
+    if (selectedIds.size === 0 || !allRequests) return;
+    const selectedRequests = allRequests.filter(r => selectedIds.has(r.id) && r.status === 'pending_review');
+    if (selectedRequests.length === 0) {
+      toast.error('Selecione ao menos uma solicitação pendente');
+      return;
+    }
+    const items = selectedRequests.map(r => ({ outdoor_id: r.outdoor_id }));
+    await createPackage.mutateAsync({ items });
+    setSelectedIds(new Set());
+  };
+
   const handleSelectAll = (requests: MaintenanceRequest[]) => {
     if (selectedIds.size === requests.length) {
       setSelectedIds(new Set());
