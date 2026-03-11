@@ -41,19 +41,6 @@ export default function MediaDashboard() {
   const { data: reviewSummary, isLoading: isLoadingReviews } = useMonthlyReviewSummary();
   const isLoading = isLoadingStats || isLoadingReviews;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'operational':
-        return <Badge className="bg-success/10 text-success border-success/20">Operacional</Badge>;
-      case 'non_operational':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Não Operacional</Badge>;
-      case 'pending_evaluation':
-        return <Badge className="bg-warning/10 text-warning border-warning/20">Aguardando</Badge>;
-      default:
-        return null;
-    }
-  };
-
   if (isLoading) {
     return (
       <AppLayout>
