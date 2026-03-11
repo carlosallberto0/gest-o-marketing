@@ -313,6 +313,68 @@ export function useDeleteWorkOrder() {
   });
 }
 
+// Super Admin reverts item execution back to pending
+export function useRevertItemExecution() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (itemId: string) => {
+      // 1. Revert the item
+      const { data: item, error } = await supabase
+        .from('supplier_work_order_items')
+        .update({
+          executed: false,
+          executed_at: null,
+          execution_photo_url: null,
+        } as any)
+        .eq('id', itemId)
+        .select('work_order_id')
+        .single();
+
+      if (error) throw error;
+
+      // 2. Check if all items in the work order are now non-executed
+      const { data: allItems } = await supabase
+        .from('supplier_work_order_items')
+        .select('id, executed')
+        .eq('work_order_id', (item as any).work_order_id);
+
+      const anyExecuted = (allItems || []).some((i: any) => i.executed);
+
+      // 3. If no items are executed, revert work order to pending
+      if (!anyExecuted) {
+        await supabase
+          .from('supplier_work_orders')
+          .update({
+            status: 'pending',
+            completed_at: null,
+          } as any)
+          .eq('id', (item as any).work_order_id);
+      } else {
+        // Some items still executed but not all — revert to in_progress
+        await supabase
+          .from('supplier_work_orders')
+          .update({
+            status: 'in_progress',
+            completed_at: null,
+          } as any)
+          .eq('id', (item as any).work_order_id);
+      }
+
+      return item;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['my-supplier-work-orders'] });
+      showToast.success('Execução revertida! Item voltou para o fornecedor.');
+    },
+    onError: (error) => {
+      console.error('Error reverting item execution:', error);
+      showToast.error('Erro ao reverter execução do item');
+    },
+  });
+}
+
 // Admin validates completed work order
 export function useValidateWorkOrder() {
   const queryClient = useQueryClient();

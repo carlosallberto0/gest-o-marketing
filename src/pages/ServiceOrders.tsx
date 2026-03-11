@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
-import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder, useRevertItemExecution } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
 import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
@@ -107,6 +107,7 @@ export default function ServiceOrders() {
   const deleteOrder = useDeleteServiceOrder();
   const validateWorkOrder = useValidateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
+  const revertItemExecution = useRevertItemExecution();
   const [isInsertingTest, setIsInsertingTest] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin';
@@ -837,6 +838,26 @@ export default function ServiceOrders() {
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                       Executado {item.executed_at ? format(new Date(item.executed_at), 'dd/MM HH:mm', { locale: ptBR }) : ''}
                                     </Badge>
+                                  )}
+                                  {item.executed && isSuperAdmin && (
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      className="ml-auto text-[11px] h-7"
+                                      disabled={revertItemExecution.isPending}
+                                      onClick={() => {
+                                        if (confirm('Desfazer execução deste item? Ele voltará para o fornecedor executar novamente.')) {
+                                          revertItemExecution.mutate(item.id);
+                                        }
+                                      }}
+                                    >
+                                      {revertItemExecution.isPending ? (
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                      )}
+                                      Desfazer Execução
+                                    </Button>
                                   )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
