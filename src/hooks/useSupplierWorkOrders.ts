@@ -165,10 +165,11 @@ export function useMarkItemExecuted() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ itemId, executionPhotoUrl, observations }: { 
+    mutationFn: async ({ itemId, executionPhotoUrl, observations, outdoorId }: { 
       itemId: string; 
       executionPhotoUrl?: string;
       observations?: string;
+      outdoorId?: string;
     }) => {
       const updates: Record<string, unknown> = {
         executed: true,
