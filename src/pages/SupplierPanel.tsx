@@ -62,9 +62,12 @@ export default function SupplierPanel() {
         .from('photos')
         .getPublicUrl(filePath);
 
+      // Buscar outdoor_id do item para atualizar a foto principal
+      const itemData = allItems.find(i => i.id === itemId);
       await markExecuted.mutateAsync({ 
         itemId, 
-        executionPhotoUrl: publicUrl 
+        executionPhotoUrl: publicUrl,
+        outdoorId: itemData?.outdoor_id,
       });
     } catch (error: any) {
       console.error('Error uploading photo:', error);
