@@ -171,36 +171,6 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    <Route 
-      path="/admin/aprovacoes"
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin']}>
-            <AdminAprovacoes />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/diretoria/aprovacoes" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
-            <DiretoriaAprovacoes />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/gerente/validacoes" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin', 'director', 'manager']}>
-            <GerenteValidacoes />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
     <Route
       path="/checklist" 
       element={
