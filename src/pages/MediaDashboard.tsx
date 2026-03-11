@@ -36,10 +36,11 @@ export default function MediaDashboard() {
   const isManager = profile?.role === 'manager' || profile?.role === 'collaborator';
 
   // Suppliers should not see the admin dashboard
-  if (profile?.role === 'supplier') {
-    navigate('/supplier-panel', { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (profile?.role === 'supplier') {
+      navigate('/supplier-panel', { replace: true });
+    }
+  }, [profile?.role, navigate]);
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
