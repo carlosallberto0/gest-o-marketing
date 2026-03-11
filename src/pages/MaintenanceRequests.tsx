@@ -763,16 +763,19 @@ export default function MaintenanceRequests() {
         </AlertDialog>
 
         {/* Assign Supplier Dialog */}
-        {selectedRequest && (
+        {directAssignRequest && (
           <AssignSupplierDialog
             open={assignDialogOpen}
             onOpenChange={(open) => {
               setAssignDialogOpen(open);
-              if (!open) refetch();
+              if (!open) {
+                setDirectAssignRequest(null);
+                refetch();
+              }
             }}
-            maintenanceRequestId={selectedRequest.id}
-            outdoorCode={selectedRequest.outdoor?.code}
-            reason={selectedRequest.reason}
+            maintenanceRequestId={directAssignRequest.id}
+            outdoorCode={directAssignRequest.outdoor?.code}
+            reason={directAssignRequest.reason}
           />
         )}
       </div>
