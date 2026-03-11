@@ -85,13 +85,6 @@ export default function MediaDashboard() {
                 : 'Gestão de outdoors, contratos e ordens de serviço'}
             </p>
           </div>
-          {/* Hide "Avaliar Outdoor" button for directors */}
-          {!isDirector && (
-            <Button onClick={() => navigate('/outdoor-evaluation')} size="lg">
-              <Megaphone className="h-5 w-5 mr-2" />
-              Avaliar Outdoor
-            </Button>
-          )}
         </div>
 
         {/* Stats - Hidden for managers, Strategic KPIs for directors */}
