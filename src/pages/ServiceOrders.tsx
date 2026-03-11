@@ -839,6 +839,26 @@ export default function ServiceOrders() {
                                       Executado {item.executed_at ? format(new Date(item.executed_at), 'dd/MM HH:mm', { locale: ptBR }) : ''}
                                     </Badge>
                                   )}
+                                  {item.executed && isSuperAdmin && (
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      className="ml-auto text-[11px] h-7"
+                                      disabled={revertItemExecution.isPending}
+                                      onClick={() => {
+                                        if (confirm('Desfazer execução deste item? Ele voltará para o fornecedor executar novamente.')) {
+                                          revertItemExecution.mutate(item.id);
+                                        }
+                                      }}
+                                    >
+                                      {revertItemExecution.isPending ? (
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                      )}
+                                      Desfazer Execução
+                                    </Button>
+                                  )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
