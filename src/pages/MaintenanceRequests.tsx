@@ -72,6 +72,7 @@ export default function MaintenanceRequests() {
   const { data: outdoors } = useOutdoors();
   const approveRequest = useApproveMaintenanceRequest();
   const rejectRequest = useRejectMaintenanceRequest();
+  const createPackage = useCreateMaintenancePackage();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
@@ -80,6 +81,7 @@ export default function MaintenanceRequests() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [directAssignRequest, setDirectAssignRequest] = useState<MaintenanceRequest | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
