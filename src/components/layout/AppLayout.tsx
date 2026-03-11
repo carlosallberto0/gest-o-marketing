@@ -154,7 +154,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Manutenção e Serviços
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin'] },
-    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['super_admin', 'admin', 'manager'] },
+    { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['manager'] },
     { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
     // Fornecedores e Relatórios

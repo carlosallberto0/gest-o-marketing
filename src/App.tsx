@@ -437,16 +437,6 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    <Route 
-      path="/supplier-management" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin']}>
-            <SupplierManagement />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
     {/* Financeiro Module Routes - using FinanceiroLayout */}
     <Route 
       path="/financeiro"

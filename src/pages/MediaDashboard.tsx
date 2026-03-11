@@ -268,53 +268,6 @@ export default function MediaDashboard() {
           </div>
         )}
 
-        {/* Recent Outdoors - Hidden for directors and managers */}
-        {!isDirector && !isManager && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground text-lg">Outdoors Recentes</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/outdoors')}>
-                Ver todos
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {outdoors.slice(0, 6).map((outdoor, index) => (
-                <Card 
-                  key={outdoor.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow animate-slide-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-base">{outdoor.code}</CardTitle>
-                      {getStatusBadge(outdoor.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const url = outdoor.location?.startsWith('http') ? outdoor.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outdoor.location || '')}`;
-                        if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="flex items-center gap-1 text-sm text-primary hover:underline mb-2 text-left"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      <span>Ver no Google Maps</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{outdoor.width}m x {outdoor.height}m</span>
-                      <span>{outdoor.area}m²</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </AppLayout>
   );
