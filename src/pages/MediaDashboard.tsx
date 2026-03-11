@@ -214,35 +214,6 @@ export default function MediaDashboard() {
               </div>
             </div>
 
-            {/* Quick Actions - Hidden for managers and directors */}
-            {!isDirector && (
-              <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground">Ações Rápidas</h3>
-                    <p className="text-sm text-muted-foreground">Acesso rápido às funcionalidades</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoors')}>
-                    <Megaphone className="h-5 w-5" />
-                    <span className="text-xs">Ver Outdoors</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/contracts')}>
-                    <FileText className="h-5 w-5" />
-                    <span className="text-xs">Contratos</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/outdoor-evaluation')}>
-                    <CheckCircle className="h-5 w-5" />
-                    <span className="text-xs">Nova Avaliação</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2" disabled>
-                    <Truck className="h-5 w-5" />
-                    <span className="text-xs">Ordens de Serviço</span>
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
