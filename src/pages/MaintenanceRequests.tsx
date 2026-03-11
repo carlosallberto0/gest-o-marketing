@@ -684,24 +684,36 @@ export default function MaintenanceRequests() {
                 )}
 
                 {isDirector && selectedRequest.status === 'pending_review' && (
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button 
-                      className="flex-1" 
-                      variant="destructive"
-                      onClick={() => handleReject(selectedRequest.id)}
-                      disabled={rejectRequest.isPending}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Rejeitar
-                    </Button>
-                    <Button 
-                      className="flex-1"
-                      onClick={() => handleApprove(selectedRequest.id)}
-                      disabled={approveRequest.isPending}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Aprovar
-                    </Button>
+                  <div className="flex flex-col gap-2 pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        variant="destructive"
+                        onClick={() => handleReject(selectedRequest.id)}
+                        disabled={rejectRequest.isPending}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Rejeitar
+                      </Button>
+                      <Button 
+                        className="flex-1"
+                        onClick={() => handleApprove(selectedRequest.id)}
+                        disabled={approveRequest.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aprovar
+                      </Button>
+                    </div>
+                    {isSuperAdmin && (
+                      <Button 
+                        variant="outline-primary"
+                        onClick={() => handleDirectAssign(selectedRequest)}
+                        disabled={approveRequest.isPending}
+                      >
+                        <Building className="h-4 w-4 mr-2" />
+                        Atribuir Fornecedor Direto
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -712,6 +724,7 @@ export default function MaintenanceRequests() {
                       className="flex-1"
                       variant="outline"
                       onClick={() => {
+                        setDirectAssignRequest(selectedRequest);
                         setAssignDialogOpen(true);
                       }}
                     >
