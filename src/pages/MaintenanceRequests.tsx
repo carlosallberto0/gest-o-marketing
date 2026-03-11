@@ -18,6 +18,7 @@ import {
   useRejectMaintenanceRequest,
   MaintenanceRequest,
 } from '@/hooks/useMaintenanceRequests';
+import { useCreateMaintenancePackage } from '@/hooks/useMaintenancePackages';
 import { useAssignmentsByMaintenance } from '@/hooks/useSupplierAssignments';
 import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
 import { AssignSupplierDialog } from '@/components/dialogs/AssignSupplierDialog';
@@ -39,7 +40,8 @@ import {
   Trash2,
   Filter,
   Image,
-  Building
+  Building,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -71,6 +73,7 @@ export default function MaintenanceRequests() {
   const { data: outdoors } = useOutdoors();
   const approveRequest = useApproveMaintenanceRequest();
   const rejectRequest = useRejectMaintenanceRequest();
+  const createPackage = useCreateMaintenancePackage();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
@@ -79,6 +82,7 @@ export default function MaintenanceRequests() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [directAssignRequest, setDirectAssignRequest] = useState<MaintenanceRequest | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
@@ -161,6 +165,29 @@ export default function MaintenanceRequests() {
   const handleReject = async (id: string) => {
     await rejectRequest.mutateAsync(id);
     setSelectedRequest(null);
+  };
+
+  const handleDirectAssign = async (request: MaintenanceRequest) => {
+    try {
+      await approveRequest.mutateAsync(request.id);
+      setSelectedRequest(null);
+      setDirectAssignRequest(request);
+      setAssignDialogOpen(true);
+    } catch {
+      // Error toast already shown by the hook
+    }
+  };
+
+  const handleSendToDirector = async () => {
+    if (selectedIds.size === 0 || !allRequests) return;
+    const selectedRequests = allRequests.filter(r => selectedIds.has(r.id) && r.status === 'pending_review');
+    if (selectedRequests.length === 0) {
+      toast.error('Selecione ao menos uma solicitação pendente');
+      return;
+    }
+    const items = selectedRequests.map(r => ({ outdoor_id: r.outdoor_id }));
+    await createPackage.mutateAsync({ items });
+    setSelectedIds(new Set());
   };
 
   const handleSelectAll = (requests: MaintenanceRequest[]) => {
@@ -460,6 +487,14 @@ export default function MaintenanceRequests() {
               Gerar PDF
             </Button>
             <Button
+              size="sm"
+              onClick={handleSendToDirector}
+              disabled={createPackage.isPending}
+            >
+              {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Enviar para Diretoria
+            </Button>
+            <Button
               variant="destructive"
               size="sm"
               onClick={() => setShowDeleteConfirm(true)}
@@ -649,24 +684,36 @@ export default function MaintenanceRequests() {
                 )}
 
                 {isDirector && selectedRequest.status === 'pending_review' && (
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button 
-                      className="flex-1" 
-                      variant="destructive"
-                      onClick={() => handleReject(selectedRequest.id)}
-                      disabled={rejectRequest.isPending}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Rejeitar
-                    </Button>
-                    <Button 
-                      className="flex-1"
-                      onClick={() => handleApprove(selectedRequest.id)}
-                      disabled={approveRequest.isPending}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Aprovar
-                    </Button>
+                  <div className="flex flex-col gap-2 pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        variant="destructive"
+                        onClick={() => handleReject(selectedRequest.id)}
+                        disabled={rejectRequest.isPending}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Rejeitar
+                      </Button>
+                      <Button 
+                        className="flex-1"
+                        onClick={() => handleApprove(selectedRequest.id)}
+                        disabled={approveRequest.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aprovar
+                      </Button>
+                    </div>
+                    {isSuperAdmin && (
+                      <Button 
+                        variant="outline-primary"
+                        onClick={() => handleDirectAssign(selectedRequest)}
+                        disabled={approveRequest.isPending}
+                      >
+                        <Building className="h-4 w-4 mr-2" />
+                        Atribuir Fornecedor Direto
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -677,6 +724,7 @@ export default function MaintenanceRequests() {
                       className="flex-1"
                       variant="outline"
                       onClick={() => {
+                        setDirectAssignRequest(selectedRequest);
                         setAssignDialogOpen(true);
                       }}
                     >
@@ -715,16 +763,19 @@ export default function MaintenanceRequests() {
         </AlertDialog>
 
         {/* Assign Supplier Dialog */}
-        {selectedRequest && (
+        {directAssignRequest && (
           <AssignSupplierDialog
             open={assignDialogOpen}
             onOpenChange={(open) => {
               setAssignDialogOpen(open);
-              if (!open) refetch();
+              if (!open) {
+                setDirectAssignRequest(null);
+                refetch();
+              }
             }}
-            maintenanceRequestId={selectedRequest.id}
-            outdoorCode={selectedRequest.outdoor?.code}
-            reason={selectedRequest.reason}
+            maintenanceRequestId={directAssignRequest.id}
+            outdoorCode={directAssignRequest.outdoor?.code}
+            reason={directAssignRequest.reason}
           />
         )}
       </div>
