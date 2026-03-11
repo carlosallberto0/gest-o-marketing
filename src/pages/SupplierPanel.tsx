@@ -78,7 +78,8 @@ export default function SupplierPanel() {
   };
 
   const handleMarkExecuted = (itemId: string) => {
-    markExecuted.mutate({ itemId });
+    const itemData = allItems.find(i => i.id === itemId);
+    markExecuted.mutate({ itemId, outdoorId: itemData?.outdoor_id });
   };
 
   const handleSubmitWorkOrders = () => {

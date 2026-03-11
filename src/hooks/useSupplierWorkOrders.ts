@@ -186,11 +186,21 @@ export function useMarkItemExecuted() {
         .single();
 
       if (error) throw error;
+
+      // Atualizar foto principal do outdoor com a foto de execução
+      if (executionPhotoUrl && outdoorId) {
+        await supabase
+          .from('outdoors')
+          .update({ photo_url: executionPhotoUrl } as any)
+          .eq('id', outdoorId);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-supplier-work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['supplier-work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['outdoors'] });
       showToast.success('Item marcado como executado!');
     },
     onError: (error) => {
