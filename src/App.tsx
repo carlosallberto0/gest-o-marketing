@@ -46,7 +46,7 @@ import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
 import OutdoorStatusControl from "./pages/OutdoorStatusControl";
-import SupplierManagement from "./pages/SupplierManagement";
+
 import { CustosExternosContent } from "./pages/CustosExternos";
 import { RegistrarCustoContent } from "./pages/RegistrarCusto";
 import { AjustarRateioContent } from "./pages/AjustarRateio";
