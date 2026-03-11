@@ -100,8 +100,10 @@ export default function ModuleSelection() {
   const handleModuleSelect = (moduleId: string, path: string) => {
     setActiveModule(moduleId as 'media' | 'merchandising' | 'mapa' | 'financeiro' | 'configuracoes' | 'agencia' | 'loteamentos' | 'analise');
     
-    // For managers, redirect to their configured default route
-    if (isManager && (moduleId === 'media' || moduleId === 'merchandising')) {
+    // Suppliers always go to supplier panel
+    if (profile?.role === 'supplier' && moduleId === 'media') {
+      navigate('/supplier-panel');
+    } else if (isManager && (moduleId === 'media' || moduleId === 'merchandising')) {
       const managerPath = getManagerDefaultRoute(managerPermissions, moduleId);
       navigate(managerPath);
     } else if (isDirector && moduleId === 'media') {

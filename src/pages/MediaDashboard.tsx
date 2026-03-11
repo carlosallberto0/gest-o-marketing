@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard } from '@/components/dashboard/ScoreCard';
@@ -33,6 +34,13 @@ export default function MediaDashboard() {
   const isSuperAdmin = profile?.role === 'super_admin';
   const isDirector = profile?.role === 'director';
   const isManager = profile?.role === 'manager' || profile?.role === 'collaborator';
+
+  // Suppliers should not see the admin dashboard
+  useEffect(() => {
+    if (profile?.role === 'supplier') {
+      navigate('/supplier-panel', { replace: true });
+    }
+  }, [profile?.role, navigate]);
 
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: outdoors = [], isLoading: isLoadingOutdoors } = useOutdoors();
