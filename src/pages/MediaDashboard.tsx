@@ -28,6 +28,14 @@ import { FinancialKPICard } from '@/components/dashboard/FinancialKPICard';
 import { CostDistributionChart } from '@/components/dashboard/CostDistributionChart';
 
 export default function MediaDashboard() {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+
+  // Suppliers should not see the admin dashboard
+  if (profile?.role === 'supplier') {
+    navigate('/supplier-panel', { replace: true });
+    return null;
+  }
   const { profile } = useAuth();
   const navigate = useNavigate();
   const isSuperAdmin = profile?.role === 'super_admin';
