@@ -18,6 +18,7 @@ import {
   useRejectMaintenanceRequest,
   MaintenanceRequest,
 } from '@/hooks/useMaintenanceRequests';
+import { useCreateMaintenancePackage } from '@/hooks/useMaintenancePackages';
 import { useAssignmentsByMaintenance } from '@/hooks/useSupplierAssignments';
 import { MonthlyOutdoorReviewDialog } from '@/components/dialogs/MonthlyOutdoorReviewDialog';
 import { AssignSupplierDialog } from '@/components/dialogs/AssignSupplierDialog';
