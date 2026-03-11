@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
-import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder, useRevertItemExecution } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
 import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
