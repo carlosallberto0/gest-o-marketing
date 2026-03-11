@@ -487,6 +487,14 @@ export default function MaintenanceRequests() {
               Gerar PDF
             </Button>
             <Button
+              size="sm"
+              onClick={handleSendToDirector}
+              disabled={createPackage.isPending}
+            >
+              {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Enviar para Diretoria
+            </Button>
+            <Button
               variant="destructive"
               size="sm"
               onClick={() => setShowDeleteConfirm(true)}
