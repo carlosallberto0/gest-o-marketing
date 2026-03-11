@@ -145,7 +145,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Fuel, label: 'Cadastro', path: '/pdvs', roles: ['super_admin', 'admin'] },
     // Gestão de Outdoors
     { icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['super_admin', 'admin'] },
-    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['super_admin', 'admin', 'manager', 'collaborator'] },
+    { icon: Eye, label: 'Progresso Avaliações', path: '/outdoor-evaluation', roles: ['super_admin', 'admin'] },
+    { icon: Eye, label: 'Avaliar Outdoor', path: '/outdoor-evaluation', roles: ['manager', 'collaborator'] },
     { icon: History, label: 'Histórico de Revisões', path: '/outdoor-reviews', roles: ['super_admin', 'admin'] },
     { icon: FileText, label: 'Contratos', path: '/contracts', roles: ['super_admin', 'admin'] },
     // Carga em Massa - Super Admin only
