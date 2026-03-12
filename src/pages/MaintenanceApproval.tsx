@@ -159,6 +159,30 @@ export default function MaintenanceApproval() {
     p => (p.status === 'approved' || p.status === 'partially_held') && !p.ready_for_service_order
   );
 
+  // Packages approved by director, ready for supplier assignment
+  const readyForSOPackages = allPackages.filter(p => p.ready_for_service_order === true);
+
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+
+  const handleAssignSupplier = (pkg: any) => {
+    const items = (pkg.items || [])
+      .filter((item: any) => item.status === 'approved')
+      .map((item: any) => ({
+        outdoor_id: item.outdoor_id,
+        package_item_id: item.id,
+        original_photo_url: item.outdoor?.photo_url || undefined,
+      }));
+    
+    if (items.length === 0) {
+      toast.error('Nenhum item aprovado neste pacote');
+      return;
+    }
+    
+    setAssignPackageId(pkg.id);
+    setAssignItems(items);
+    setAssignSupplierOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_director':
