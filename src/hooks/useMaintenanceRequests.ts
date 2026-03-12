@@ -229,10 +229,10 @@ export function useRejectMaintenanceRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, rejection_reason }: { id: string; rejection_reason: string }) => {
       const { data, error } = await supabase
         .from('maintenance_requests')
-        .update({ status: 'rejected' })
+        .update({ status: 'rejected', observations: rejection_reason })
         .eq('id', id)
         .select()
         .single();
