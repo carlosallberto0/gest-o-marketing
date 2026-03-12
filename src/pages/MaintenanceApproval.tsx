@@ -13,7 +13,8 @@ import {
   useMaintenancePackages,
   useMaintenancePackageDetails, 
   useUpdatePackageItems,
-  useMarkReadyForServiceOrder 
+  useMarkReadyForServiceOrder,
+  useReadyForServiceOrderPackages
 } from '@/hooks/useMaintenancePackages';
 import { useAuth } from '@/contexts/AuthContext';
 import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
