@@ -277,6 +277,11 @@ export default function MaintenanceApproval() {
             <TabsTrigger value="reviewed">
               Revisados ({reviewedPackages.length})
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="ready_for_so">
+                Aprovados p/ OS ({readyForSOPackages.length})
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="pending">
