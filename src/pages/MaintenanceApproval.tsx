@@ -687,6 +687,14 @@ export default function MaintenanceApproval() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Assign Supplier Dialog */}
+        <AssignToSupplierDialog
+          open={assignSupplierOpen}
+          onOpenChange={setAssignSupplierOpen}
+          packageId={assignPackageId}
+          items={assignItems}
+        />
       </div>
     </AppLayout>
   );
