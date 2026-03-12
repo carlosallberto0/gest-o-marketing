@@ -377,16 +377,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    <Route 
-      path="/generate-service-order" 
-      element={
-        <ProtectedRoute>
-          <RequireRole allowedRoles={['super_admin', 'admin']}>
-            <GenerateServiceOrder />
-          </RequireRole>
-        </ProtectedRoute>
-      } 
-    />
+    {/* Rota /generate-service-order removida — fluxo integrado em /maintenance-approval */}
     <Route 
       path="/outdoor-reviews" 
       element={

@@ -155,7 +155,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: Wrench, label: 'Solicitações de Manutenção', path: '/maintenance-requests', roles: ['super_admin', 'admin', 'manager'] },
     { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['super_admin', 'admin'] },
     { icon: ShoppingCart, label: 'Solicitar Materiais', path: '/material-requests', roles: ['manager'] },
-    { icon: FilePlus, label: 'Gerar Ordem de Serviço', path: '/generate-service-order', roles: ['super_admin', 'admin'] },
+    
     { icon: ClipboardCheck, label: 'Ordens de Serviço', path: '/service-orders', roles: ['super_admin', 'admin'] },
     // Fornecedores e Relatórios
     { icon: Building2, label: 'Fornecedores', path: '/suppliers', roles: ['super_admin', 'admin'] },
