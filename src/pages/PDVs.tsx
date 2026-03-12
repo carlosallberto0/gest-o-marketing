@@ -96,6 +96,7 @@ interface PDVForEdit {
   photo_url?: string | null;
   lat?: number | null;
   lng?: number | null;
+  manager_id?: string | null;
 }
 
 export default function PDVs() {
