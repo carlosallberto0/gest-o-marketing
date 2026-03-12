@@ -185,10 +185,16 @@ export default function PDVs() {
             <p className="text-muted-foreground mt-1">Gestão de pontos de venda</p>
           </div>
           {isSuperAdmin && (
-            <Button onClick={() => setIsNewPDVOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo PDV
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleSyncManagers} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Sincronizar Gerentes
+              </Button>
+              <Button onClick={() => setIsNewPDVOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo PDV
+              </Button>
+            </div>
           )}
         </div>
 

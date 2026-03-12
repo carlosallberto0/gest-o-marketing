@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.revoke-access-token]
 verify_jwt = false
+
+[functions.backfill-pdv-managers]
+verify_jwt = false
