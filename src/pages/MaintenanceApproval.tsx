@@ -45,6 +45,7 @@ export default function MaintenanceApproval() {
   const { user } = useAuth();
   const { data: packages = [], isLoading } = usePendingMaintenancePackages();
   const { data: allPackages = [] } = useMaintenancePackages();
+  const { data: readyForSOPackages = [] } = useReadyForServiceOrderPackages();
   const updateItems = useUpdatePackageItems();
   const markReadyForSO = useMarkReadyForServiceOrder();
   
