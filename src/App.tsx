@@ -46,6 +46,7 @@ import PendingApproval from "./pages/PendingApproval";
 import DirectorObservations from "./pages/DirectorObservations";
 import BulkImageUpload from "./pages/BulkImageUpload";
 import OutdoorStatusControl from "./pages/OutdoorStatusControl";
+import EvaluationProgress from "./pages/EvaluationProgress";
 
 import { CustosExternosContent } from "./pages/CustosExternos";
 import { RegistrarCustoContent } from "./pages/RegistrarCusto";
@@ -394,6 +395,16 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
             <MaintenanceApproval />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/evaluation-progress" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <EvaluationProgress />
           </RequireRole>
         </ProtectedRoute>
       } 

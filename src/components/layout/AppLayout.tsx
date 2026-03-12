@@ -200,6 +200,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (!directorPermissions || directorPermissionsLoading) {
       // While loading, show only mandatory items (deny-by-default)
       return [
+        { icon: BarChart3, label: 'Progresso Avaliações', path: '/evaluation-progress', roles: ['director'] },
         { icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['director'] },
         { icon: Eye, label: 'Observações Enviadas', path: '/director-observations', roles: ['director'] },
       ];
@@ -212,6 +213,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (directorPermissions.media.outdoors) {
       items.push({ icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['director'] });
     }
+    // Mandatory: always visible
+    items.push({ icon: BarChart3, label: 'Progresso Avaliações', path: '/evaluation-progress', roles: ['director'] });
     // Mandatory: always visible
     items.push({ icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['director'] });
     if (directorPermissions.media.relatorios) {
