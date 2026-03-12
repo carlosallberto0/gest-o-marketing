@@ -13,9 +13,11 @@ import {
   useMaintenancePackages,
   useMaintenancePackageDetails, 
   useUpdatePackageItems,
-  useMarkReadyForServiceOrder 
+  useMarkReadyForServiceOrder,
+  useReadyForServiceOrderPackages
 } from '@/hooks/useMaintenancePackages';
 import { useAuth } from '@/contexts/AuthContext';
+import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -33,7 +35,8 @@ import {
   Wrench,
   Building,
   PauseCircle,
-  Send
+  Send,
+  Truck
 } from 'lucide-react';
 
 type ItemStatus = 'approved' | 'rejected' | 'held' | null;
@@ -42,6 +45,7 @@ export default function MaintenanceApproval() {
   const { user } = useAuth();
   const { data: packages = [], isLoading } = usePendingMaintenancePackages();
   const { data: allPackages = [] } = useMaintenancePackages();
+  const { data: readyForSOPackages = [] } = useReadyForServiceOrderPackages();
   const updateItems = useUpdatePackageItems();
   const markReadyForSO = useMarkReadyForServiceOrder();
   
@@ -51,6 +55,9 @@ export default function MaintenanceApproval() {
   const [itemReviewDates, setItemReviewDates] = useState<Record<string, string>>({});
   const [packageNotes, setPackageNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [assignSupplierOpen, setAssignSupplierOpen] = useState(false);
+  const [assignPackageId, setAssignPackageId] = useState<string>('');
+  const [assignItems, setAssignItems] = useState<Array<{ outdoor_id: string; package_item_id?: string; original_photo_url?: string }>>([]);
 
   const [activeTab, setActiveTab] = useState('pending');
 
@@ -154,6 +161,29 @@ export default function MaintenanceApproval() {
     p => (p.status === 'approved' || p.status === 'partially_held') && !p.ready_for_service_order
   );
 
+  // readyForSOPackages comes from useReadyForServiceOrderPackages (already includes items)
+
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+
+  const handleAssignSupplier = (pkg: any) => {
+    const items = (pkg.items || [])
+      .filter((item: any) => item.status === 'approved')
+      .map((item: any) => ({
+        outdoor_id: item.outdoor_id,
+        package_item_id: item.id,
+        original_photo_url: item.outdoor?.photo_url || undefined,
+      }));
+    
+    if (items.length === 0) {
+      toast.error('Nenhum item aprovado neste pacote');
+      return;
+    }
+    
+    setAssignPackageId(pkg.id);
+    setAssignItems(items);
+    setAssignSupplierOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_director':
@@ -248,6 +278,11 @@ export default function MaintenanceApproval() {
             <TabsTrigger value="reviewed">
               Revisados ({reviewedPackages.length})
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="ready_for_so">
+                Aprovados p/ OS ({readyForSOPackages.length})
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="pending">
@@ -362,6 +397,61 @@ export default function MaintenanceApproval() {
               </div>
             )}
           </TabsContent>
+
+          {/* Tab: Approved by director - ready for supplier assignment */}
+          {isSuperAdmin && (
+            <TabsContent value="ready_for_so">
+              {readyForSOPackages.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="text-center">
+                      <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium">Nenhum pacote aprovado</h3>
+                      <p className="text-muted-foreground mt-1">
+                        Pacotes aprovados pela diretoria aparecerão aqui para atribuição de fornecedor
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {readyForSOPackages.map((pkg) => {
+                    const approvedItems = (pkg as any).items?.filter((i: any) => i.status === 'approved') || [];
+                    return (
+                      <Card key={pkg.id} className="hover:shadow-md transition-shadow border-primary/30">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-primary" />
+                                <span className="font-medium">Pacote Aprovado pela Diretoria</span>
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
+                                  {approvedItems.length} outdoor(s)
+                                </Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-4 w-4" />
+                                  Aprovado em {pkg.reviewed_at ? format(new Date(pkg.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
+                                </span>
+                                {pkg.director_notes && (
+                                  <span className="italic">"{pkg.director_notes}"</span>
+                                )}
+                              </div>
+                            </div>
+                            <Button onClick={() => handleAssignSupplier(pkg)}>
+                              <Truck className="h-4 w-4 mr-2" />
+                              Atribuir Fornecedor
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Package Details Dialog */}
@@ -598,6 +688,14 @@ export default function MaintenanceApproval() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Assign Supplier Dialog */}
+        <AssignToSupplierDialog
+          open={assignSupplierOpen}
+          onOpenChange={setAssignSupplierOpen}
+          packageId={assignPackageId}
+          items={assignItems}
+        />
       </div>
     </AppLayout>
   );
