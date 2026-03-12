@@ -777,6 +777,45 @@ export default function MaintenanceRequests() {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Reject Justification Dialog */}
+        <Dialog open={showRejectDialog} onOpenChange={(open) => {
+          setShowRejectDialog(open);
+          if (!open) {
+            setRejectJustification('');
+            setRejectTargetId(null);
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Justificativa da Rejeição</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Informe o motivo da rejeição. O gerente será notificado com esta justificativa.
+              </p>
+              <Textarea
+                placeholder="Descreva o motivo da rejeição..."
+                value={rejectJustification}
+                onChange={(e) => setRejectJustification(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={!rejectJustification.trim() || rejectRequest.isPending}
+              >
+                {rejectRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                Confirmar Rejeição
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Assign Supplier Dialog */}
         {directAssignRequest && (
           <AssignSupplierDialog
