@@ -213,6 +213,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       items.push({ icon: Megaphone, label: 'Outdoors', path: '/outdoors', roles: ['director'] });
     }
     // Mandatory: always visible
+    items.push({ icon: BarChart3, label: 'Progresso Avaliações', path: '/evaluation-progress', roles: ['director'] });
+    // Mandatory: always visible
     items.push({ icon: CheckCircle, label: 'Aprovar Manutenção', path: '/maintenance-approval', roles: ['director'] });
     if (directorPermissions.media.relatorios) {
       items.push({ icon: BarChart3, label: 'Relatórios', path: '/reports', roles: ['director'] });

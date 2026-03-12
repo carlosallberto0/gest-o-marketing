@@ -400,6 +400,16 @@ const AppRoutes = () => (
       } 
     />
     <Route 
+      path="/evaluation-progress" 
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin', 'admin', 'director']}>
+            <EvaluationProgress />
+          </RequireRole>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
       path="/director-observations" 
       element={
         <ProtectedRoute>
