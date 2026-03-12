@@ -16,6 +16,7 @@ import {
   useMarkReadyForServiceOrder 
 } from '@/hooks/useMaintenancePackages';
 import { useAuth } from '@/contexts/AuthContext';
+import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -33,7 +34,8 @@ import {
   Wrench,
   Building,
   PauseCircle,
-  Send
+  Send,
+  Truck
 } from 'lucide-react';
 
 type ItemStatus = 'approved' | 'rejected' | 'held' | null;
