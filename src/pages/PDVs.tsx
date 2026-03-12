@@ -24,7 +24,9 @@ import {
   Eye,
   Pencil,
   Power,
-  Trash2
+  Trash2,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
