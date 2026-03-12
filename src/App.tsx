@@ -37,7 +37,7 @@ import SupplierPanel from "./pages/SupplierPanel";
 import Suppliers, { SuppliersContent } from "./pages/Suppliers";
 import MaintenanceRequests from "./pages/MaintenanceRequests";
 import MaintenanceApproval from "./pages/MaintenanceApproval";
-import GenerateServiceOrder from "./pages/GenerateServiceOrder";
+// GenerateServiceOrder removido do fluxo — atribuição de fornecedor integrada em MaintenanceApproval
 import ResetPassword from "./pages/ResetPassword";
 import AuditLogs, { AuditLogsContent } from "./pages/AuditLogs";
 import StrategicMapMapbox from "./pages/StrategicMapMapbox";
