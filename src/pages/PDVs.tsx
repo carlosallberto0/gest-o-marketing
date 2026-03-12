@@ -5,6 +5,8 @@ import { usePDVs } from '@/hooks/usePDVs';
 import { useTogglePDVStatus, useDeletePDV } from '@/hooks/usePDVMutations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { showToast } from '@/lib/toast';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
