@@ -84,6 +84,9 @@ export default function MaintenanceRequests() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [directAssignRequest, setDirectAssignRequest] = useState<MaintenanceRequest | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectJustification, setRejectJustification] = useState('');
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
   const [requesterFilter, setRequesterFilter] = useState('all');
