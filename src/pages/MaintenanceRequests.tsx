@@ -484,55 +484,57 @@ export default function MaintenanceRequests() {
           </div>
         </div>
 
-        {/* Floating Action Bar for batch operations */}
-        {isSuperAdmin && selectedIds.size > 0 && (
-          <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-auto bg-background border border-border shadow-xl rounded-lg px-4 py-3 flex flex-wrap items-center justify-center gap-3 z-50">
-            <span className="text-sm font-medium">
-              {selectedIds.size} selecionada(s)
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePDF}
-              disabled={isGeneratingPDF}
-            >
-              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
-              Gerar PDF
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSendToDirector}
-              disabled={createPackage.isPending}
-            >
-              {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Enviar para Diretoria
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir Selecionadas
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedIds(new Set())}
-            >
-              Limpar Seleção
-            </Button>
-          </div>
-        )}
-
         {/* Tabs */}
         <Tabs defaultValue="all">
-          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start h-auto p-1">
-            <TabsTrigger value="all">Todas</TabsTrigger>
-            <TabsTrigger value="pending_review">Pendentes ({stats.pending})</TabsTrigger>
-            <TabsTrigger value="approved">Aprovadas ({stats.approved})</TabsTrigger>
-            <TabsTrigger value="consolidated">Consolidadas</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <TabsList className="overflow-x-auto flex-nowrap justify-start h-auto p-1">
+              <TabsTrigger value="all">Todas</TabsTrigger>
+              <TabsTrigger value="pending_review">Pendentes ({stats.pending})</TabsTrigger>
+              <TabsTrigger value="approved">Aprovadas ({stats.approved})</TabsTrigger>
+              <TabsTrigger value="consolidated">Consolidadas</TabsTrigger>
+            </TabsList>
+
+            {isSuperAdmin && selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 flex-wrap ml-auto">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {selectedIds.size} selecionada(s)
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGeneratePDF}
+                  disabled={isGeneratingPDF}
+                >
+                  {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
+                  Gerar PDF
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSendToDirector}
+                  disabled={createPackage.isPending}
+                >
+                  {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Enviar para Diretoria
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+          </div>
 
           <TabsContent value="all" className="mt-4">
             {isSuperAdmin && currentFilteredRequests.length > 0 && (
