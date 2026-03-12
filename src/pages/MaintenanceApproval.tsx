@@ -396,6 +396,61 @@ export default function MaintenanceApproval() {
               </div>
             )}
           </TabsContent>
+
+          {/* Tab: Approved by director - ready for supplier assignment */}
+          {isSuperAdmin && (
+            <TabsContent value="ready_for_so">
+              {readyForSOPackages.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="text-center">
+                      <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium">Nenhum pacote aprovado</h3>
+                      <p className="text-muted-foreground mt-1">
+                        Pacotes aprovados pela diretoria aparecerão aqui para atribuição de fornecedor
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {readyForSOPackages.map((pkg) => {
+                    const approvedItems = (pkg as any).items?.filter((i: any) => i.status === 'approved') || [];
+                    return (
+                      <Card key={pkg.id} className="hover:shadow-md transition-shadow border-primary/30">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-primary" />
+                                <span className="font-medium">Pacote Aprovado pela Diretoria</span>
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
+                                  {approvedItems.length} outdoor(s)
+                                </Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-4 w-4" />
+                                  Aprovado em {pkg.reviewed_at ? format(new Date(pkg.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
+                                </span>
+                                {pkg.director_notes && (
+                                  <span className="italic">"{pkg.director_notes}"</span>
+                                )}
+                              </div>
+                            </div>
+                            <Button onClick={() => handleAssignSupplier(pkg)}>
+                              <Truck className="h-4 w-4 mr-2" />
+                              Atribuir Fornecedor
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Package Details Dialog */}
