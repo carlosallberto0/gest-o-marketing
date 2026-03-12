@@ -161,8 +161,7 @@ export default function MaintenanceApproval() {
     p => (p.status === 'approved' || p.status === 'partially_held') && !p.ready_for_service_order
   );
 
-  // Packages approved by director, ready for supplier assignment
-  const readyForSOPackages = allPackages.filter(p => p.ready_for_service_order === true);
+  // readyForSOPackages comes from useReadyForServiceOrderPackages (already includes items)
 
   const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
