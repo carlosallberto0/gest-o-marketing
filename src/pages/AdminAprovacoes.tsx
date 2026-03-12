@@ -65,7 +65,7 @@ export default function AdminAprovacoes() {
     if (!rejectionTarget || !rejectionReason.trim()) return;
     
     if (rejectionTarget.type === 'maintenance') {
-      await rejectMaintenanceRequest.mutateAsync(rejectionTarget.id);
+      await rejectMaintenanceRequest.mutateAsync({ id: rejectionTarget.id, rejection_reason: rejectionReason });
     } else {
       await requestCorrection.mutateAsync({ id: rejectionTarget.id, observations: rejectionReason });
     }

@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -84,6 +85,9 @@ export default function MaintenanceRequests() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [directAssignRequest, setDirectAssignRequest] = useState<MaintenanceRequest | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectJustification, setRejectJustification] = useState('');
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   // Advanced filters
   const [monthFilter, setMonthFilter] = useState('all');
   const [requesterFilter, setRequesterFilter] = useState('all');
@@ -162,8 +166,18 @@ export default function MaintenanceRequests() {
     setSelectedRequest(null);
   };
 
-  const handleReject = async (id: string) => {
-    await rejectRequest.mutateAsync(id);
+  const handleOpenRejectDialog = (id: string) => {
+    setRejectTargetId(id);
+    setRejectJustification('');
+    setShowRejectDialog(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetId || !rejectJustification.trim()) return;
+    await rejectRequest.mutateAsync({ id: rejectTargetId, rejection_reason: rejectJustification.trim() });
+    setShowRejectDialog(false);
+    setRejectJustification('');
+    setRejectTargetId(null);
     setSelectedRequest(null);
   };
 
@@ -471,55 +485,57 @@ export default function MaintenanceRequests() {
           </div>
         </div>
 
-        {/* Floating Action Bar for batch operations */}
-        {isSuperAdmin && selectedIds.size > 0 && (
-          <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-auto bg-background border border-border shadow-xl rounded-lg px-4 py-3 flex flex-wrap items-center justify-center gap-3 z-50">
-            <span className="text-sm font-medium">
-              {selectedIds.size} selecionada(s)
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePDF}
-              disabled={isGeneratingPDF}
-            >
-              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
-              Gerar PDF
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSendToDirector}
-              disabled={createPackage.isPending}
-            >
-              {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Enviar para Diretoria
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir Selecionadas
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedIds(new Set())}
-            >
-              Limpar Seleção
-            </Button>
-          </div>
-        )}
-
         {/* Tabs */}
         <Tabs defaultValue="all">
-          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start h-auto p-1">
-            <TabsTrigger value="all">Todas</TabsTrigger>
-            <TabsTrigger value="pending_review">Pendentes ({stats.pending})</TabsTrigger>
-            <TabsTrigger value="approved">Aprovadas ({stats.approved})</TabsTrigger>
-            <TabsTrigger value="consolidated">Consolidadas</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <TabsList className="overflow-x-auto flex-nowrap justify-start h-auto p-1">
+              <TabsTrigger value="all">Todas</TabsTrigger>
+              <TabsTrigger value="pending_review">Pendentes ({stats.pending})</TabsTrigger>
+              <TabsTrigger value="approved">Aprovadas ({stats.approved})</TabsTrigger>
+              <TabsTrigger value="consolidated">Consolidadas</TabsTrigger>
+            </TabsList>
+
+            {isSuperAdmin && selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 flex-wrap ml-auto">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {selectedIds.size} selecionada(s)
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGeneratePDF}
+                  disabled={isGeneratingPDF}
+                >
+                  {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
+                  Gerar PDF
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSendToDirector}
+                  disabled={createPackage.isPending}
+                >
+                  {createPackage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Enviar para Diretoria
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+          </div>
 
           <TabsContent value="all" className="mt-4">
             {isSuperAdmin && currentFilteredRequests.length > 0 && (
@@ -689,7 +705,7 @@ export default function MaintenanceRequests() {
                       <Button 
                         className="flex-1" 
                         variant="destructive"
-                        onClick={() => handleReject(selectedRequest.id)}
+                        onClick={() => handleOpenRejectDialog(selectedRequest.id)}
                         disabled={rejectRequest.isPending}
                       >
                         <XCircle className="h-4 w-4 mr-2" />
@@ -761,6 +777,45 @@ export default function MaintenanceRequests() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Reject Justification Dialog */}
+        <Dialog open={showRejectDialog} onOpenChange={(open) => {
+          setShowRejectDialog(open);
+          if (!open) {
+            setRejectJustification('');
+            setRejectTargetId(null);
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Justificativa da Rejeição</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Informe o motivo da rejeição. O gerente será notificado com esta justificativa.
+              </p>
+              <Textarea
+                placeholder="Descreva o motivo da rejeição..."
+                value={rejectJustification}
+                onChange={(e) => setRejectJustification(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={!rejectJustification.trim() || rejectRequest.isPending}
+              >
+                {rejectRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                Confirmar Rejeição
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Assign Supplier Dialog */}
         {directAssignRequest && (
