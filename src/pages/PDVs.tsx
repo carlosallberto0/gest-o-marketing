@@ -114,6 +114,24 @@ export default function PDVs() {
   const [editingPDV, setEditingPDV] = useState<PDVForEdit | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [toggleConfirm, setToggleConfirm] = useState<{ id: string; name: string; status: string } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncManagers = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-pdv-managers');
+      if (error) throw error;
+      if (data?.success) {
+        showToast.success(`${data.updated} PDV(s) atualizado(s) de ${data.total} sem gerente.`);
+      } else {
+        showToast.error(data?.error || 'Erro ao sincronizar');
+      }
+    } catch (err: any) {
+      showToast.error('Erro ao sincronizar gerentes');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredPDVs = pdvs?.filter(pdv => {
     const matchesSearch = pdv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
