@@ -162,8 +162,18 @@ export default function MaintenanceRequests() {
     setSelectedRequest(null);
   };
 
-  const handleReject = async (id: string) => {
-    await rejectRequest.mutateAsync(id);
+  const handleOpenRejectDialog = (id: string) => {
+    setRejectTargetId(id);
+    setRejectJustification('');
+    setShowRejectDialog(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetId || !rejectJustification.trim()) return;
+    await rejectRequest.mutateAsync({ id: rejectTargetId, rejection_reason: rejectJustification.trim() });
+    setShowRejectDialog(false);
+    setRejectJustification('');
+    setRejectTargetId(null);
     setSelectedRequest(null);
   };
 
