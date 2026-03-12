@@ -53,6 +53,9 @@ export default function MaintenanceApproval() {
   const [itemReviewDates, setItemReviewDates] = useState<Record<string, string>>({});
   const [packageNotes, setPackageNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [assignSupplierOpen, setAssignSupplierOpen] = useState(false);
+  const [assignPackageId, setAssignPackageId] = useState<string>('');
+  const [assignItems, setAssignItems] = useState<Array<{ outdoor_id: string; package_item_id?: string; original_photo_url?: string }>>([]);
 
   const [activeTab, setActiveTab] = useState('pending');
 
