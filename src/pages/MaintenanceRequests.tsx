@@ -702,7 +702,7 @@ export default function MaintenanceRequests() {
                       <Button 
                         className="flex-1" 
                         variant="destructive"
-                        onClick={() => handleReject(selectedRequest.id)}
+                        onClick={() => handleOpenRejectDialog(selectedRequest.id)}
                         disabled={rejectRequest.isPending}
                       >
                         <XCircle className="h-4 w-4 mr-2" />
