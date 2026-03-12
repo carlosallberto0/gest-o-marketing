@@ -13,6 +13,7 @@ interface CreatePDVInput {
   photoUrl?: string;
   lat?: number;
   lng?: number;
+  managerId?: string;
 }
 
 export function useCreatePDV() {
@@ -32,6 +33,7 @@ export function useCreatePDV() {
           active_modules: input.modules,
           lat: input.lat || null,
           lng: input.lng || null,
+          manager_id: input.managerId || null,
         })
         .select()
         .single();

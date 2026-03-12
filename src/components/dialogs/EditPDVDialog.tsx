@@ -9,6 +9,7 @@ import { PhotoUpload } from '@/components/ui/photo-upload';
 import { Loader2, MapPin } from 'lucide-react';
 import { useUpdatePDV } from '@/hooks/usePDVMutations';
 import { MapCoordinateSelector } from '@/components/map/MapCoordinateSelector';
+import { useProfiles } from '@/hooks/useProfiles';
 
 interface PDV {
   id: string;
@@ -23,6 +24,7 @@ interface PDV {
   photo_url?: string | null;
   lat?: number | null;
   lng?: number | null;
+  manager_id?: string | null;
 }
 
 interface EditPDVDialogProps {
@@ -33,6 +35,7 @@ interface EditPDVDialogProps {
 
 export function EditPDVDialog({ open, onOpenChange, pdv }: EditPDVDialogProps) {
   const updatePDV = useUpdatePDV();
+  const { data: profiles } = useProfiles();
   const [showMapSelector, setShowMapSelector] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -44,7 +47,10 @@ export function EditPDVDialog({ open, onOpenChange, pdv }: EditPDVDialogProps) {
     photoUrl: '',
     lat: null as number | null,
     lng: null as number | null,
+    managerId: '' as string,
   });
+
+  const managers = profiles?.filter(p => p.role === 'manager' && p.status === 'active') || [];
 
   useEffect(() => {
     if (pdv && open) {
@@ -58,6 +64,7 @@ export function EditPDVDialog({ open, onOpenChange, pdv }: EditPDVDialogProps) {
         photoUrl: pdv.photo_url || '',
         lat: pdv.lat ?? null,
         lng: pdv.lng ?? null,
+        managerId: pdv.manager_id || '',
       });
     }
   }, [pdv, open]);
@@ -90,6 +97,7 @@ export function EditPDVDialog({ open, onOpenChange, pdv }: EditPDVDialogProps) {
       photo_url: formData.photoUrl || null,
       lat: formData.lat,
       lng: formData.lng,
+      manager_id: formData.managerId || null,
     });
     
     onOpenChange(false);
@@ -187,6 +195,22 @@ export function EditPDVDialog({ open, onOpenChange, pdv }: EditPDVDialogProps) {
                 required
               />
             </div>
+          </div>
+
+          {/* Manager Select */}
+          <div className="space-y-2">
+            <Label>Gerente Responsável</Label>
+            <Select value={formData.managerId || '_none'} onValueChange={(v) => setFormData({ ...formData, managerId: v === '_none' ? '' : v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar gerente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">Nenhum</SelectItem>
+                {managers.map(m => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-3">

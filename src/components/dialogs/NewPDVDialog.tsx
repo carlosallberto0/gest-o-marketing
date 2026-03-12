@@ -10,6 +10,7 @@ import { Loader2, MapPin } from 'lucide-react';
 import { useCreatePDV } from '@/hooks/useCreatePDV';
 import { supabase } from '@/integrations/supabase/client';
 import { MapCoordinateSelector } from '@/components/map/MapCoordinateSelector';
+import { useProfiles } from '@/hooks/useProfiles';
 
 interface NewPDVDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface NewPDVDialogProps {
 
 export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
   const createPDV = useCreatePDV();
+  const { data: profiles } = useProfiles();
   const [showMapSelector, setShowMapSelector] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -30,7 +32,10 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
     photoUrl: '',
     lat: null as number | null,
     lng: null as number | null,
+    managerId: '' as string,
   });
+
+  const managers = profiles?.filter(p => p.role === 'manager' && p.status === 'active') || [];
 
   // Generate code automatically when dialog opens
   useEffect(() => {
@@ -40,7 +45,6 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
   }, [open]);
 
   const generateCode = async () => {
-    // Buscar todos os códigos que seguem o padrão PDV-XXXX
     const { data } = await supabase
       .from('pdvs')
       .select('code')
@@ -50,7 +54,6 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
     
     if (data) {
       for (const pdv of data) {
-        // Extrair número do código (ex: "PDV-0009" → 9)
         const match = pdv.code.match(/PDV-(\d+)/);
         if (match) {
           const num = parseInt(match[1], 10);
@@ -79,7 +82,6 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
     
     if (!formData.type) return;
 
-    // Validate coordinates are required when media module is selected
     if (formData.modules.includes('media') && (!formData.lat || !formData.lng)) {
       return;
     }
@@ -95,6 +97,7 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
       photoUrl: formData.photoUrl || undefined,
       lat: formData.lat || undefined,
       lng: formData.lng || undefined,
+      managerId: formData.managerId || undefined,
     });
     
     onOpenChange(false);
@@ -109,6 +112,7 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
       photoUrl: '',
       lat: null,
       lng: null,
+      managerId: '',
     });
   };
 
@@ -123,7 +127,6 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
           <DialogTitle>Novo PDV</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Photo Upload */}
           <div className="space-y-2">
             <Label>Foto do PDV</Label>
             <PhotoUpload
@@ -203,6 +206,22 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
                 required
               />
             </div>
+          </div>
+
+          {/* Manager Select */}
+          <div className="space-y-2">
+            <Label>Gerente Responsável</Label>
+            <Select value={formData.managerId} onValueChange={(v) => setFormData({ ...formData, managerId: v === '_none' ? '' : v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar gerente (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">Nenhum</SelectItem>
+                {managers.map(m => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Coordinates Section */}
@@ -289,7 +308,6 @@ export function NewPDVDialog({ open, onOpenChange }: NewPDVDialogProps) {
           </DialogFooter>
         </form>
 
-        {/* Map Coordinate Selector */}
         <MapCoordinateSelector
           open={showMapSelector}
           onOpenChange={setShowMapSelector}

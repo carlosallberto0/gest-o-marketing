@@ -5,6 +5,8 @@ import { usePDVs } from '@/hooks/usePDVs';
 import { useTogglePDVStatus, useDeletePDV } from '@/hooks/usePDVMutations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { showToast } from '@/lib/toast';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -22,7 +24,9 @@ import {
   Eye,
   Pencil,
   Power,
-  Trash2
+  Trash2,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -92,6 +96,7 @@ interface PDVForEdit {
   photo_url?: string | null;
   lat?: number | null;
   lng?: number | null;
+  manager_id?: string | null;
 }
 
 export default function PDVs() {
@@ -110,6 +115,24 @@ export default function PDVs() {
   const [editingPDV, setEditingPDV] = useState<PDVForEdit | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [toggleConfirm, setToggleConfirm] = useState<{ id: string; name: string; status: string } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncManagers = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-pdv-managers');
+      if (error) throw error;
+      if (data?.success) {
+        showToast.success(`${data.updated} PDV(s) atualizado(s) de ${data.total} sem gerente.`);
+      } else {
+        showToast.error(data?.error || 'Erro ao sincronizar');
+      }
+    } catch (err: any) {
+      showToast.error('Erro ao sincronizar gerentes');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredPDVs = pdvs?.filter(pdv => {
     const matchesSearch = pdv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -163,10 +186,16 @@ export default function PDVs() {
             <p className="text-muted-foreground mt-1">Gestão de pontos de venda</p>
           </div>
           {isSuperAdmin && (
-            <Button onClick={() => setIsNewPDVOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo PDV
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleSyncManagers} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Sincronizar Gerentes
+              </Button>
+              <Button onClick={() => setIsNewPDVOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo PDV
+              </Button>
+            </div>
           )}
         </div>
 
