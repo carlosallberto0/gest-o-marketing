@@ -69,11 +69,21 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
   }, [open, initialPdvId]);
 
   const generateCode = async () => {
-    const { count } = await supabase
+    const { data } = await supabase
       .from('outdoors')
-      .select('*', { count: 'exact', head: true });
+      .select('code')
+      .like('code', 'OUT-%')
+      .order('code', { ascending: false })
+      .limit(1);
     
-    const nextNumber = (count || 0) + 1;
+    let nextNumber = 1;
+    if (data && data.length > 0) {
+      const lastCode = data[0].code;
+      const match = lastCode.match(/OUT-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
     const code = `OUT-${String(nextNumber).padStart(4, '0')}`;
     setFormData(prev => ({ ...prev, code }));
   };
