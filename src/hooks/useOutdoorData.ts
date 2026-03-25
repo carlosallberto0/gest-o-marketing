@@ -75,7 +75,12 @@ export function useOutdoors() {
         descriptionType: out.description_type || undefined,
         avaliacaoValidaAte: out.avaliacao_valida_ate || undefined,
         direction: out.direction || undefined,
-      }));
+      })).sort((a, b) => {
+        // Numeric sort by extracting number from OUT-XXXX
+        const numA = parseInt(a.code.replace(/\D/g, '') || '0', 10);
+        const numB = parseInt(b.code.replace(/\D/g, '') || '0', 10);
+        return numA - numB;
+      });
     },
     enabled: !!profile,
   });
