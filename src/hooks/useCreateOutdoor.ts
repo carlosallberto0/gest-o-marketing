@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/lib/toast';
 
 interface CreateOutdoorInput {
-  code: string;
   pdvId: string;
   location: string;
   locationUrl?: string;
@@ -26,7 +25,6 @@ export function useCreateOutdoor() {
       const { data, error } = await supabase
         .from('outdoors')
         .insert({
-          code: input.code,
           pdv_id: input.pdvId,
           location: input.location,
           location_url: input.locationUrl || null,

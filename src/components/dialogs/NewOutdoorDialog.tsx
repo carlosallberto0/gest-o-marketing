@@ -29,7 +29,6 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    code: '',
     pdvId: '',
     location: '',
     locationUrl: '',
