@@ -29,7 +29,6 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    code: '',
     pdvId: '',
     location: '',
     locationUrl: '',
@@ -58,35 +57,12 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
     },
   });
 
-  // Generate code automatically when dialog opens and pre-select PDV if provided
+  // Pre-select PDV if provided
   useEffect(() => {
-    if (open) {
-      generateCode();
-      if (initialPdvId) {
-        setFormData(prev => ({ ...prev, pdvId: initialPdvId }));
-      }
+    if (open && initialPdvId) {
+      setFormData(prev => ({ ...prev, pdvId: initialPdvId }));
     }
   }, [open, initialPdvId]);
-
-  const generateCode = async () => {
-    const { data } = await supabase
-      .from('outdoors')
-      .select('code')
-      .like('code', 'OUT-%')
-      .order('code', { ascending: false })
-      .limit(1);
-    
-    let nextNumber = 1;
-    if (data && data.length > 0) {
-      const lastCode = data[0].code;
-      const match = lastCode.match(/OUT-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1;
-      }
-    }
-    const code = `OUT-${String(nextNumber).padStart(4, '0')}`;
-    setFormData(prev => ({ ...prev, code }));
-  };
 
   const handleUrlChange = async (url: string) => {
     setFormData(prev => ({ ...prev, locationUrl: url }));
@@ -139,7 +115,6 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
     e.preventDefault();
     
     await createOutdoor.mutateAsync({
-      code: formData.code,
       pdvId: formData.pdvId,
       location: formData.location,
       locationUrl: formData.locationUrl || undefined,
@@ -156,7 +131,6 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
     
     onOpenChange(false);
     setFormData({
-      code: '',
       pdvId: '',
       location: '',
       locationUrl: '',
@@ -195,12 +169,11 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Código (auto)</Label>
+              <Label>Código</Label>
               <Input
-                id="code"
-                value={formData.code}
+                value="Gerado automaticamente"
                 readOnly
-                className="bg-muted"
+                className="bg-muted text-muted-foreground italic"
               />
             </div>
             <div className="space-y-2">
