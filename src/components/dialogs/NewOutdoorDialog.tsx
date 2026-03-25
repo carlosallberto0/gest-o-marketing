@@ -116,7 +116,6 @@ export function NewOutdoorDialog({ open, onOpenChange, initialPdvId }: NewOutdoo
     
     await createOutdoor.mutateAsync({
       pdvId: formData.pdvId,
-      pdvId: formData.pdvId,
       location: formData.location,
       locationUrl: formData.locationUrl || undefined,
       width: parseFloat(formData.width),
