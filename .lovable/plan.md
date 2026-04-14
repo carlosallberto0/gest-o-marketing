@@ -1,46 +1,71 @@
 
-Diagnóstico
 
-- Hoje o código do outdoor é gerado no cliente em dois pontos: `NewOutdoorDialog` e `useBulkImport`.
-- No cadastro manual, a lógica usa ordenação textual (`order('code', { ascending: false })`). Como a base está com formatos mistos (`OUT-99`, `OUT-100`, `OUT-0100`, `OUT-0164`), o “maior código” em texto não é o maior número.
-- No importador em massa, ainda existe geração com `padStart(2)`, o que ajudou a criar formatos inconsistentes e números duplicados na prática.
-- O insert ainda confia no `code` vindo do frontend, então qualquer cálculo errado vira erro de chave única.
+# Corrigir Atualização de Foto do Outdoor após Execução pelo Fornecedor
 
-Plano
+## Problema
 
-1. Centralizar a numeração no backend
-- Criar uma migration para gerar códigos de outdoor no banco, de forma autoritativa e sequencial.
-- Inicializar essa sequência com o maior número numérico já existente na tabela.
-- Padronizar o formato de novos códigos como `OUT-XXXX`.
-- Garantir que o código seja definido no insert pelo backend, e não pelo cliente.
+Quando o fornecedor marca um item como executado e faz upload da foto, o sistema tenta atualizar `outdoors.photo_url` diretamente. Porém, a política RLS da tabela `outdoors` só permite UPDATE para `super_admin` e `admin`. O fornecedor não tem permissão, então a atualização falha silenciosamente — a foto fica salva no item da ordem de serviço, mas não reflete no cadastro do outdoor.
 
-2. Atualizar o fluxo de criação manual
-- `src/hooks/useCreateOutdoor.ts`: parar de enviar `code` no insert e usar o código retornado pelo backend.
-- `src/components/dialogs/NewOutdoorDialog.tsx`: remover a lógica atual de cálculo final do código e trocar o campo para “gerado automaticamente ao salvar” ou uma prévia apenas visual.
+## Solução
 
-3. Corrigir a importação em massa
-- `src/hooks/useBulkImport.ts`: remover `outdoorCounter` e a geração local com `padStart(2)`.
-- Inserir outdoors sem `code` e usar o valor devolvido pelo banco para logs, resultados e identificadores derivados.
+Criar uma função RPC `SECURITY DEFINER` que atualiza a foto do outdoor de forma segura, verificando que o usuário é um fornecedor vinculado àquela ordem de serviço. Depois, substituir o `update` direto no hook `useMarkItemExecuted` pela chamada RPC.
 
-4. Revisar a ordenação das listagens
-- `src/hooks/useOutdoorData.ts` e `src/hooks/usePDVDetails.ts`: revisar a ordenação por `code`, porque a base já tem códigos em formatos mistos e a ordenação textual fica errada.
-- Aplicar ordenação numérica no app para manter a sequência visual correta sem mexer nos códigos antigos agora.
+## Alterações
 
-5. Tratar legado com segurança
-- Não renumerar automaticamente os outdoors antigos nesta correção.
-- Deixar como etapa opcional uma limpeza controlada dos casos já conflitados (ex.: `OUT-100` e `OUT-0100`), porque isso pode impactar fluxos que dependem do código literal.
+### 1. Migração SQL — Criar função RPC
 
-Arquivos principais
+```sql
+CREATE OR REPLACE FUNCTION public.update_outdoor_photo_from_supplier(
+  p_outdoor_id uuid,
+  p_photo_url text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Não autenticado';
+  END IF;
 
-- Nova migration SQL para sequência/função/trigger de geração de código
-- `src/hooks/useCreateOutdoor.ts`
-- `src/components/dialogs/NewOutdoorDialog.tsx`
-- `src/hooks/useBulkImport.ts`
-- `src/hooks/useOutdoorData.ts`
-- `src/hooks/usePDVDetails.ts`
+  -- Verificar se o outdoor pertence a alguma ordem do fornecedor
+  IF NOT EXISTS (
+    SELECT 1 FROM supplier_work_order_items swi
+    JOIN supplier_work_orders swo ON swo.id = swi.work_order_id
+    WHERE swi.outdoor_id = p_outdoor_id
+    AND swo.supplier_id = get_user_supplier_id(auth.uid())
+  ) THEN
+    -- Se não é fornecedor vinculado, verificar se é admin
+    IF get_user_role(auth.uid()) NOT IN ('super_admin', 'admin') THEN
+      RAISE EXCEPTION 'Sem permissão para atualizar este outdoor';
+    END IF;
+  END IF;
 
-Resultado esperado
+  UPDATE outdoors
+  SET photo_url = p_photo_url, updated_at = now()
+  WHERE id = p_outdoor_id;
+END;
+$$;
+```
 
-- Todo novo outdoor passa a receber o próximo número válido da sequência, sem colisão.
-- Cadastro manual e importação usam a mesma regra.
-- A sequência visual dos outdoors deixa de ficar inconsistente por causa da ordenação textual.
+### 2. Editar `src/hooks/useSupplierWorkOrders.ts`
+
+Substituir o trecho que faz `supabase.from('outdoors').update(...)` pela chamada RPC:
+
+```typescript
+if (executionPhotoUrl && outdoorId) {
+  await supabase.rpc('update_outdoor_photo_from_supplier', {
+    p_outdoor_id: outdoorId,
+    p_photo_url: executionPhotoUrl,
+  });
+}
+```
+
+### Arquivos
+- **Nova migração SQL**: função RPC `update_outdoor_photo_from_supplier`
+- **Editar**: `src/hooks/useSupplierWorkOrders.ts` (função `useMarkItemExecuted`, ~linha 191-195)
+
+### Resultado
+A foto enviada pelo fornecedor ao executar o serviço passará a atualizar automaticamente a foto principal do outdoor, visível no cadastro, mapa estratégico e listagens.
+
