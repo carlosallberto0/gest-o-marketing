@@ -442,9 +442,9 @@ export default function ServiceOrders() {
             {isSuperAdmin && (
               <TabsTrigger value="executed">
                 Ordens Executadas
-                {supplierWorkOrders.length > 0 && (
+                {supplierWorkOrders.filter(wo => (wo.items || []).some((i: any) => i.executed && !i.validated)).length > 0 && (
                   <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
-                    {supplierWorkOrders.length}
+                    {supplierWorkOrders.filter(wo => (wo.items || []).some((i: any) => i.executed && !i.validated)).length}
                   </Badge>
                 )}
               </TabsTrigger>
