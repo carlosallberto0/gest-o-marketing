@@ -1,71 +1,36 @@
 
 
-# Corrigir Atualização de Foto do Outdoor após Execução pelo Fornecedor
+# Atualizar Fotos de Outdoors com Imagens Já Enviadas pelos Fornecedores
 
 ## Problema
 
-Quando o fornecedor marca um item como executado e faz upload da foto, o sistema tenta atualizar `outdoors.photo_url` diretamente. Porém, a política RLS da tabela `outdoors` só permite UPDATE para `super_admin` e `admin`. O fornecedor não tem permissão, então a atualização falha silenciosamente — a foto fica salva no item da ordem de serviço, mas não reflete no cadastro do outdoor.
+A função RPC `update_outdoor_photo_from_supplier` foi criada agora, mas os itens que já foram executados anteriormente não tiveram suas fotos propagadas para a tabela `outdoors`. As fotos existem em `supplier_work_order_items.execution_photo_url`, mas `outdoors.photo_url` não foi atualizado.
 
 ## Solução
 
-Criar uma função RPC `SECURITY DEFINER` que atualiza a foto do outdoor de forma segura, verificando que o usuário é um fornecedor vinculado àquela ordem de serviço. Depois, substituir o `update` direto no hook `useMarkItemExecuted` pela chamada RPC.
+Executar uma migração SQL que faz o backfill: para cada item já executado (`executed = true`) que possui `execution_photo_url`, atualizar o `photo_url` do outdoor correspondente. Priorizamos a foto mais recente caso haja múltiplas execuções para o mesmo outdoor.
 
-## Alterações
-
-### 1. Migração SQL — Criar função RPC
+### Migração SQL
 
 ```sql
-CREATE OR REPLACE FUNCTION public.update_outdoor_photo_from_supplier(
-  p_outdoor_id uuid,
-  p_photo_url text
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Não autenticado';
-  END IF;
-
-  -- Verificar se o outdoor pertence a alguma ordem do fornecedor
-  IF NOT EXISTS (
-    SELECT 1 FROM supplier_work_order_items swi
-    JOIN supplier_work_orders swo ON swo.id = swi.work_order_id
-    WHERE swi.outdoor_id = p_outdoor_id
-    AND swo.supplier_id = get_user_supplier_id(auth.uid())
-  ) THEN
-    -- Se não é fornecedor vinculado, verificar se é admin
-    IF get_user_role(auth.uid()) NOT IN ('super_admin', 'admin') THEN
-      RAISE EXCEPTION 'Sem permissão para atualizar este outdoor';
-    END IF;
-  END IF;
-
-  UPDATE outdoors
-  SET photo_url = p_photo_url, updated_at = now()
-  WHERE id = p_outdoor_id;
-END;
-$$;
+UPDATE outdoors o
+SET 
+  photo_url = sub.execution_photo_url,
+  updated_at = now()
+FROM (
+  SELECT DISTINCT ON (outdoor_id) 
+    outdoor_id, 
+    execution_photo_url
+  FROM supplier_work_order_items
+  WHERE executed = true 
+    AND execution_photo_url IS NOT NULL
+  ORDER BY outdoor_id, executed_at DESC
+) sub
+WHERE o.id = sub.outdoor_id;
 ```
 
-### 2. Editar `src/hooks/useSupplierWorkOrders.ts`
-
-Substituir o trecho que faz `supabase.from('outdoors').update(...)` pela chamada RPC:
-
-```typescript
-if (executionPhotoUrl && outdoorId) {
-  await supabase.rpc('update_outdoor_photo_from_supplier', {
-    p_outdoor_id: outdoorId,
-    p_photo_url: executionPhotoUrl,
-  });
-}
-```
+Isso pega a foto de execução mais recente de cada outdoor e atualiza o cadastro. Uma única migração, sem alteração de código.
 
 ### Arquivos
-- **Nova migração SQL**: função RPC `update_outdoor_photo_from_supplier`
-- **Editar**: `src/hooks/useSupplierWorkOrders.ts` (função `useMarkItemExecuted`, ~linha 191-195)
-
-### Resultado
-A foto enviada pelo fornecedor ao executar o serviço passará a atualizar automaticamente a foto principal do outdoor, visível no cadastro, mapa estratégico e listagens.
+- **Nova migração SQL**: backfill de `outdoors.photo_url` a partir de `supplier_work_order_items`
 
