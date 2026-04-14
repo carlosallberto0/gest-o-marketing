@@ -106,9 +106,11 @@ export default function ServiceOrders() {
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
   const validateWorkOrder = useValidateWorkOrder();
+  const validateWorkOrderItems = useValidateWorkOrderItems();
   const deleteWorkOrder = useDeleteWorkOrder();
   const revertItemExecution = useRevertItemExecution();
   const [isInsertingTest, setIsInsertingTest] = useState(false);
+  const [selectedValidationItems, setSelectedValidationItems] = useState<Record<string, Set<string>>>({});
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
