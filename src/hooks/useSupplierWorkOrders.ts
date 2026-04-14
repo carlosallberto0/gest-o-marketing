@@ -187,12 +187,12 @@ export function useMarkItemExecuted() {
 
       if (error) throw error;
 
-      // Atualizar foto principal do outdoor com a foto de execução
+      // Atualizar foto principal do outdoor com a foto de execução via RPC segura
       if (executionPhotoUrl && outdoorId) {
-        await supabase
-          .from('outdoors')
-          .update({ photo_url: executionPhotoUrl } as any)
-          .eq('id', outdoorId);
+        await supabase.rpc('update_outdoor_photo_from_supplier', {
+          p_outdoor_id: outdoorId,
+          p_photo_url: executionPhotoUrl,
+        } as any);
       }
 
       return data;

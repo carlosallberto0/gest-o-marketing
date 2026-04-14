@@ -3494,6 +3494,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      update_outdoor_photo_from_supplier: {
+        Args: { p_outdoor_id: string; p_photo_url: string }
+        Returns: undefined
+      }
     }
     Enums: {
       answer_value: "yes" | "no" | "na"
