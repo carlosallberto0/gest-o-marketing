@@ -3047,6 +3047,8 @@ export type Database = {
           original_photo_url: string | null
           outdoor_id: string
           package_item_id: string | null
+          validated: boolean
+          validated_at: string | null
           work_order_id: string
         }
         Insert: {
@@ -3059,6 +3061,8 @@ export type Database = {
           original_photo_url?: string | null
           outdoor_id: string
           package_item_id?: string | null
+          validated?: boolean
+          validated_at?: string | null
           work_order_id: string
         }
         Update: {
@@ -3071,6 +3075,8 @@ export type Database = {
           original_photo_url?: string | null
           outdoor_id?: string
           package_item_id?: string | null
+          validated?: boolean
+          validated_at?: string | null
           work_order_id?: string
         }
         Relationships: [

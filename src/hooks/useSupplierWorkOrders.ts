@@ -386,7 +386,7 @@ export function useRevertItemExecution() {
   });
 }
 
-// Admin validates completed work order
+// Admin validates completed work order (kept for backward compat)
 export function useValidateWorkOrder() {
   const queryClient = useQueryClient();
 
@@ -415,6 +415,64 @@ export function useValidateWorkOrder() {
     onError: (error) => {
       console.error('Error validating work order:', error);
       showToast.error('Erro ao validar ordem');
+    },
+  });
+}
+
+// Admin validates specific items in a work order
+export function useValidateWorkOrderItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ workOrderId, itemIds }: { workOrderId: string; itemIds: string[] }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      // 1. Mark selected items as validated
+      const { error: updateError } = await supabase
+        .from('supplier_work_order_items')
+        .update({
+          validated: true,
+          validated_at: new Date().toISOString(),
+        } as any)
+        .in('id', itemIds);
+
+      if (updateError) throw updateError;
+
+      // 2. Check if ALL items in the work order are now validated
+      const { data: allItems } = await supabase
+        .from('supplier_work_order_items')
+        .select('id, validated')
+        .eq('work_order_id', workOrderId);
+
+      const allValidated = (allItems || []).every((i: any) => i.validated);
+
+      // 3. If all validated, mark the entire work order as validated
+      if (allValidated) {
+        await supabase
+          .from('supplier_work_orders')
+          .update({
+            status: 'validated',
+            validated_at: new Date().toISOString(),
+            validated_by: user.id,
+          } as any)
+          .eq('id', workOrderId);
+      }
+
+      return { allValidated, validatedCount: itemIds.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-work-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['my-supplier-work-orders'] });
+      if (result.allValidated) {
+        showToast.success('Todos os itens validados! Ordem concluída.');
+      } else {
+        showToast.success(`${result.validatedCount} item(ns) validado(s)!`);
+      }
+    },
+    onError: (error) => {
+      console.error('Error validating items:', error);
+      showToast.error('Erro ao validar itens');
     },
   });
 }

@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { useServiceOrders, useUpdateServiceOrder, useDeleteServiceOrder, statusConfig as serviceStatusConfig, ServiceOrderStatus } from '@/hooks/useServiceOrders';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
-import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder, useRevertItemExecution } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierWorkOrders, useValidateWorkOrder, useDeleteWorkOrder, useRevertItemExecution, useValidateWorkOrderItems } from '@/hooks/useSupplierWorkOrders';
 import { NewServiceOrderDialog } from '@/components/dialogs/NewServiceOrderDialog';
 import { ServiceOrderAdminActions } from '@/components/dialogs/ServiceOrderAdminActions';
 import { AssignToSupplierDialog } from '@/components/dialogs/AssignToSupplierDialog';
@@ -106,9 +106,11 @@ export default function ServiceOrders() {
   const updateOrder = useUpdateServiceOrder();
   const deleteOrder = useDeleteServiceOrder();
   const validateWorkOrder = useValidateWorkOrder();
+  const validateWorkOrderItems = useValidateWorkOrderItems();
   const deleteWorkOrder = useDeleteWorkOrder();
   const revertItemExecution = useRevertItemExecution();
   const [isInsertingTest, setIsInsertingTest] = useState(false);
+  const [selectedValidationItems, setSelectedValidationItems] = useState<Record<string, Set<string>>>({});
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -440,9 +442,9 @@ export default function ServiceOrders() {
             {isSuperAdmin && (
               <TabsTrigger value="executed">
                 Ordens Executadas
-                {supplierWorkOrders.length > 0 && (
+                {supplierWorkOrders.filter(wo => (wo.items || []).some((i: any) => i.executed && !i.validated)).length > 0 && (
                   <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
-                    {supplierWorkOrders.length}
+                    {supplierWorkOrders.filter(wo => (wo.items || []).some((i: any) => i.executed && !i.validated)).length}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -759,150 +761,218 @@ export default function ServiceOrders() {
 
           {/* Executed Orders Tab */}
           {isSuperAdmin && (
-            <TabsContent value="executed">
+             <TabsContent value="executed">
               <div className="space-y-4">
                 {loadingWorkOrders ? (
                   <div className="flex items-center justify-center h-48">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : supplierWorkOrders.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12">
-                      <div className="text-center">
-                        <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium">Nenhuma ordem executada pendente</h3>
-                        <p className="text-muted-foreground mt-1">
-                          Ordens concluídas pelos fornecedores aparecerão aqui para validação
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  supplierWorkOrders.map((wo) => (
-                    <Card key={wo.id} className="border-2">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                          <CardTitle className="text-base">
-                            Fornecedor: {wo.supplier?.name}
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Concluída em {wo.completed_at ? format(new Date(wo.completed_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
-                            {' • '}{(wo.items || []).length} outdoor(s)
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => validateWorkOrder.mutate(wo.id)}
-                            disabled={validateWorkOrder.isPending}
-                          >
-                            {validateWorkOrder.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                            )}
-                            Validar
-                          </Button>
-                          {wo.notes?.includes('[TESTE]') && (
-                            <Button 
-                              variant="destructive"
-                              onClick={() => {
-                                if (confirm('Excluir esta ordem de teste e todos os dados relacionados?')) {
-                                  deleteWorkOrder.mutate(wo.id);
-                                }
-                              }}
-                              disabled={deleteWorkOrder.isPending}
+                ) : (() => {
+                  // Filter work orders to only show those with unvalidated executed items
+                  const pendingWorkOrders = supplierWorkOrders.filter(wo => 
+                    (wo.items || []).some((i: any) => i.executed && !i.validated)
+                  );
+
+                  if (pendingWorkOrders.length === 0) {
+                    return (
+                      <Card>
+                        <CardContent className="py-12">
+                          <div className="text-center">
+                            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium">Nenhuma ordem executada pendente</h3>
+                            <p className="text-muted-foreground mt-1">
+                              Ordens concluídas pelos fornecedores aparecerão aqui para validação
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+
+                  return pendingWorkOrders.map((wo) => {
+                    // Only show items that are executed but not yet validated
+                    const pendingItems = (wo.items || []).filter((i: any) => i.executed && !i.validated);
+                    const selectedForWo = selectedValidationItems[wo.id] || new Set<string>();
+                    
+                    const toggleItem = (itemId: string) => {
+                      setSelectedValidationItems(prev => {
+                        const current = new Set(prev[wo.id] || []);
+                        current.has(itemId) ? current.delete(itemId) : current.add(itemId);
+                        return { ...prev, [wo.id]: current };
+                      });
+                    };
+
+                    const toggleAllForWo = () => {
+                      setSelectedValidationItems(prev => {
+                        const current = prev[wo.id] || new Set<string>();
+                        if (current.size === pendingItems.length) {
+                          return { ...prev, [wo.id]: new Set<string>() };
+                        }
+                        return { ...prev, [wo.id]: new Set(pendingItems.map(i => i.id)) };
+                      });
+                    };
+
+                    const handleValidateSelected = () => {
+                      if (selectedForWo.size === 0) {
+                        toast.warning('Selecione pelo menos um item para validar');
+                        return;
+                      }
+                      validateWorkOrderItems.mutate(
+                        { workOrderId: wo.id, itemIds: Array.from(selectedForWo) },
+                        {
+                          onSuccess: () => {
+                            setSelectedValidationItems(prev => {
+                              const next = { ...prev };
+                              delete next[wo.id];
+                              return next;
+                            });
+                          }
+                        }
+                      );
+                    };
+
+                    return (
+                      <Card key={wo.id} className="border-2">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">
+                              Fornecedor: {wo.supplier?.name}
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Concluída em {wo.completed_at ? format(new Date(wo.completed_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
+                              {' • '}{pendingItems.length} item(ns) pendente(s) de validação
+                            </p>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={toggleAllForWo}
                             >
-                              {deleteWorkOrder.isPending ? (
+                              {selectedForWo.size === pendingItems.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                            </Button>
+                            <Button 
+                              onClick={handleValidateSelected}
+                              disabled={validateWorkOrderItems.isPending || selectedForWo.size === 0}
+                            >
+                              {validateWorkOrderItems.isPending ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               ) : (
-                                <Trash2 className="h-4 w-4 mr-2" />
+                                <CheckCircle className="h-4 w-4 mr-2" />
                               )}
-                              Excluir Teste
+                              Validar Selecionados ({selectedForWo.size})
                             </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {(wo.items || []).map((item) => {
-                            const pdv = item.outdoor?.pdv as any;
-                            return (
-                              <div key={item.id} className="border rounded-lg p-4">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <h4 className="font-medium text-sm">{item.outdoor?.code}</h4>
-                                  <span className="text-xs text-muted-foreground">
-                                    {pdv?.name} — {item.outdoor?.location}
-                                  </span>
-                                  {item.executed && (
+                            {wo.notes?.includes('[TESTE]') && (
+                              <Button 
+                                variant="destructive"
+                                onClick={() => {
+                                  if (confirm('Excluir esta ordem de teste e todos os dados relacionados?')) {
+                                    deleteWorkOrder.mutate(wo.id);
+                                  }
+                                }}
+                                disabled={deleteWorkOrder.isPending}
+                              >
+                                {deleteWorkOrder.isPending ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                )}
+                                Excluir Teste
+                              </Button>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {pendingItems.map((item) => {
+                              const pdv = item.outdoor?.pdv as any;
+                              const isSelected = selectedForWo.has(item.id);
+                              return (
+                                <div key={item.id} className={cn(
+                                  "border rounded-lg p-4 transition-colors cursor-pointer",
+                                  isSelected ? "border-primary bg-primary/5" : "border-border"
+                                )} onClick={() => toggleItem(item.id)}>
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => toggleItem(item.id)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="mt-0"
+                                    />
+                                    <h4 className="font-medium text-sm">{item.outdoor?.code}</h4>
+                                    <span className="text-xs text-muted-foreground">
+                                      {pdv?.name} — {item.outdoor?.location}
+                                    </span>
                                     <Badge variant="success" className="text-[10px]">
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                       Executado {item.executed_at ? format(new Date(item.executed_at), 'dd/MM HH:mm', { locale: ptBR }) : ''}
                                     </Badge>
-                                  )}
-                                  {item.executed && isSuperAdmin && (
-                                    <Button
-                                      variant="outline-danger"
-                                      size="sm"
-                                      className="ml-auto text-[11px] h-7"
-                                      disabled={revertItemExecution.isPending}
-                                      onClick={() => {
-                                        if (confirm('Desfazer execução deste item? Ele voltará para o fornecedor executar novamente.')) {
-                                          revertItemExecution.mutate(item.id);
-                                        }
-                                      }}
-                                    >
-                                      {revertItemExecution.isPending ? (
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                      ) : (
-                                        <XCircle className="h-3 w-3 mr-1" />
-                                      )}
-                                      Desfazer Execução
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">Antes</p>
-                                    <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
-                                      {(item.original_photo_url || item.outdoor?.photo_url) ? (
-                                        <img
-                                          src={convertGoogleDriveUrl(item.original_photo_url || item.outdoor?.photo_url || '')}
-                                          alt="Antes"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                                      )}
+                                    {isSuperAdmin && (
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        className="ml-auto text-[11px] h-7"
+                                        disabled={revertItemExecution.isPending}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (confirm('Desfazer execução deste item? Ele voltará para o fornecedor executar novamente.')) {
+                                            revertItemExecution.mutate(item.id);
+                                          }
+                                        }}
+                                      >
+                                        {revertItemExecution.isPending ? (
+                                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <XCircle className="h-3 w-3 mr-1" />
+                                        )}
+                                        Desfazer Execução
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Antes</p>
+                                      <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
+                                        {(item.original_photo_url || item.outdoor?.photo_url) ? (
+                                          <img
+                                            src={convertGoogleDriveUrl(item.original_photo_url || item.outdoor?.photo_url || '')}
+                                            alt="Antes"
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Depois</p>
+                                      <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
+                                        {item.execution_photo_url ? (
+                                          <img
+                                            src={item.execution_photo_url}
+                                            alt="Depois"
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div>
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">Depois</p>
-                                    <div className="w-full h-40 rounded overflow-hidden bg-muted flex items-center justify-center">
-                                      {item.execution_photo_url ? (
-                                        <img
-                                          src={item.execution_photo_url}
-                                          alt="Depois"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                                      )}
-                                    </div>
-                                  </div>
+                                  {item.observations && (
+                                    <p className="text-xs text-muted-foreground mt-2 italic">
+                                      Obs: {item.observations}
+                                    </p>
+                                  )}
                                 </div>
-                                {item.observations && (
-                                  <p className="text-xs text-muted-foreground mt-2 italic">
-                                    Obs: {item.observations}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  });
+                })()}
               </div>
             </TabsContent>
           )}
