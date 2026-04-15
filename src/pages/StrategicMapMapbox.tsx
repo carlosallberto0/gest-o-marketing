@@ -1288,6 +1288,43 @@ export default function StrategicMapMapbox() {
               <Upload className="h-3.5 w-3.5 mr-1.5" />
               Importar
             </Button>
+            <div className="w-px h-5 bg-border" />
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCreateRouteDialog(true)}>
+              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
+              Criar Rota
+            </Button>
+            <Button 
+              variant="ghost" size="sm" className="h-7 text-xs" 
+              onClick={() => {
+                if (readyPackages.length === 0) {
+                  toast.info('Nenhum pacote aprovado disponível para roteirização');
+                  return;
+                }
+                const pkg = readyPackages[0];
+                createAutoRoute.mutate({ packageId: pkg.id }, {
+                  onSuccess: (route) => {
+                    setActiveRouteId(route.id);
+                    setShowRoutePanel(true);
+                  }
+                });
+              }}
+              disabled={createAutoRoute.isPending}
+            >
+              {createAutoRoute.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1.5" />}
+              Rota Auto
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowUnifyRoutesDialog(true)}>
+              <Merge className="h-3.5 w-3.5 mr-1.5" />
+              Unificar
+            </Button>
+            <Button 
+              variant={showRoutePanel ? 'default' : 'ghost'} 
+              size="sm" className="h-7 text-xs" 
+              onClick={() => setShowRoutePanel(!showRoutePanel)}
+            >
+              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
+              Rotas
+            </Button>
           </div>
         </div>
       )}
