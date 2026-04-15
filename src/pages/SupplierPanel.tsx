@@ -41,6 +41,7 @@ export default function SupplierPanel() {
   const [uploadingItem, setUploadingItem] = useState<string | null>(null);
 
   const { data: workOrders = [], isLoading } = useMySupplierWorkOrders();
+  const { data: supplierRoutes = [], isLoading: routesLoading } = useSupplierRoutes();
   const markExecuted = useMarkItemExecuted();
   const submitWorkOrder = useSubmitWorkOrder();
 
