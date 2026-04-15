@@ -25,7 +25,7 @@ import { useRouteDetails, useCreateAutoRoute } from '@/hooks/useRoutes';
 import { useSupplierWorkOrders } from '@/hooks/useSupplierWorkOrders';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle, Route as RouteIcon, Zap, Merge } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle, Route as RouteIcon, Zap, Merge, Crosshair } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRoot, Root } from 'react-dom/client';
@@ -1260,91 +1260,107 @@ export default function StrategicMapMapbox() {
           style={{ minHeight: '100vh', minWidth: '100vw' }}
         />
 
-      {/* Floating Header - Row 1: Navigation + Refresh + Theme Toggle */}
-      <div className="absolute top-4 left-4 z-10 pointer-events-none">
-        <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-border pointer-events-auto">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/modules')} title="Voltar aos Módulos">
+      {/* Floating Header - Navigation + Theme + Admin (single row) */}
+      <div className="absolute top-4 left-4 right-4 z-10 pointer-events-none">
+        <div className="flex items-center gap-1.5 bg-background/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-lg border border-border pointer-events-auto overflow-x-auto scrollbar-hide w-fit max-w-full">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate('/modules')} title="Voltar aos Módulos">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <Map className="h-5 w-5 text-primary" />
-          <h1 className="font-semibold text-sm">Mapa Estratégico</h1>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleThemeToggle} title={mapTheme === 'light' ? 'Tema Escuro' : 'Tema Claro'}>
+          <Map className="h-5 w-5 text-primary shrink-0" />
+          <h1 className="font-semibold text-sm whitespace-nowrap">Mapa Estratégico</h1>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleThemeToggle} title={mapTheme === 'light' ? 'Tema Escuro' : 'Tema Claro'}>
             {mapTheme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} title="Atualizar dados">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleRefresh} title="Atualizar dados">
             <RefreshCw className="h-4 w-4" />
           </Button>
+
+          {isSuperAdmin && (
+            <>
+              <div className="w-px h-5 bg-border shrink-0" />
+              <Button
+                variant={adminMode ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 text-xs shrink-0"
+                onClick={() => setAdminMode(!adminMode)}
+              >
+                <Move className="h-3.5 w-3.5 mr-1" />
+                {adminMode ? 'Admin ON' : 'Admin'}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setShowBulkEditDialog(true)}>
+                <Edit className="h-3.5 w-3.5 mr-1" />
+                Lote
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setShowImportDialog(true)}>
+                <Upload className="h-3.5 w-3.5 mr-1" />
+                Importar
+              </Button>
+              <div className="w-px h-5 bg-border shrink-0" />
+              <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setShowCreateRouteDialog(true)}>
+                <RouteIcon className="h-3.5 w-3.5 mr-1" />
+                Rota
+              </Button>
+              <Button 
+                variant="ghost" size="sm" className="h-7 text-xs shrink-0" 
+                onClick={() => {
+                  if (activeWorkOrders.length === 0) {
+                    toast.info('Nenhuma OS aberta disponível para roteirização');
+                    return;
+                  }
+                  if (activeWorkOrders.length === 1) {
+                    const wo = activeWorkOrders[0];
+                    createAutoRoute.mutate({ packageId: wo.package_id, supplierId: wo.supplier_id, name: `Rota OS - ${wo.supplier?.name || 'Fornecedor'}` }, {
+                      onSuccess: (route) => {
+                        setActiveRouteId(route.id);
+                        setShowRoutePanel(true);
+                      }
+                    });
+                  } else {
+                    setShowPackageSelectDialog(true);
+                  }
+                }}
+                disabled={createAutoRoute.isPending}
+              >
+                {createAutoRoute.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1" />}
+                Auto
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setShowUnifyRoutesDialog(true)}>
+                <Merge className="h-3.5 w-3.5 mr-1" />
+                Unir
+              </Button>
+              <Button 
+                variant={showRoutePanel ? 'default' : 'ghost'} 
+                size="sm" className="h-7 text-xs shrink-0" 
+                onClick={() => setShowRoutePanel(!showRoutePanel)}
+              >
+                <RouteIcon className="h-3.5 w-3.5 mr-1" />
+                Rotas
+              </Button>
+              <Button
+                variant="ghost" size="sm" className="h-7 text-xs shrink-0"
+                onClick={async () => {
+                  toast.info('Recalibrando coordenadas...');
+                  try {
+                    const { data, error } = await supabase.functions.invoke('recalibrate-outdoor-coords');
+                    if (error) throw error;
+                    toast.success(`Recalibração concluída: ${data.updated} atualizado(s), ${data.skipped} sem alteração, ${data.errors} erro(s)`);
+                    handleRefresh();
+                  } catch (e: any) {
+                    toast.error(`Erro na recalibração: ${e.message}`);
+                  }
+                }}
+                title="Recalibrar coordenadas dos outdoors a partir das URLs do Google Maps"
+              >
+                <Crosshair className="h-3.5 w-3.5 mr-1" />
+                Calibrar
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Admin Bar - Row 2: Below header, only for super_admin */}
-      {isSuperAdmin && (
-        <div className="absolute top-[72px] left-4 z-10 pointer-events-none">
-          <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-lg border border-border pointer-events-auto">
-            <Button
-              variant={adminMode ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setAdminMode(!adminMode)}
-            >
-              <Move className="h-3.5 w-3.5 mr-1.5" />
-              {adminMode ? 'Admin ON' : 'Modo Admin'}
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowBulkEditDialog(true)}>
-              <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Lote
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowImportDialog(true)}>
-              <Upload className="h-3.5 w-3.5 mr-1.5" />
-              Importar
-            </Button>
-            <div className="w-px h-5 bg-border" />
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCreateRouteDialog(true)}>
-              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
-              Criar Rota
-            </Button>
-            <Button 
-              variant="ghost" size="sm" className="h-7 text-xs" 
-              onClick={() => {
-                if (activeWorkOrders.length === 0) {
-                  toast.info('Nenhuma OS aberta disponível para roteirização');
-                  return;
-                }
-                if (activeWorkOrders.length === 1) {
-                  const wo = activeWorkOrders[0];
-                  createAutoRoute.mutate({ packageId: wo.package_id, supplierId: wo.supplier_id, name: `Rota OS - ${wo.supplier?.name || 'Fornecedor'}` }, {
-                    onSuccess: (route) => {
-                      setActiveRouteId(route.id);
-                      setShowRoutePanel(true);
-                    }
-                  });
-                } else {
-                  setShowPackageSelectDialog(true);
-                }
-              }}
-              disabled={createAutoRoute.isPending}
-            >
-              {createAutoRoute.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1.5" />}
-              Rota Auto
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowUnifyRoutesDialog(true)}>
-              <Merge className="h-3.5 w-3.5 mr-1.5" />
-              Unificar
-            </Button>
-            <Button 
-              variant={showRoutePanel ? 'default' : 'ghost'} 
-              size="sm" className="h-7 text-xs" 
-              onClick={() => setShowRoutePanel(!showRoutePanel)}
-            >
-              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
-              Rotas
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Left Panel: Filters + KPIs */}
-      <div className="absolute top-20 left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto" style={{ top: isSuperAdmin ? '112px' : '80px' }}>
+      <div className="absolute left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-100px)] overflow-y-auto" style={{ top: '64px' }}>
         <MapSearchFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -1360,7 +1376,7 @@ export default function StrategicMapMapbox() {
       </div>
 
       {/* Right Panel: Layer Controls - positioned lower to avoid Mapbox controls */}
-      <div className="absolute top-36 right-4 z-10 w-52">
+      <div className="absolute top-16 right-4 z-10 w-52">
         <MapLayerControls
           showConveniencias={showConveniencias}
           showPostos={showPostos}
@@ -1375,13 +1391,11 @@ export default function StrategicMapMapbox() {
 
       {/* Route Panel - Right side below layer controls */}
       {isSuperAdmin && showRoutePanel && (
-        <div className="absolute top-72 right-4 z-10">
-          <RoutePanel
-            activeRouteId={activeRouteId}
-            onSelectRoute={(id) => setActiveRouteId(id)}
-            onClose={() => setShowRoutePanel(false)}
-          />
-        </div>
+        <RoutePanel
+          activeRouteId={activeRouteId}
+          onSelectRoute={(id) => setActiveRouteId(id)}
+          onClose={() => setShowRoutePanel(false)}
+        />
       )}
 
       {/* Route Layer on map */}
