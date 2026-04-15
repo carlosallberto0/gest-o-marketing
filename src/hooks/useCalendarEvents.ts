@@ -72,9 +72,8 @@ export function useCalendarEvents(selectedMonth?: Date) {
           .not('avaliacao_valida_ate', 'is', null),
       ]);
 
-      // Merge and deduplicate by id
-      const outdoorMap = new Map<string, typeof futureExpirations extends (infer T)[] | null ? T : never>();
-      [...(futureExpirations || []), ...(pendingEvals || [])].forEach(o => {
+      const outdoorMap = new Map<string, any>();
+      [...(futureExpirations || []), ...(pendingEvals || [])].forEach((o: any) => {
         if (!outdoorMap.has(o.id)) outdoorMap.set(o.id, o);
       });
 
