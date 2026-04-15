@@ -1,40 +1,34 @@
 
 
-# Validação Individual de Itens em Ordens Executadas
+# Corrigir Calendário para Mostrar Apenas Demandas Pendentes
 
 ## Problema
 
-Hoje o botão "Validar" marca a ordem inteira como validada de uma vez, sem distinção entre itens executados e não executados. O usuário precisa:
-1. Selecionar individualmente quais itens executados deseja validar (via checkbox)
-2. Validar apenas os selecionados
-3. Itens validados devem sumir da visualização
-4. Quando todos os itens forem validados, a ordem inteira é marcada como validada e desaparece
+O calendário puxa todas as avaliações com `avaliacao_valida_ate` dentro do mês, incluindo outdoors que já foram avaliados e estão operacionais. Avaliações expiradas de outdoors já verificados continuam aparecendo como eventos.
 
-## Alterações
+## Causa Raiz
 
-### 1. Migração SQL — Adicionar campos de validação nos itens
+A query de avaliações busca TODOS os outdoors com `avaliacao_valida_ate` no intervalo, sem considerar:
+- Se o outdoor já está `operational` e a avaliação já expirou (já foi tratado)
+- Se o outdoor está `pending_evaluation` (realmente precisa de atenção)
 
-Adicionar `validated` (boolean, default false) e `validated_at` (timestamp) na tabela `supplier_work_order_items`.
+## Solução
 
-### 2. Hook `useSupplierWorkOrders.ts` — Novo hook de validação por itens
+Ajustar os filtros no hook `useCalendarEvents.ts`:
 
-- Criar `useValidateWorkOrderItems(itemIds: string[])` que:
-  - Marca os itens selecionados como `validated = true, validated_at = now()`
-  - Verifica se todos os itens da ordem já foram validados
-  - Se sim, marca a ordem inteira como `validated`
+### 1. Avaliações expirando
+Mostrar apenas outdoors que:
+- Têm `avaliacao_valida_ate >= now()` (expiração futura/hoje — precisa de atenção)
+- OU `status = 'pending_evaluation'` (realmente pendente, independente da data)
 
-- Atualizar o query de `useSupplierWorkOrders` na aba "Ordens Executadas" para filtrar apenas ordens que tenham pelo menos um item `executed = true AND validated = false`
+Outdoors `operational` com avaliação já expirada não aparecem mais.
 
-### 3. Página `ServiceOrders.tsx` — Aba "Ordens Executadas"
+### 2. Manutenção pendente
+Manter o filtro `status = 'pending'` já existente (correto).
 
-- Adicionar estado de seleção de itens (checkboxes) por ordem
-- Mostrar checkbox apenas em itens executados e não validados
-- Botão "Validar Selecionados" substitui o botão "Validar" atual
-- Filtrar itens validados da visualização (não mostrar itens com `validated = true`)
-- Se uma ordem não tiver mais itens pendentes de validação, ela some da lista
+### 3. Fornecedores
+Manter filtro por status ativo (correto).
 
-### Arquivos
-- **Nova migração SQL**: `ALTER TABLE supplier_work_order_items ADD COLUMN validated boolean DEFAULT false, ADD COLUMN validated_at timestamptz`
-- **Editar**: `src/hooks/useSupplierWorkOrders.ts` (novo hook + ajuste no query)
-- **Editar**: `src/pages/ServiceOrders.tsx` (checkboxes + lógica de seleção na aba executadas)
+## Arquivo
+- **Editar**: `src/hooks/useCalendarEvents.ts` — ajustar query de avaliações (seção 1, linhas ~56-89)
 
