@@ -1468,6 +1468,10 @@ export default function StrategicMapMapbox() {
           status: o.status,
           pdvName: o.pdvName,
         }))}
+        onRouteCreated={(routeId) => {
+          setActiveRouteId(routeId);
+          setShowRoutePanel(true);
+        }}
       />
 
       <UnifyRoutesDialog
