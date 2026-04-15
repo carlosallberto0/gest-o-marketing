@@ -1,39 +1,58 @@
+<final-text># Corrigir geração da rota automática + ajuste responsivo do diálogo
 
+## Diagnóstico
+- A geração automática não está falhando na lógica da rota; ela nem chega nela. O endpoint `optimize-route` está respondendo `OPTIONS 404`, e não há logs de execução nem rotas gravadas no banco.
+- O botão `Rota Auto` ainda usa pacotes “prontos para OS” como fonte, mas o fluxo correto agora é usar as OS abertas do fornecedor (`supplier_work_orders` com status `pending`/`in_progress`).
+- O diálogo `Criar Rota` continua estourando horizontalmente porque alguns outdoors chegam com `location`/link muito longo e a linha atual não contém esse conteúdo de forma segura.
 
-# Melhorar UX do Diálogo de Rotas — Responsivo + Dados da OS do Fornecedor
+## Plano
+1. **Restabelecer a função de otimização**
+   - Garantir que `optimize-route` fique acessível/deployada.
+   - Validar preflight + POST da função e alinhar bootstrap/CORS ao padrão das funções já ativas, sem afrouxar autenticação.
+   - Confirmar que a função responde antes de mexer em qualquer lógica de UI.
 
-## Problemas
+2. **Trocar a fonte da rota automática para a OS do fornecedor**
+   - Em vez de `useReadyForServiceOrderPackages`, usar as OS abertas do fornecedor como fonte principal.
+   - O botão `Rota Auto` deve:
+     - gerar direto quando existir 1 OS aberta válida;
+     - abrir seleção quando existir mais de 1;
+     - ignorar OS sem itens georreferenciados;
+     - bloquear duplicidade quando já existir rota ativa/rascunho para o mesmo pacote + fornecedor.
+   - A rota deve ser criada com os itens atuais da OS, herdando `package_id` e `supplier_id`.
 
-1. **UX não responsiva**: O `CreateRouteDialog` usa `max-w-lg` fixo, sem adaptação para mobile. Labels e campos não são visíveis (como mostra a screenshot com textos cortados).
-2. **Dados genéricos**: O diálogo lista todos os outdoors do mapa, sem contexto das ordens de serviço ativas. O Super Admin precisa selecionar manualmente cada outdoor em vez de aproveitar os itens já presentes nas OS dos fornecedores.
+3. **Corrigir o UX do diálogo “Criar Rota”**
+   - Passar também `location_url`/metadados necessários para o diálogo.
+   - Parar de renderizar URL crua na linha principal.
+   - Exibir informações em 2 linhas seguras:
+     - linha 1: código + badges;
+     - linha 2: PDV + localização resumida;
+     - link do mapa como label curta/ação secundária.
+   - Forçar contenção horizontal (`overflow-x-hidden`, `min-w-0`, `break-all`/`truncate` no lugar certo) e ajustar largura/altura para mobile e desktop.
 
-## Solução
+4. **Ajustar a UX da seleção automática**
+   - No seletor da rota automática, mostrar OS aberta com fornecedor, pacote, quantidade de itens válidos e data.
+   - Mensagens mais claras para:
+     - sem OS aberta;
+     - OS sem coordenadas;
+     - rota já existente;
+     - otimização indisponível.
 
-### 1. Tornar o CreateRouteDialog responsivo
-- Usar `max-w-[95vw] sm:max-w-lg` no `DialogContent`
-- ScrollArea com altura dinâmica: `h-[40vh] sm:h-[250px]`
-- Footer com botões empilhados em mobile: `flex-col sm:flex-row`
-- Textos truncados com `truncate` nos nomes longos
-- Badges menores em telas pequenas
-
-### 2. Pré-carregar outdoors das OS ativas do fornecedor
-- Importar `useSupplierWorkOrders` no diálogo
-- Quando o usuário selecionar um fornecedor no Select, filtrar automaticamente os outdoors para mostrar apenas os que estão nas OS ativas desse fornecedor (status `pending` ou `in_progress`)
-- Adicionar toggle "Mostrar apenas OS ativa" (default: ligado quando fornecedor selecionado)
-- Pré-selecionar todos os outdoors da OS ao selecionar fornecedor
-- Mostrar badge "Na OS" nos itens que pertencem a uma ordem de serviço
-
-### 3. Tornar os outros dialogs responsivos também
-- `UnifyRoutesDialog`: `max-w-[95vw] sm:max-w-md`
-- `PackageSelectDialog` (inline no StrategicMapMapbox): mesmo tratamento
-- `RoutePanel`: Ajustar para tela pequena com `w-full sm:w-64`
+5. **Validação final**
+   - Testar ponta a ponta:
+     - abrir mapa;
+     - gerar rota automática a partir de OS aberta;
+     - abrir “Criar Rota” e confirmar que nenhuma informação corta;
+     - validar em viewport desktop e mobile.
 
 ## Arquivos
+- `supabase/functions/optimize-route/index.ts`
+- `src/hooks/useRoutes.ts`
+- `src/pages/StrategicMapMapbox.tsx`
+- `src/components/map/CreateRouteDialog.tsx`
+- `src/hooks/useSupplierWorkOrders.ts` (se precisar expor/normalizar melhor os itens da OS)
+- opcionalmente `supabase/config.toml` apenas se a função precisar de configuração específica para voltar a responder
 
-| Ação | Arquivo |
-|------|---------|
-| Editar | `src/components/map/CreateRouteDialog.tsx` — responsivo + integração com OS |
-| Editar | `src/components/map/UnifyRoutesDialog.tsx` — responsivo |
-| Editar | `src/components/map/RoutePanel.tsx` — responsivo |
-| Editar | `src/pages/StrategicMapMapbox.tsx` — PackageSelectDialog responsivo |
-
+## Resultado esperado
+- `Rota Auto` passa a usar exatamente o que está na OS aberta do fornecedor.
+- A função de otimização volta a responder corretamente.
+- O diálogo `Criar Rota` deixa de cortar/invadir conteúdo, mesmo com links longos.</final-text>
