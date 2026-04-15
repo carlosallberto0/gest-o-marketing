@@ -17,8 +17,14 @@ import { InlineContextMenu } from '@/components/map/MapContextMenu';
 import { useMapPersistence } from '@/hooks/useMapPersistence';
 import { MapLegend } from '@/components/map/MapLegend';
 import { MapErrorBoundary } from '@/components/map/MapErrorBoundary';
+import { RouteLayer } from '@/components/map/RouteLayer';
+import { RoutePanel } from '@/components/map/RoutePanel';
+import { CreateRouteDialog } from '@/components/map/CreateRouteDialog';
+import { UnifyRoutesDialog } from '@/components/map/UnifyRoutesDialog';
+import { useRouteDetails, useCreateAutoRoute } from '@/hooks/useRoutes';
+import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle, Route as RouteIcon, Zap, Merge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRoot, Root } from 'react-dom/client';
@@ -115,6 +121,15 @@ export default function StrategicMapMapbox() {
   const [selectedImportStatus, setSelectedImportStatus] = useState(persistedState.filters.selectedImportStatus);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+
+  // Route state
+  const [showRoutePanel, setShowRoutePanel] = useState(false);
+  const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
+  const [showCreateRouteDialog, setShowCreateRouteDialog] = useState(false);
+  const [showUnifyRoutesDialog, setShowUnifyRoutesDialog] = useState(false);
+  const { data: activeRouteData } = useRouteDetails(activeRouteId || undefined);
+  const createAutoRoute = useCreateAutoRoute();
+  const { data: readyPackages = [] } = useReadyForServiceOrderPackages();
 
   // Admin mode state
   const [adminMode, setAdminMode] = useState(false);
@@ -1273,6 +1288,43 @@ export default function StrategicMapMapbox() {
               <Upload className="h-3.5 w-3.5 mr-1.5" />
               Importar
             </Button>
+            <div className="w-px h-5 bg-border" />
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCreateRouteDialog(true)}>
+              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
+              Criar Rota
+            </Button>
+            <Button 
+              variant="ghost" size="sm" className="h-7 text-xs" 
+              onClick={() => {
+                if (readyPackages.length === 0) {
+                  toast.info('Nenhum pacote aprovado disponível para roteirização');
+                  return;
+                }
+                const pkg = readyPackages[0];
+                createAutoRoute.mutate({ packageId: pkg.id }, {
+                  onSuccess: (route) => {
+                    setActiveRouteId(route.id);
+                    setShowRoutePanel(true);
+                  }
+                });
+              }}
+              disabled={createAutoRoute.isPending}
+            >
+              {createAutoRoute.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1.5" />}
+              Rota Auto
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowUnifyRoutesDialog(true)}>
+              <Merge className="h-3.5 w-3.5 mr-1.5" />
+              Unificar
+            </Button>
+            <Button 
+              variant={showRoutePanel ? 'default' : 'ghost'} 
+              size="sm" className="h-7 text-xs" 
+              onClick={() => setShowRoutePanel(!showRoutePanel)}
+            >
+              <RouteIcon className="h-3.5 w-3.5 mr-1.5" />
+              Rotas
+            </Button>
           </div>
         </div>
       )}
@@ -1306,6 +1358,20 @@ export default function StrategicMapMapbox() {
           onToggleAlerts={() => setShowAlerts(!showAlerts)}
         />
       </div>
+
+      {/* Route Panel - Right side below layer controls */}
+      {isSuperAdmin && showRoutePanel && (
+        <div className="absolute top-72 right-4 z-10">
+          <RoutePanel
+            activeRouteId={activeRouteId}
+            onSelectRoute={(id) => setActiveRouteId(id)}
+            onClose={() => setShowRoutePanel(false)}
+          />
+        </div>
+      )}
+
+      {/* Route Layer on map */}
+      <RouteLayer map={mapRef.current} route={activeRouteData || null} />
 
       {/* Bottom Left: Legend + Counter Badge inline */}
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
@@ -1362,6 +1428,24 @@ export default function StrategicMapMapbox() {
           onSuccess={handleImportSuccess}
         />
       )}
+
+      {/* Route Dialogs */}
+      <CreateRouteDialog
+        open={showCreateRouteDialog}
+        onOpenChange={setShowCreateRouteDialog}
+        outdoors={filteredOutdoors.map(o => ({
+          id: o.id,
+          code: o.code,
+          location: o.location,
+          status: o.status,
+          pdvName: o.pdvName,
+        }))}
+      />
+
+      <UnifyRoutesDialog
+        open={showUnifyRoutesDialog}
+        onOpenChange={setShowUnifyRoutesDialog}
+      />
       </div>
     </MapErrorBoundary>
   );

@@ -15,7 +15,11 @@ import {
   MapPin,
   Building,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Route as RouteIcon,
+  Navigation,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 import { 
   useMySupplierWorkOrders, 
@@ -23,6 +27,7 @@ import {
   useSubmitWorkOrder,
   SupplierWorkOrderItem 
 } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierRoutes } from '@/hooks/useRoutes';
 import { supabase } from '@/integrations/supabase/client';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { format } from 'date-fns';
@@ -36,6 +41,7 @@ export default function SupplierPanel() {
   const [uploadingItem, setUploadingItem] = useState<string | null>(null);
 
   const { data: workOrders = [], isLoading } = useMySupplierWorkOrders();
+  const { data: supplierRoutes = [], isLoading: routesLoading } = useSupplierRoutes();
   const markExecuted = useMarkItemExecuted();
   const submitWorkOrder = useSubmitWorkOrder();
 
@@ -169,6 +175,15 @@ export default function SupplierPanel() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="routes">
+              <RouteIcon className="h-4 w-4 mr-1.5" />
+              Rota Sugerida
+              {supplierRoutes.length > 0 && (
+                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+                  {supplierRoutes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="outdoors">Relação de Outdoors</TabsTrigger>
           </TabsList>
 
@@ -252,6 +267,113 @@ export default function SupplierPanel() {
                     </Card>
                   );
                 })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Routes Tab */}
+          <TabsContent value="routes">
+            {routesLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : supplierRoutes.length === 0 ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <Navigation className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Nenhuma rota sugerida</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Quando houver rotas de manutenção atribuídas, elas aparecerão aqui
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                    <Navigation className="h-4 w-4" />
+                    <strong>Nota:</strong> As rotas abaixo são sugestões otimizadas para reduzir deslocamento. A ordem de execução é flexível.
+                  </p>
+                </div>
+
+                {supplierRoutes.map(route => (
+                  <Card key={route.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <RouteIcon className="h-4 w-4" />
+                          {route.name}
+                        </CardTitle>
+                        <Badge variant="outline">{route.total_distance_km} km</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Partida: {route.origin_label}
+                        </span>
+                        {route.deadline && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Prazo: {format(new Date(route.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {/* Origin */}
+                        <div className="flex items-center gap-3 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                          <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">🏁</div>
+                          <div>
+                            <p className="text-sm font-medium">{route.origin_label}</p>
+                            <p className="text-xs text-muted-foreground">Ponto de partida</p>
+                          </div>
+                        </div>
+
+                        {(route.points || []).map(point => {
+                          const pdv = point.outdoor?.pdv as any;
+                          return (
+                            <div key={point.id} className="flex items-center gap-3 p-2 rounded-lg border border-border hover:bg-accent/50">
+                              <Badge 
+                                variant={point.priority === 'critical' ? 'destructive' : point.priority === 'pending' ? 'warning' : 'secondary'} 
+                                className="text-xs px-2 py-0.5 min-w-[28px] justify-center"
+                              >
+                                {point.sequence}
+                              </Badge>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{point.outdoor?.code}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {pdv?.name} — {point.outdoor?.location}
+                                </p>
+                                {point.scheduled_date && (
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(point.scheduled_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                  </p>
+                                )}
+                              </div>
+                              {point.outdoor?.lat && point.outdoor?.lng && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${point.outdoor!.lat},${point.outdoor!.lng}`, '_blank');
+                                  }}
+                                  title="Abrir no Google Maps"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </TabsContent>
