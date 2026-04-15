@@ -24,6 +24,7 @@ import { UnifyRoutesDialog } from '@/components/map/UnifyRoutesDialog';
 import { useRouteDetails, useCreateAutoRoute } from '@/hooks/useRoutes';
 import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle, Route as RouteIcon, Zap, Merge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
