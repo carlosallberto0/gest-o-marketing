@@ -25,9 +25,10 @@ interface CreateRouteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   outdoors: OutdoorOption[];
+  onRouteCreated?: (routeId: string) => void;
 }
 
-export function CreateRouteDialog({ open, onOpenChange, outdoors }: CreateRouteDialogProps) {
+export function CreateRouteDialog({ open, onOpenChange, outdoors, onRouteCreated }: CreateRouteDialogProps) {
   const [name, setName] = useState('');
   const [selectedOutdoors, setSelectedOutdoors] = useState<Set<string>>(new Set());
   const [supplierId, setSupplierId] = useState<string>('');
@@ -85,18 +86,27 @@ export function CreateRouteDialog({ open, onOpenChange, outdoors }: CreateRouteD
     });
   };
 
+  const handleSelectAll = () => {
+    setSelectedOutdoors(new Set(filteredOutdoors.map(o => o.id)));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedOutdoors(new Set());
+  };
+
   const handleSubmit = () => {
     if (!name.trim() || selectedOutdoors.size === 0) return;
     createRoute.mutate(
       { name, outdoorIds: Array.from(selectedOutdoors), supplierId: supplierId || undefined },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           onOpenChange(false);
           setName('');
           setSelectedOutdoors(new Set());
           setSupplierId('');
           setSearch('');
           setOnlyFromOS(false);
+          if (data?.id) onRouteCreated?.(data.id);
         },
       }
     );
@@ -145,8 +155,16 @@ export function CreateRouteDialog({ open, onOpenChange, outdoors }: CreateRouteD
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <Label className="text-xs">Outdoors ({selectedOutdoors.size} selecionado{selectedOutdoors.size !== 1 ? 's' : ''})</Label>
+            <div className="flex items-center justify-between mb-1.5 gap-2">
+              <Label className="text-xs shrink-0">Outdoors ({selectedOutdoors.size}/{filteredOutdoors.length})</Label>
+              <div className="flex gap-1">
+                <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={handleSelectAll}>
+                  Todos
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={handleClearSelection}>
+                  Limpar
+                </Button>
+              </div>
             </div>
             <Input
               placeholder="Buscar outdoor..."

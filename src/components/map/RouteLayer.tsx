@@ -19,15 +19,32 @@ export function RouteLayer({ map, route }: RouteLayerProps) {
   const layerId = 'route-line-layer';
 
   useEffect(() => {
-    if (!map || !route?.points?.length) {
-      // Clean up
-      if (map) {
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-      }
+    if (!map) return;
+
+    const cleanup = () => {
+      try {
+        if (map.getStyle()) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+        }
+      } catch { /* style not loaded */ }
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
+    };
+
+    if (!route?.points?.length) {
+      cleanup();
       return;
+    }
+
+    // Wait for style to be loaded
+    if (!map.isStyleLoaded()) {
+      const onLoad = () => {
+        map.off('style.load', onLoad);
+        // Re-trigger by forcing update — the effect will re-run
+      };
+      map.on('style.load', onLoad);
+      return () => { map.off('style.load', onLoad); };
     }
 
     const validPoints = route.points.filter(
