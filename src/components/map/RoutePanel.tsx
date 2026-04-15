@@ -43,12 +43,12 @@ export function RoutePanel({ activeRouteId, onSelectRoute, onClose }: RoutePanel
   };
 
   return (
-    <Card className="w-64 bg-background/95 backdrop-blur-sm shadow-lg border">
+    <Card className="w-full sm:w-64 bg-background/95 backdrop-blur-sm shadow-lg border max-h-[60vh] sm:max-h-none">
       <CardHeader className="p-3 pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-1.5">
-            <RouteIcon className="h-4 w-4" />
-            Rotas
+            <RouteIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Rotas</span>
           </CardTitle>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(!expanded)}>
@@ -78,7 +78,7 @@ export function RoutePanel({ activeRouteId, onSelectRoute, onClose }: RoutePanel
                 <SelectContent>
                   {activeRoutes.map(r => (
                     <SelectItem key={r.id} value={r.id}>
-                      <span className="text-xs">{r.name}</span>
+                      <span className="text-xs truncate">{r.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -97,25 +97,25 @@ export function RoutePanel({ activeRouteId, onSelectRoute, onClose }: RoutePanel
 
                   {activeRoute.deadline && (
                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Prazo: {format(new Date(activeRoute.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      <span className="truncate">Prazo: {format(new Date(activeRoute.deadline), 'dd/MM/yyyy', { locale: ptBR })}</span>
                     </p>
                   )}
 
-                  <ScrollArea className="h-[300px]">
+                  <ScrollArea className="h-[200px] sm:h-[300px]">
                     <div className="space-y-1.5">
                       {/* Origin */}
                       <div className="flex items-center gap-2 p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
-                        <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">🏁</div>
-                        <div>
-                          <p className="text-[11px] font-medium">{activeRoute.origin_label}</p>
+                        <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shrink-0">🏁</div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium truncate">{activeRoute.origin_label}</p>
                           <p className="text-[9px] text-muted-foreground">Ponto de partida</p>
                         </div>
                       </div>
 
                       {(activeRoute.points || []).map(point => (
                         <div key={point.id} className="flex items-start gap-2 p-1.5 rounded border border-border hover:bg-accent/50">
-                          <Badge variant={priorityColor(point.priority) as any} className="text-[9px] px-1 py-0 min-w-[20px] justify-center">
+                          <Badge variant={priorityColor(point.priority) as any} className="text-[9px] px-1 py-0 min-w-[20px] justify-center shrink-0">
                             {point.sequence}
                           </Badge>
                           <div className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ export function RoutePanel({ activeRouteId, onSelectRoute, onClose }: RoutePanel
                               </p>
                             )}
                           </div>
-                          <Badge variant="outline" className="text-[8px] px-1">
+                          <Badge variant="outline" className="text-[8px] px-1 shrink-0">
                             {priorityLabel(point.priority)}
                           </Badge>
                         </div>
@@ -137,7 +137,7 @@ export function RoutePanel({ activeRouteId, onSelectRoute, onClose }: RoutePanel
                     </div>
                   </ScrollArea>
 
-                  <div className="flex gap-1">
+                  <div className="flex flex-col sm:flex-row gap-1">
                     {activeRoute.status === 'draft' && (
                       <Button size="sm" className="h-7 text-xs flex-1" onClick={() => activateRoute.mutate(activeRoute.id)}>
                         <Play className="h-3 w-3 mr-1" />

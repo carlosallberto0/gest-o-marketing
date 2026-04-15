@@ -1455,18 +1455,18 @@ export default function StrategicMapMapbox() {
 
       {/* Package Selection Dialog for Auto Route */}
       <Dialog open={showPackageSelectDialog} onOpenChange={setShowPackageSelectDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md w-full">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Selecionar Pacote para Rota
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Zap className="h-5 w-5 shrink-0" />
+              <span className="truncate">Selecionar Pacote para Rota</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          <div className="space-y-2 max-h-[50vh] sm:max-h-[300px] overflow-y-auto">
             {readyPackages.map((pkg) => (
               <div
                 key={pkg.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                className="flex items-center justify-between gap-2 p-2.5 sm:p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                 onClick={() => {
                   setShowPackageSelectDialog(false);
                   createAutoRoute.mutate({ packageId: pkg.id }, {
@@ -1477,13 +1477,13 @@ export default function StrategicMapMapbox() {
                   });
                 }}
               >
-                <div>
-                  <p className="text-sm font-medium">Pacote #{pkg.id.slice(0, 8)}</p>
-                  <p className="text-xs text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">Pacote #{pkg.id.slice(0, 8)}</p>
+                  <p className="text-xs text-muted-foreground truncate">
                     Criado em {new Date(pkg.created_at).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
-                <Button variant="outline" size="sm">Gerar Rota</Button>
+                <Button variant="outline" size="sm" className="shrink-0">Gerar Rota</Button>
               </div>
             ))}
           </div>

@@ -40,32 +40,32 @@ export function UnifyRoutesDialog({ open, onOpenChange }: UnifyRoutesDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-[95vw] sm:max-w-md w-full">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Merge className="h-5 w-5" />
-            Unificar Rotas
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Merge className="h-5 w-5 shrink-0" />
+            <span className="truncate">Unificar Rotas</span>
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Selecione 2 ou mais rotas para consolidar em uma única rota otimizada.
         </p>
 
-        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <div className="space-y-2 max-h-[50vh] sm:max-h-[300px] overflow-y-auto">
           {activeRoutes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhuma rota ativa disponível</p>
           ) : (
             activeRoutes.map(route => (
-              <div key={route.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50">
+              <div key={route.id} className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 border rounded-lg hover:bg-accent/50">
                 <Checkbox checked={selected.has(route.id)} onCheckedChange={() => toggle(route.id)} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{route.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {route.total_distance_km} km • Criada em {format(new Date(route.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                  <p className="text-xs text-muted-foreground truncate">
+                    {route.total_distance_km} km • {format(new Date(route.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[9px] sm:text-[10px] shrink-0">
                   {route.type === 'auto' ? 'Auto' : route.type === 'manual' ? 'Manual' : 'Unificada'}
                 </Badge>
               </div>
@@ -73,9 +73,9 @@ export function UnifyRoutesDialog({ open, onOpenChange }: UnifyRoutesDialogProps
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleUnify} disabled={selected.size < 2 || unifyRoutes.isPending}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
+          <Button onClick={handleUnify} disabled={selected.size < 2 || unifyRoutes.isPending} className="w-full sm:w-auto">
             {unifyRoutes.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Unificar ({selected.size} rotas)
           </Button>
