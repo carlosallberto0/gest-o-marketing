@@ -1359,6 +1359,20 @@ export default function StrategicMapMapbox() {
         />
       </div>
 
+      {/* Route Panel - Right side below layer controls */}
+      {isSuperAdmin && showRoutePanel && (
+        <div className="absolute top-72 right-4 z-10">
+          <RoutePanel
+            activeRouteId={activeRouteId}
+            onSelectRoute={(id) => setActiveRouteId(id)}
+            onClose={() => setShowRoutePanel(false)}
+          />
+        </div>
+      )}
+
+      {/* Route Layer on map */}
+      <RouteLayer map={mapRef.current} route={activeRouteData || null} />
+
       {/* Bottom Left: Legend + Counter Badge inline */}
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
         <MapLegend />
@@ -1414,6 +1428,24 @@ export default function StrategicMapMapbox() {
           onSuccess={handleImportSuccess}
         />
       )}
+
+      {/* Route Dialogs */}
+      <CreateRouteDialog
+        open={showCreateRouteDialog}
+        onOpenChange={setShowCreateRouteDialog}
+        outdoors={filteredOutdoors.map(o => ({
+          id: o.id,
+          code: o.code,
+          location: o.location,
+          status: o.status,
+          pdvName: o.pdvName,
+        }))}
+      />
+
+      <UnifyRoutesDialog
+        open={showUnifyRoutesDialog}
+        onOpenChange={setShowUnifyRoutesDialog}
+      />
       </div>
     </MapErrorBoundary>
   );
