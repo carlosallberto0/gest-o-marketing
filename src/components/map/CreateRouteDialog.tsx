@@ -81,12 +81,12 @@ export function CreateRouteDialog({ open, onOpenChange, outdoors }: CreateRouteD
 
           <div>
             <Label>Fornecedor (opcional)</Label>
-            <Select value={supplierId} onValueChange={setSupplierId}>
+            <Select value={supplierId || 'none'} onValueChange={(v) => setSupplierId(v === 'none' ? '' : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um fornecedor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {suppliers.map(s => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}

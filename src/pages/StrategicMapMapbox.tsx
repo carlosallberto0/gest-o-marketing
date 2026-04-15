@@ -127,6 +127,7 @@ export default function StrategicMapMapbox() {
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
   const [showCreateRouteDialog, setShowCreateRouteDialog] = useState(false);
   const [showUnifyRoutesDialog, setShowUnifyRoutesDialog] = useState(false);
+  const [showPackageSelectDialog, setShowPackageSelectDialog] = useState(false);
   const { data: activeRouteData } = useRouteDetails(activeRouteId || undefined);
   const createAutoRoute = useCreateAutoRoute();
   const { data: readyPackages = [] } = useReadyForServiceOrderPackages();
