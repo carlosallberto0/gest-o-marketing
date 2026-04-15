@@ -169,16 +169,37 @@ export function useCreateAutoRoute() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
-      // Get outdoor IDs from package items (approved only)
-      const { data: items, error: itemsError } = await supabase
-        .from('maintenance_package_items')
-        .select('outdoor_id')
+      // Try work order items first, fallback to package items
+      let outdoorIds: string[] = [];
+      
+      // Check supplier_work_order_items for this package
+      const { data: woData } = await supabase
+        .from('supplier_work_orders')
+        .select('id')
         .eq('package_id', input.packageId)
-        .eq('status', 'approved');
+        .in('status', ['pending', 'in_progress']);
 
-      if (itemsError) throw itemsError;
-      const outdoorIds = (items || []).map(i => i.outdoor_id);
-      if (outdoorIds.length === 0) throw new Error('Nenhum outdoor aprovado no pacote');
+      if (woData && woData.length > 0) {
+        const woIds = woData.map((wo: any) => wo.id);
+        const { data: woItems } = await supabase
+          .from('supplier_work_order_items')
+          .select('outdoor_id')
+          .in('work_order_id', woIds);
+        outdoorIds = (woItems || []).map((i: any) => i.outdoor_id);
+      }
+
+      // Fallback to package items if no work order items
+      if (outdoorIds.length === 0) {
+        const { data: items, error: itemsError } = await supabase
+          .from('maintenance_package_items')
+          .select('outdoor_id')
+          .eq('package_id', input.packageId)
+          .eq('status', 'approved');
+        if (itemsError) throw itemsError;
+        outdoorIds = (items || []).map(i => i.outdoor_id);
+      }
+
+      if (outdoorIds.length === 0) throw new Error('Nenhum outdoor encontrado na OS/pacote');
 
       // Call optimization edge function
       const { data: optimized, error: optError } = await supabase.functions.invoke('optimize-route', {

@@ -159,25 +159,29 @@ export function CreateRouteDialog({ open, onOpenChange, outdoors }: CreateRouteD
                 <p className="text-xs text-muted-foreground text-center py-4">Nenhum outdoor encontrado</p>
               ) : (
                 filteredOutdoors.map(o => (
-                  <div key={o.id} className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded">
+                  <div key={o.id} className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded overflow-hidden">
                     <Checkbox
                       checked={selectedOutdoors.has(o.id)}
                       onCheckedChange={() => toggleOutdoor(o.id)}
+                      className="shrink-0"
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{o.code}</p>
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-medium truncate">{o.code}</p>
+                        {osOutdoorIds.has(o.id) && (
+                          <Badge variant="default" className="text-[9px] px-1 py-0 shrink-0">OS</Badge>
+                        )}
+                        <Badge variant={o.status === 'non_operational' ? 'destructive' : 'secondary'} className="text-[9px] px-1 py-0 shrink-0">
+                          {o.status === 'non_operational' ? 'Não Op.' : o.status === 'pending_evaluation' ? 'Pend.' : 'OK'}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">
                         <MapPin className="h-3 w-3 inline mr-1 shrink-0" />
-                        {o.pdvName} — {o.location}
+                        {o.pdvName}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {osOutdoorIds.has(o.id) && (
-                        <Badge variant="default" className="text-[9px] px-1 py-0">OS</Badge>
+                      {o.location && (
+                        <p className="text-[10px] text-muted-foreground/70 truncate">{o.location}</p>
                       )}
-                      <Badge variant={o.status === 'non_operational' ? 'destructive' : 'secondary'} className="text-[9px] px-1 py-0">
-                        {o.status === 'non_operational' ? 'Não Op.' : o.status === 'pending_evaluation' ? 'Pend.' : 'OK'}
-                      </Badge>
                     </div>
                   </div>
                 ))
