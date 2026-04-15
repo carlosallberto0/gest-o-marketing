@@ -52,42 +52,53 @@ export function useCalendarEvents(selectedMonth?: Date) {
         ? endOfMonth(addDays(selectedMonth, 30)) 
         : addDays(today, 60);
 
-      // 1. Fetch outdoors with expiring evaluations
-      const { data: outdoors } = await supabase
-        .from('outdoors')
-        .select(`
-          id,
-          code,
-          avaliacao_valida_ate,
-          pdv:pdvs(name)
-        `)
-        .not('avaliacao_valida_ate', 'is', null)
-        .gte('avaliacao_valida_ate', rangeStart.toISOString())
-        .lte('avaliacao_valida_ate', rangeEnd.toISOString());
+      // 1. Fetch outdoors with expiring evaluations (only pending or future expiration)
+      // Two queries: future expirations in range + pending_evaluation regardless of date
+      const todayISO = today.toISOString();
 
-      if (outdoors) {
-        outdoors.forEach(outdoor => {
-          if (!outdoor.avaliacao_valida_ate) return;
-          
-          const expirationDate = parseISO(outdoor.avaliacao_valida_ate);
-          const daysUntil = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          events.push({
-            id: `outdoor-eval-${outdoor.id}`,
-            date: startOfDay(expirationDate),
-            title: `Avaliação expira: ${outdoor.code}`,
-            description: `PDV: ${(outdoor.pdv as any)?.name || 'N/A'}`,
-            type: 'avaliacao_expirando',
-            severity: getSeverityFromDays(daysUntil, { critical: 0, warning: 3 }),
-            metadata: {
-              outdoorId: outdoor.id,
-              outdoorCode: outdoor.code,
-              pdvName: (outdoor.pdv as any)?.name,
-              navigateTo: `/outdoor/${outdoor.id}`,
-            },
-          });
+      const [{ data: futureExpirations }, { data: pendingEvals }] = await Promise.all([
+        // Outdoors with future expiration dates within range
+        supabase
+          .from('outdoors')
+          .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
+          .not('avaliacao_valida_ate', 'is', null)
+          .gte('avaliacao_valida_ate', todayISO)
+          .lte('avaliacao_valida_ate', rangeEnd.toISOString()),
+        // Outdoors pending evaluation (need attention regardless)
+        supabase
+          .from('outdoors')
+          .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
+          .eq('status_operacional', 'pending_evaluation')
+          .not('avaliacao_valida_ate', 'is', null),
+      ]);
+
+      // Merge and deduplicate by id
+      const outdoorMap = new Map<string, typeof futureExpirations extends (infer T)[] | null ? T : never>();
+      [...(futureExpirations || []), ...(pendingEvals || [])].forEach(o => {
+        if (!outdoorMap.has(o.id)) outdoorMap.set(o.id, o);
+      });
+
+      outdoorMap.forEach(outdoor => {
+        if (!outdoor.avaliacao_valida_ate) return;
+        
+        const expirationDate = parseISO(outdoor.avaliacao_valida_ate);
+        const daysUntil = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        events.push({
+          id: `outdoor-eval-${outdoor.id}`,
+          date: startOfDay(expirationDate),
+          title: `Avaliação expira: ${outdoor.code}`,
+          description: `PDV: ${(outdoor.pdv as any)?.name || 'N/A'}`,
+          type: 'avaliacao_expirando',
+          severity: getSeverityFromDays(daysUntil, { critical: 0, warning: 3 }),
+          metadata: {
+            outdoorId: outdoor.id,
+            outdoorCode: outdoor.code,
+            pdvName: (outdoor.pdv as any)?.name,
+            navigateTo: `/outdoor/${outdoor.id}`,
+          },
         });
-      }
+      });
 
       // 2. Fetch contracts expiring soon
       const { data: contracts } = await supabase
