@@ -1,58 +1,46 @@
-<final-text># Corrigir geração da rota automática + ajuste responsivo do diálogo
 
-## Diagnóstico
-- A geração automática não está falhando na lógica da rota; ela nem chega nela. O endpoint `optimize-route` está respondendo `OPTIONS 404`, e não há logs de execução nem rotas gravadas no banco.
-- O botão `Rota Auto` ainda usa pacotes “prontos para OS” como fonte, mas o fluxo correto agora é usar as OS abertas do fornecedor (`supplier_work_orders` com status `pending`/`in_progress`).
-- O diálogo `Criar Rota` continua estourando horizontalmente porque alguns outdoors chegam com `location`/link muito longo e a linha atual não contém esse conteúdo de forma segura.
 
-## Plano
-1. **Restabelecer a função de otimização**
-   - Garantir que `optimize-route` fique acessível/deployada.
-   - Validar preflight + POST da função e alinhar bootstrap/CORS ao padrão das funções já ativas, sem afrouxar autenticação.
-   - Confirmar que a função responde antes de mexer em qualquer lógica de UI.
+# Ajustes no Mapa Estratégico — Coordenadas, Menu Admin e Painel de Rotas Móvel
 
-2. **Trocar a fonte da rota automática para a OS do fornecedor**
-   - Em vez de `useReadyForServiceOrderPackages`, usar as OS abertas do fornecedor como fonte principal.
-   - O botão `Rota Auto` deve:
-     - gerar direto quando existir 1 OS aberta válida;
-     - abrir seleção quando existir mais de 1;
-     - ignorar OS sem itens georreferenciados;
-     - bloquear duplicidade quando já existir rota ativa/rascunho para o mesmo pacote + fornecedor.
-   - A rota deve ser criada com os itens atuais da OS, herdando `package_id` e `supplier_id`.
+## 3 Problemas Identificados
 
-3. **Corrigir o UX do diálogo “Criar Rota”**
-   - Passar também `location_url`/metadados necessários para o diálogo.
-   - Parar de renderizar URL crua na linha principal.
-   - Exibir informações em 2 linhas seguras:
-     - linha 1: código + badges;
-     - linha 2: PDV + localização resumida;
-     - link do mapa como label curta/ação secundária.
-   - Forçar contenção horizontal (`overflow-x-hidden`, `min-w-0`, `break-all`/`truncate` no lugar certo) e ajustar largura/altura para mobile e desktop.
+### 1. Coordenadas dos outdoors não batem com a URL do Google Maps
+Os outdoors usam `lat`/`lng` salvos no banco, mas muitos foram importados com coordenadas do viewport (`@lat,lng`) em vez do ponto exato (`!3d/!4d`). Quando o outdoor só tem `location_url` (link curto ou completo do Google Maps), as coordenadas salvas podem não corresponder ao ponto real.
 
-4. **Ajustar a UX da seleção automática**
-   - No seletor da rota automática, mostrar OS aberta com fornecedor, pacote, quantidade de itens válidos e data.
-   - Mensagens mais claras para:
-     - sem OS aberta;
-     - OS sem coordenadas;
-     - rota já existente;
-     - otimização indisponível.
+**Solução**: Criar um script de recalibração em lote (edge function ou migration) que:
+- Percorre todos os outdoors que possuem `location_url` preenchida
+- Usa a lógica de `resolve-google-maps-url` para re-extrair coordenadas priorizando `!3d/!4d`
+- Compara com `lat`/`lng` atuais — se diferença > 50m, atualiza
+- Registra log das alterações
+- Adicionar botão "Recalibrar Coordenadas" nas configurações ou no Modo Admin do mapa para executar sob demanda
 
-5. **Validação final**
-   - Testar ponta a ponta:
-     - abrir mapa;
-     - gerar rota automática a partir de OS aberta;
-     - abrir “Criar Rota” e confirmar que nenhuma informação corta;
-     - validar em viewport desktop e mobile.
+### 2. Menu Admin mal posicionado
+Atualmente o toolbar admin fica em uma segunda linha (`top-[72px]`), ocupando espaço visual e empurrando os filtros para baixo. 
+
+**Solução**: Mover os botões admin para dentro da mesma barra do título (linha 1264-1278), após o botão de refresh. Usar um separador visual (`|`) entre os controles de navegação e os botões admin. Em mobile, os botões admin ficam em overflow horizontal com scroll.
+
+### 3. Painel de Rotas fixo (não móvel)
+O `RoutePanel` está posicionado com `absolute top-72 right-4`, sem possibilidade de arrastar.
+
+**Solução**: Tornar o `RoutePanel` arrastável (draggable) usando:
+- Estado `position` (`x`, `y`) no componente
+- Handler `onMouseDown` no header do card para iniciar drag
+- `onMouseMove`/`onMouseUp` no `document` para atualizar posição
+- Cursor `grab`/`grabbing` no header como indicação visual
+- Ícone de "grip" no header para sinalizar que é arrastável
+- Sem dependência externa — apenas eventos nativos do mouse/touch
 
 ## Arquivos
-- `supabase/functions/optimize-route/index.ts`
-- `src/hooks/useRoutes.ts`
-- `src/pages/StrategicMapMapbox.tsx`
-- `src/components/map/CreateRouteDialog.tsx`
-- `src/hooks/useSupplierWorkOrders.ts` (se precisar expor/normalizar melhor os itens da OS)
-- opcionalmente `supabase/config.toml` apenas se a função precisar de configuração específica para voltar a responder
 
-## Resultado esperado
-- `Rota Auto` passa a usar exatamente o que está na OS aberta do fornecedor.
-- A função de otimização volta a responder corretamente.
-- O diálogo `Criar Rota` deixa de cortar/invadir conteúdo, mesmo com links longos.</final-text>
+| Ação | Arquivo |
+|------|---------|
+| Criar | `supabase/functions/recalibrate-outdoor-coords/index.ts` — Edge function para recalibrar coordenadas em lote |
+| Editar | `src/pages/StrategicMapMapbox.tsx` — Mover admin bar para linha do título; adicionar botão recalibrar; ajustar posição do RoutePanel para draggable |
+| Editar | `src/components/map/RoutePanel.tsx` — Adicionar lógica de drag (mouse + touch) com estado de posição |
+
+## O que NÃO será tocado
+- Filtros, legendas, indicadores, camadas existentes
+- Dados e queries de PDVs/Outdoors (apenas coordenadas atualizadas via edge function)
+- Performance do mapa
+- Fluxos de aprovação e OS existentes
+
