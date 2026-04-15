@@ -1301,13 +1301,17 @@ export default function StrategicMapMapbox() {
                   toast.info('Nenhum pacote aprovado disponível para roteirização');
                   return;
                 }
-                const pkg = readyPackages[0];
-                createAutoRoute.mutate({ packageId: pkg.id }, {
-                  onSuccess: (route) => {
-                    setActiveRouteId(route.id);
-                    setShowRoutePanel(true);
-                  }
-                });
+                if (readyPackages.length === 1) {
+                  const pkg = readyPackages[0];
+                  createAutoRoute.mutate({ packageId: pkg.id }, {
+                    onSuccess: (route) => {
+                      setActiveRouteId(route.id);
+                      setShowRoutePanel(true);
+                    }
+                  });
+                } else {
+                  setShowPackageSelectDialog(true);
+                }
               }}
               disabled={createAutoRoute.isPending}
             >
