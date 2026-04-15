@@ -15,7 +15,11 @@ import {
   MapPin,
   Building,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Route as RouteIcon,
+  Navigation,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 import { 
   useMySupplierWorkOrders, 
@@ -23,6 +27,7 @@ import {
   useSubmitWorkOrder,
   SupplierWorkOrderItem 
 } from '@/hooks/useSupplierWorkOrders';
+import { useSupplierRoutes } from '@/hooks/useRoutes';
 import { supabase } from '@/integrations/supabase/client';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import { format } from 'date-fns';
