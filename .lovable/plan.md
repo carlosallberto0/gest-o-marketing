@@ -1,28 +1,39 @@
 
 
-# Corrigir Crash do Mapa + Melhorar Rota Automática
+# Melhorar UX do Diálogo de Rotas — Responsivo + Dados da OS do Fornecedor
 
-## Problemas Identificados
+## Problemas
 
-### 1. Crash do mapa (Select.Item com value vazio)
-O `CreateRouteDialog.tsx` linha 89 tem `<SelectItem value="">Nenhum</SelectItem>`. Radix UI não permite `value=""` no `SelectItem`, causando o erro que derruba o mapa inteiro (capturado pelo ErrorBoundary).
-
-### 2. Rota Automática sem contexto
-O botão "Rota Auto" pega o primeiro pacote da lista sem verificar se tem fornecedor vinculado. Deveria mostrar a lista de pacotes aprovados com fornecedor para o usuário escolher.
+1. **UX não responsiva**: O `CreateRouteDialog` usa `max-w-lg` fixo, sem adaptação para mobile. Labels e campos não são visíveis (como mostra a screenshot com textos cortados).
+2. **Dados genéricos**: O diálogo lista todos os outdoors do mapa, sem contexto das ordens de serviço ativas. O Super Admin precisa selecionar manualmente cada outdoor em vez de aproveitar os itens já presentes nas OS dos fornecedores.
 
 ## Solução
 
-### 1. Fix do crash — `CreateRouteDialog.tsx`
-- Trocar `<SelectItem value="">Nenhum</SelectItem>` por `<SelectItem value="none">Nenhum</SelectItem>`
-- Ajustar o `onValueChange` para converter `"none"` em string vazia no estado
+### 1. Tornar o CreateRouteDialog responsivo
+- Usar `max-w-[95vw] sm:max-w-lg` no `DialogContent`
+- ScrollArea com altura dinâmica: `h-[40vh] sm:h-[250px]`
+- Footer com botões empilhados em mobile: `flex-col sm:flex-row`
+- Textos truncados com `truncate` nos nomes longos
+- Badges menores em telas pequenas
 
-### 2. Melhorar Rota Automática — `StrategicMapMapbox.tsx`
-- Ao clicar em "Rota Auto", se não houver pacotes aprovados, mostrar toast informativo (já existe)
-- Se houver 1 pacote, usar diretamente (já existe)
-- **Novo**: Se houver múltiplos pacotes, abrir um dialog de seleção listando os pacotes disponíveis com nome, data e fornecedor
-- Validar que o pacote tem itens com outdoors georeferenciados antes de gerar
+### 2. Pré-carregar outdoors das OS ativas do fornecedor
+- Importar `useSupplierWorkOrders` no diálogo
+- Quando o usuário selecionar um fornecedor no Select, filtrar automaticamente os outdoors para mostrar apenas os que estão nas OS ativas desse fornecedor (status `pending` ou `in_progress`)
+- Adicionar toggle "Mostrar apenas OS ativa" (default: ligado quando fornecedor selecionado)
+- Pré-selecionar todos os outdoors da OS ao selecionar fornecedor
+- Mostrar badge "Na OS" nos itens que pertencem a uma ordem de serviço
 
-### Arquivos
-- **Editar**: `src/components/map/CreateRouteDialog.tsx` (fix SelectItem value)
-- **Editar**: `src/pages/StrategicMapMapbox.tsx` (dialog de seleção de pacote para rota automática)
+### 3. Tornar os outros dialogs responsivos também
+- `UnifyRoutesDialog`: `max-w-[95vw] sm:max-w-md`
+- `PackageSelectDialog` (inline no StrategicMapMapbox): mesmo tratamento
+- `RoutePanel`: Ajustar para tela pequena com `w-full sm:w-64`
+
+## Arquivos
+
+| Ação | Arquivo |
+|------|---------|
+| Editar | `src/components/map/CreateRouteDialog.tsx` — responsivo + integração com OS |
+| Editar | `src/components/map/UnifyRoutesDialog.tsx` — responsivo |
+| Editar | `src/components/map/RoutePanel.tsx` — responsivo |
+| Editar | `src/pages/StrategicMapMapbox.tsx` — PackageSelectDialog responsivo |
 
