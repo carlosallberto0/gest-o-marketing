@@ -53,24 +53,22 @@ export function useCalendarEvents(selectedMonth?: Date) {
         : addDays(today, 60);
 
       // 1. Fetch outdoors with expiring evaluations (only pending or future expiration)
-      // Two queries: future expirations in range + pending_evaluation regardless of date
       const todayISO = today.toISOString();
 
-      const [{ data: futureExpirations }, { data: pendingEvals }] = await Promise.all([
-        // Outdoors with future expiration dates within range
-        supabase
-          .from('outdoors')
-          .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
-          .not('avaliacao_valida_ate', 'is', null)
-          .gte('avaliacao_valida_ate', todayISO)
-          .lte('avaliacao_valida_ate', rangeEnd.toISOString()),
-        // Outdoors pending evaluation (need attention regardless)
-        supabase
-          .from('outdoors')
-          .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
-          .eq('status_operacional', 'pending_evaluation')
-          .not('avaliacao_valida_ate', 'is', null),
-      ]);
+      // Outdoors with future expiration dates within range
+      const { data: futureExpirations } = await supabase
+        .from('outdoors')
+        .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
+        .not('avaliacao_valida_ate', 'is', null)
+        .gte('avaliacao_valida_ate', todayISO)
+        .lte('avaliacao_valida_ate', rangeEnd.toISOString());
+
+      // Outdoors pending evaluation (need attention regardless)
+      const { data: pendingEvals } = await supabase
+        .from('outdoors')
+        .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
+        .eq('status_operacional', 'pending_evaluation')
+        .not('avaliacao_valida_ate', 'is', null);
 
       const outdoorMap = new Map<string, any>();
       [...(futureExpirations || []), ...(pendingEvals || [])].forEach((o: any) => {
