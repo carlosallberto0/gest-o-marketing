@@ -138,7 +138,6 @@ export function RouteLayer({ map, route }: RouteLayerProps) {
         }
       } catch { /* style may be unloaded */ }
     };
-    };
   }, [map, route]);
 
   return null;
