@@ -412,10 +412,65 @@ export function useMarkReadyForServiceOrder() {
 
       return packageId;
     },
-    onSuccess: () => {
+    onSuccess: (packageId) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-packages'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-package'] });
       showToast.success('Pacote enviado para Ordem de Serviço');
+
+      // Auto-generate route (async, non-blocking)
+      import('@/hooks/useRoutes').then(({ useCreateAutoRoute }) => {
+        // We can't use hooks here, so call the edge function directly
+        import('@/integrations/supabase/client').then(({ supabase: sb }) => {
+          sb.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            // Get outdoor IDs from package
+            sb.from('maintenance_package_items')
+              .select('outdoor_id')
+              .eq('package_id', packageId)
+              .eq('status', 'approved')
+              .then(({ data: items }) => {
+                if (!items?.length) return;
+                sb.functions.invoke('optimize-route', {
+                  body: {
+                    outdoor_ids: items.map(i => i.outdoor_id),
+                    approval_date: new Date().toISOString().split('T')[0],
+                  },
+                }).then(({ data: optimized }) => {
+                  if (!optimized?.success) return;
+                  const deadline = new Date();
+                  deadline.setDate(deadline.getDate() + 15);
+                  sb.from('routes').insert({
+                    name: `Rota Auto ${new Date().toLocaleDateString('pt-BR')}`,
+                    type: 'auto',
+                    package_id: packageId,
+                    total_distance_km: optimized.data.total_distance_km || 0,
+                    estimated_days: 15,
+                    deadline: deadline.toISOString().split('T')[0],
+                    status: 'active',
+                    created_by: user.id,
+                  }).select().single().then(({ data: route }) => {
+                    if (!route) return;
+                    const points = optimized.data.points.map((p: any) => ({
+                      route_id: route.id,
+                      outdoor_id: p.outdoor_id,
+                      sequence: p.sequence,
+                      scheduled_date: p.scheduled_date || null,
+                      priority: p.priority || 'pending',
+                      estimated_arrival_order: p.sequence,
+                    }));
+                    sb.from('route_points').insert(points);
+                    sb.from('route_history').insert({
+                      route_id: route.id,
+                      action: 'created',
+                      user_id: user.id,
+                      details: { type: 'auto_trigger', package_id: packageId },
+                    });
+                  });
+                });
+              });
+          });
+        });
+      }).catch(() => { /* silent fail - route is optional */ });
     },
     onError: (error: Error) => {
       showToast.error('Erro ao enviar para OS', error.message);
