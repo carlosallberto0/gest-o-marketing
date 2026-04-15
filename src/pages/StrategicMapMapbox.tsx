@@ -1360,7 +1360,7 @@ export default function StrategicMapMapbox() {
       </div>
 
       {/* Left Panel: Filters + KPIs */}
-      <div className="absolute top-20 left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto" style={{ top: isSuperAdmin ? '112px' : '80px' }}>
+      <div className="absolute left-4 z-10 w-56 space-y-3 max-h-[calc(100vh-100px)] overflow-y-auto" style={{ top: '64px' }}>
         <MapSearchFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -1376,7 +1376,7 @@ export default function StrategicMapMapbox() {
       </div>
 
       {/* Right Panel: Layer Controls - positioned lower to avoid Mapbox controls */}
-      <div className="absolute top-36 right-4 z-10 w-52">
+      <div className="absolute top-16 right-4 z-10 w-52">
         <MapLayerControls
           showConveniencias={showConveniencias}
           showPostos={showPostos}
@@ -1391,13 +1391,11 @@ export default function StrategicMapMapbox() {
 
       {/* Route Panel - Right side below layer controls */}
       {isSuperAdmin && showRoutePanel && (
-        <div className="absolute top-72 right-4 z-10">
-          <RoutePanel
-            activeRouteId={activeRouteId}
-            onSelectRoute={(id) => setActiveRouteId(id)}
-            onClose={() => setShowRoutePanel(false)}
-          />
-        </div>
+        <RoutePanel
+          activeRouteId={activeRouteId}
+          onSelectRoute={(id) => setActiveRouteId(id)}
+          onClose={() => setShowRoutePanel(false)}
+        />
       )}
 
       {/* Route Layer on map */}
