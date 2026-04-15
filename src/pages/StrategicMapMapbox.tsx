@@ -122,6 +122,15 @@ export default function StrategicMapMapbox() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
+  // Route state
+  const [showRoutePanel, setShowRoutePanel] = useState(false);
+  const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
+  const [showCreateRouteDialog, setShowCreateRouteDialog] = useState(false);
+  const [showUnifyRoutesDialog, setShowUnifyRoutesDialog] = useState(false);
+  const { data: activeRouteData } = useRouteDetails(activeRouteId || undefined);
+  const createAutoRoute = useCreateAutoRoute();
+  const { data: readyPackages = [] } = useReadyForServiceOrderPackages();
+
   // Admin mode state
   const [adminMode, setAdminMode] = useState(false);
   const [quickPDVDialog, setQuickPDVDialog] = useState<{ open: boolean; lat: number; lng: number }>({ 
