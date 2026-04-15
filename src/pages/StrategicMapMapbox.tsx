@@ -22,7 +22,7 @@ import { RoutePanel } from '@/components/map/RoutePanel';
 import { CreateRouteDialog } from '@/components/map/CreateRouteDialog';
 import { UnifyRoutesDialog } from '@/components/map/UnifyRoutesDialog';
 import { useRouteDetails, useCreateAutoRoute } from '@/hooks/useRoutes';
-import { useReadyForServiceOrderPackages } from '@/hooks/useMaintenancePackages';
+import { useSupplierWorkOrders } from '@/hooks/useSupplierWorkOrders';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Loader2, Map, RefreshCw, Upload, Edit, Move, Power, Sun, Moon, MapPin, AlertTriangle, Route as RouteIcon, Zap, Merge } from 'lucide-react';
@@ -131,7 +131,15 @@ export default function StrategicMapMapbox() {
   const [showPackageSelectDialog, setShowPackageSelectDialog] = useState(false);
   const { data: activeRouteData } = useRouteDetails(activeRouteId || undefined);
   const createAutoRoute = useCreateAutoRoute();
-  const { data: readyPackages = [] } = useReadyForServiceOrderPackages();
+  const { data: allWorkOrders = [] } = useSupplierWorkOrders();
+  
+  // Filter to active work orders with geo-referenced items
+  const activeWorkOrders = useMemo(() => {
+    return allWorkOrders.filter(wo => 
+      (wo.status === 'pending' || wo.status === 'in_progress') &&
+      wo.items && wo.items.length > 0
+    );
+  }, [allWorkOrders]);
 
   // Admin mode state
   const [adminMode, setAdminMode] = useState(false);
@@ -1298,13 +1306,13 @@ export default function StrategicMapMapbox() {
             <Button 
               variant="ghost" size="sm" className="h-7 text-xs" 
               onClick={() => {
-                if (readyPackages.length === 0) {
-                  toast.info('Nenhum pacote aprovado disponível para roteirização');
+                if (activeWorkOrders.length === 0) {
+                  toast.info('Nenhuma OS aberta disponível para roteirização');
                   return;
                 }
-                if (readyPackages.length === 1) {
-                  const pkg = readyPackages[0];
-                  createAutoRoute.mutate({ packageId: pkg.id }, {
+                if (activeWorkOrders.length === 1) {
+                  const wo = activeWorkOrders[0];
+                  createAutoRoute.mutate({ packageId: wo.package_id, supplierId: wo.supplier_id, name: `Rota OS - ${wo.supplier?.name || 'Fornecedor'}` }, {
                     onSuccess: (route) => {
                       setActiveRouteId(route.id);
                       setShowRoutePanel(true);
@@ -1453,23 +1461,23 @@ export default function StrategicMapMapbox() {
         onOpenChange={setShowUnifyRoutesDialog}
       />
 
-      {/* Package Selection Dialog for Auto Route */}
+      {/* OS Selection Dialog for Auto Route */}
       <Dialog open={showPackageSelectDialog} onOpenChange={setShowPackageSelectDialog}>
         <DialogContent className="max-w-[95vw] sm:max-w-md w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Zap className="h-5 w-5 shrink-0" />
-              <span className="truncate">Selecionar Pacote para Rota</span>
+              <span className="truncate">Selecionar OS para Rota</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2 max-h-[50vh] sm:max-h-[300px] overflow-y-auto">
-            {readyPackages.map((pkg) => (
+            {activeWorkOrders.map((wo) => (
               <div
-                key={pkg.id}
+                key={wo.id}
                 className="flex items-center justify-between gap-2 p-2.5 sm:p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                 onClick={() => {
                   setShowPackageSelectDialog(false);
-                  createAutoRoute.mutate({ packageId: pkg.id }, {
+                  createAutoRoute.mutate({ packageId: wo.package_id, supplierId: wo.supplier_id, name: `Rota OS - ${wo.supplier?.name || 'Fornecedor'}` }, {
                     onSuccess: (route) => {
                       setActiveRouteId(route.id);
                       setShowRoutePanel(true);
@@ -1478,9 +1486,9 @@ export default function StrategicMapMapbox() {
                 }}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">Pacote #{pkg.id.slice(0, 8)}</p>
+                  <p className="text-sm font-medium truncate">{wo.supplier?.name || 'Fornecedor'}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    Criado em {new Date(pkg.created_at).toLocaleDateString('pt-BR')}
+                    {wo.items?.length || 0} outdoor(s) • {wo.status === 'pending' ? 'Pendente' : 'Em andamento'} • {new Date(wo.created_at).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="shrink-0">Gerar Rota</Button>
