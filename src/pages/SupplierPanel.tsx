@@ -175,6 +175,15 @@ export default function SupplierPanel() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="routes">
+              <RouteIcon className="h-4 w-4 mr-1.5" />
+              Rota Sugerida
+              {supplierRoutes.length > 0 && (
+                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+                  {supplierRoutes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="outdoors">Relação de Outdoors</TabsTrigger>
           </TabsList>
 
