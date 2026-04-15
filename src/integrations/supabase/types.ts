@@ -2579,6 +2579,164 @@ export type Database = {
         }
         Relationships: []
       }
+      route_history: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          route_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          route_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          route_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_history_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_points: {
+        Row: {
+          created_at: string
+          estimated_arrival_order: number | null
+          id: string
+          notes: string | null
+          outdoor_id: string
+          priority: string
+          route_id: string
+          scheduled_date: string | null
+          sequence: number
+        }
+        Insert: {
+          created_at?: string
+          estimated_arrival_order?: number | null
+          id?: string
+          notes?: string | null
+          outdoor_id: string
+          priority?: string
+          route_id: string
+          scheduled_date?: string | null
+          sequence?: number
+        }
+        Update: {
+          created_at?: string
+          estimated_arrival_order?: number | null
+          id?: string
+          notes?: string | null
+          outdoor_id?: string
+          priority?: string
+          route_id?: string
+          scheduled_date?: string | null
+          sequence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_points_outdoor_id_fkey"
+            columns: ["outdoor_id"]
+            isOneToOne: false
+            referencedRelation: "outdoors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_points_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routes: {
+        Row: {
+          created_at: string
+          created_by: string
+          deadline: string | null
+          estimated_days: number | null
+          id: string
+          name: string
+          origin_label: string
+          origin_lat: number
+          origin_lng: number
+          package_id: string | null
+          production_days: number
+          status: string
+          supplier_id: string | null
+          total_distance_km: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          estimated_days?: number | null
+          id?: string
+          name: string
+          origin_label?: string
+          origin_lat?: number
+          origin_lng?: number
+          package_id?: string | null
+          production_days?: number
+          status?: string
+          supplier_id?: string | null
+          total_distance_km?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          estimated_days?: number | null
+          id?: string
+          name?: string
+          origin_label?: string
+          origin_lat?: number
+          origin_lng?: number
+          package_id?: string | null
+          production_days?: number
+          status?: string
+          supplier_id?: string | null
+          total_distance_km?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routes_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_approval_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_order_items: {
         Row: {
           created_at: string
