@@ -131,8 +131,13 @@ export function RouteLayer({ map, route }: RouteLayerProps) {
     return () => {
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      try {
+        if (map.getStyle()) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+        }
+      } catch { /* style may be unloaded */ }
+    };
     };
   }, [map, route]);
 
