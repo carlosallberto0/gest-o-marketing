@@ -64,11 +64,11 @@ export function useCalendarEvents(selectedMonth?: Date) {
         .lte('avaliacao_valida_ate', rangeEnd.toISOString()) as { data: any[] | null };
 
       // Outdoors pending evaluation (need attention regardless)
-      const { data: pendingEvals } = await supabase
+      const pendingEvalsQuery = supabase
         .from('outdoors')
         .select('id, code, avaliacao_valida_ate, pdv:pdvs(name)')
-        .eq('status_operacional', 'pending_evaluation')
-        .not('avaliacao_valida_ate', 'is', null) as { data: any[] | null };
+        .not('avaliacao_valida_ate', 'is', null);
+      const { data: pendingEvals } = await (pendingEvalsQuery as any).eq('status_operacional', 'pending_evaluation') as { data: any[] | null };
 
       const outdoorMap = new Map<string, any>();
       [...(futureExpirations || []), ...(pendingEvals || [])].forEach((o: any) => {
