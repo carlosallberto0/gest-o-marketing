@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,6 +115,7 @@ export function SettingsContent() {
   // System settings hooks
   const { data: systemSettings, isLoading: settingsLoading } = useSystemSettings();
   const updateSetting = useUpdateSystemSetting();
+  const queryClient = useQueryClient();
 
   // Evaluation settings state
   const [evalFrequency, setEvalFrequency] = useState<EvaluationFrequency>({ pdv_days: 30, outdoor_days: 7 });
@@ -233,8 +235,47 @@ export function SettingsContent() {
 
   const handleSaveEvaluationSettings = async () => {
     try {
+      // Detect outdoor_days change BEFORE saving
+      const previousFreq = systemSettings?.find(s => s.key === 'evaluation_frequency')?.value as
+        | { outdoor_days?: number; pdv_days?: number }
+        | undefined;
+      const previousOutdoorDays = Number(previousFreq?.outdoor_days);
+      const newOutdoorDays = Number(evalFrequency.outdoor_days);
+      const outdoorDaysChanged =
+        Number.isFinite(previousOutdoorDays) &&
+        Number.isFinite(newOutdoorDays) &&
+        previousOutdoorDays !== newOutdoorDays;
+
+      let proceedWithReset = false;
+      if (outdoorDaysChanged) {
+        proceedWithReset = window.confirm(
+          `Você alterou o prazo de avaliação de outdoors para ${newOutdoorDays} dias.\n\n` +
+          `Isso vai zerar o progresso dos postos que estão 100% avaliados e notificar seus gerentes para iniciarem um novo ciclo. ` +
+          `Postos com avaliações faltando NÃO serão alterados.\n\nDeseja continuar?`
+        );
+      }
+
       await updateSetting.mutateAsync({ key: 'evaluation_frequency', value: evalFrequency as unknown as Record<string, number> });
       await updateSetting.mutateAsync({ key: 'notification_settings', value: notifSettings as unknown as Record<string, boolean | number> });
+
+      if (outdoorDaysChanged && proceedWithReset) {
+        const { data, error } = await supabase.functions.invoke('reset-outdoor-evaluation-cycle', {
+          body: { outdoor_days: newOutdoorDays },
+        });
+        if (error) {
+          console.error('Reset cycle error:', error);
+          showToast.error('Configurações salvas, mas houve falha ao reiniciar o ciclo dos outdoors.');
+        } else {
+          const pdvsReset = data?.pdvs_reset ?? 0;
+          const managersNotified = data?.managers_notified ?? 0;
+          showToast.success(
+            `Ciclo reiniciado: ${pdvsReset} posto(s) zerado(s) e ${managersNotified} gerente(s) notificado(s).`
+          );
+          queryClient.invalidateQueries({ queryKey: ['outdoors'] });
+          queryClient.invalidateQueries({ queryKey: ['pdvs'] });
+          queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+        }
+      }
     } catch (error) {
       console.error('Error saving evaluation settings:', error);
     }
