@@ -115,6 +115,7 @@ export function SettingsContent() {
   // System settings hooks
   const { data: systemSettings, isLoading: settingsLoading } = useSystemSettings();
   const updateSetting = useUpdateSystemSetting();
+  const queryClient = useQueryClient();
 
   // Evaluation settings state
   const [evalFrequency, setEvalFrequency] = useState<EvaluationFrequency>({ pdv_days: 30, outdoor_days: 7 });
