@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Share2 } from 'lucide-react';
 import { usePublicNetwork, PublicPdv } from '@/hooks/usePublicNetwork';
