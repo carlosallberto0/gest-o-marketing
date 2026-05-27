@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,22 +22,20 @@ export function EditPdvServicesDialog({ open, pdv, servicos, onClose }: Props) {
   const setServices = useSetPdvServices();
   const updateFields = useUpdatePdvNetworkFields();
 
-  // sync state when opening
-  useState(() => {
-    if (pdv) {
+  useEffect(() => {
+    if (open && pdv) {
       setBandeira(pdv.bandeira || '');
       setCnpj(pdv.cnpj || '');
       setPhone(pdv.phone || '');
       setKeys(new Set(pdv.servicos));
     }
-  });
+  }, [open, pdv]);
 
   const handleOpenChange = (o: boolean) => {
     if (!o) onClose();
   };
 
-  // reset on pdv change
-  if (pdv && !open) return null;
+
 
   const toggle = (k: string) => {
     const n = new Set(keys);
