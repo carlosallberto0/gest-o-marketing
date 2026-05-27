@@ -1,71 +1,87 @@
-# Periodicidade de Avaliações: Reset de Ciclo e Notificação aos Gerentes
 
-## Comportamento atual
-- Em **Configurações → Avaliações**, o slider "Status de Outdoors (Mídia Externa)" salva `evaluation_frequency.outdoor_days` em `system_settings`. Hoje esse valor é apenas referência visual: nenhuma rotina marca os outdoors como "pendente de nova avaliação" quando o prazo muda.
-- A página **Progresso de Avaliações** considera `outdoor.status !== 'pending_evaluation'` como avaliado. Como nada reseta o status, postos que já estavam 100% continuam 100% indefinidamente, mesmo após o Super Admin abrir um novo ciclo.
-- Os gerentes não recebem nenhum aviso quando o Super Admin altera o prazo.
+# Módulo Mapa da Rede
 
-## Comportamento desejado
-Quando o Super Admin altera o valor de "Status de Outdoors (Mídia Externa)" e clica em **Salvar Alterações**:
+Portal **público (sem login)** em `/rede` que lista os postos da rede com filtros, KPIs e serviços oferecidos. Consome a tabela `pdvs` existente (fonte única da verdade) e adiciona apenas os campos/relações que faltam. Tudo respeitando o design system (tokens semânticos do `index.css` + `tailwind.config.ts` + componentes shadcn — nada de cores hardcoded).
 
-1. **Reset seletivo do progresso (por PDV)**
-   - Para cada PDV, contar quantos outdoors estão pendentes (`status = 'pending_evaluation'` ou `last_evaluation` nulo).
-   - **Se 0 pendentes (PDV 100%)** → resetar todos os outdoors do PDV para `status = 'pending_evaluation'`, limpar `avaliacao_valida_ate` e zerar o progresso. Um novo ciclo começa.
-   - **Se ≥ 1 pendente (PDV incompleto)** → não mexer em nada. O gerente ainda precisa terminar o ciclo anterior; não dar "anistia".
-   - PDV sem outdoors é ignorado.
+## Princípios
 
-2. **Notificação aos gerentes impactados**
-   - Apenas os gerentes dos PDVs que foram resetados recebem notificação `in-app` (tabela `notificacoes_sistema`) com:
-     - Título: "Novo ciclo de avaliação de outdoors"
-     - Mensagem: "Foi definido um novo prazo de N dias. Avalie os outdoors do seu posto."
-     - URL de ação: rota de avaliação de outdoors do gerente.
-   - PDVs que ficaram de fora (faltando avaliações) não geram notificação; o gerente continua vendo as pendências antigas.
+- **Integração, não substituição** — usa `pdvs` direto; sem cadastro paralelo.
+- **Acesso público** — rota `/rede` fora de `AppLayout`/`AuthContext`, leitura via `anon`.
+- **Design system** — `bg-background`, `text-foreground`, `border-border`, `Card`, `Badge`, `Input`, `Select`, `Dialog` do shadcn. Sem `#3B82F6`, `--blue` ou cores cruas do HTML original. Tipografia segue a do sistema (não importar Inter de novo).
+- **Categorias dinâmicas** — serviços virão de `system_options` (`tipo='servico_posto'`), gerenciados em Configurações > Opções do Sistema, padrão já existente.
 
-3. **Auditoria**
-   - Registrar em `audit_logs` quem disparou o reset, quantos PDVs/outdoors foram afetados e o novo valor de `outdoor_days`.
+## Banco de dados (1 migração)
 
-## Implementação
+1. **Adicionar colunas em `pdvs`** (opcionais, não quebram o existente):
+   - `bandeira TEXT` (Shell, BR, Ipiranga, Branca…)
+   - `cnpj TEXT`
+   - `phone TEXT`
+2. **Nova tabela `pdv_servicos`** (N:N pdv ↔ chave de serviço):
+   - `pdv_id UUID FK → pdvs(id) ON DELETE CASCADE`
+   - `servico_key TEXT` (referencia `system_options.value` do tipo `servico_posto`)
+   - PK composta (`pdv_id`, `servico_key`)
+   - Índice por `pdv_id`
+3. **GRANTs + RLS**:
+   - `GRANT SELECT ON pdvs TO anon` (apenas SELECT — já tinha para authenticated)
+   - `GRANT SELECT ON pdv_servicos TO anon, authenticated; GRANT ALL TO service_role`
+   - Política pública de SELECT em `pdv_servicos` (e SELECT pública em `pdvs` já filtrada apenas para campos seguros).
+4. **Seed inicial** em `system_options` com as 9 categorias do HTML (Troca de Óleo, Conveniência, Loja de Acessórios, Restaurante, Lanchonete, Lava Jato, Banheiro c/ Chuveiro, Borracharia, Calibrador de Pneus).
 
-### Backend (Edge Function nova)
-Criar `supabase/functions/reset-outdoor-evaluation-cycle/index.ts`:
-- Recebe `{ outdoor_days: number }`.
-- Verifica que o caller é `super_admin` (via JWT + tabela `profiles`).
-- Usa `service role` para:
-  1. Buscar todos os PDVs com seus outdoors (`pdv_id`, `status`, `manager_id`).
-  2. Agrupar por PDV; identificar os PDVs **100% avaliados**.
-  3. `UPDATE outdoors SET status='pending_evaluation', avaliacao_valida_ate=NULL, updated_at=now() WHERE pdv_id = ANY(<pdvs_resetados>)`.
-  4. Para cada `manager_id` dos PDVs resetados (deduplicado), inserir em `notificacoes_sistema` (uma notificação por gerente, agregando os PDVs).
-  5. Inserir entrada em `audit_logs` com o resumo.
-- Retorna `{ pdvs_reset, outdoors_reset, managers_notified }`.
-- Registrar em `supabase/config.toml` com `verify_jwt = true` (precisamos do JWT do Super Admin).
+> Observação de segurança: a página pública não exibirá `manager_id`, telefone do gerente nem `id_importacao`. O hook público fará `select` somente das colunas seguras.
 
-### Frontend
-Editar `src/pages/Settings.tsx` (handler de salvar — bloco em torno da linha 236):
-- Detectar se `outdoor_days` mudou em relação ao valor original (`systemSettings`).
-- Se mudou:
-  1. Salvar o novo valor (já é feito via `updateSetting.mutateAsync`).
-  2. Antes de aplicar, mostrar `confirm` ao Super Admin: "Isso vai zerar o progresso dos PDVs 100% avaliados e notificar os gerentes. Continuar?".
-  3. Em caso afirmativo, invocar a edge function via `supabase.functions.invoke('reset-outdoor-evaluation-cycle', { body: { outdoor_days } })`.
-  4. Exibir toast de sucesso com o resumo: "X postos resetados, Y gerentes notificados".
-  5. Invalidar queries: `['outdoors']`, `['pdvs']`, `['notificacoes']`.
-- Se o valor de `outdoor_days` não mudou, manter o comportamento atual (sem reset, sem notificação).
+## Rotas
 
-### Página Progresso de Avaliações
-Nenhuma mudança de lógica necessária — ela já lê de `outdoors` em tempo real. Após o reset, os PDVs zerados aparecerão automaticamente como 0%.
+- `/rede` — pública, lista + filtros + KPIs (não passa por `AppLayout`, `RequireRole` nem `ModuleSelection`).
+- `/mapa-da-rede/dashboard` — admin (Super Admin), com:
+  - Gestão de **bandeira / CNPJ / telefone / serviços** por posto (edita `pdvs` + `pdv_servicos`).
+  - Atalho para Configurações > Opções do Sistema (categorias).
 
-## Arquivos
+Adicionar card "Mapa da Rede" em `ModuleSelection` (somente Super Admin), seguindo `ModuleCard` existente, ícone `Network`/`Map`.
 
-| Ação | Arquivo |
-|------|---------|
-| Criar | `supabase/functions/reset-outdoor-evaluation-cycle/index.ts` |
-| Editar | `supabase/config.toml` (registrar a função) |
-| Editar | `src/pages/Settings.tsx` (handler de salvamento, confirmação e invocação da função) |
+## Frontend — arquivos novos
 
-## O que NÃO será tocado
-- Slider de "Avaliação de PDVs (Merchandising)" — o pedido é apenas sobre outdoors. (Posso estender depois se quiser.)
-- Lógica de progresso e UI da página `EvaluationProgress`.
-- Outdoors de PDVs incompletos — preservados intactos.
-- Cálculo de `avaliacao_valida_ate` no momento de cada avaliação individual (continua usando `outdoor_cycle_config.validade_horas`).
+```text
+src/pages/rede/
+  PublicNetworkPortal.tsx     # /rede — layout próprio, header simples + footer
+  components/
+    NetworkKPIs.tsx           # 4 cards (total, bandeiras, com conveniência, com lava jato)
+    NetworkFilters.tsx        # busca + select bandeira + select estado + chips serviço
+    NetworkGrid.tsx           # cards de posto (view grid)
+    NetworkTable.tsx          # view tabela
+    PdvDetailDialog.tsx       # modal com info + serviços
+    ShareDialog.tsx           # seleção + texto + WhatsApp/copiar
 
-## Resultado esperado
-- Super Admin altera o prazo → confirma → PDVs 100% voltam a 0%, gerentes desses postos recebem notificação. PDVs com avaliações faltando ficam como estavam.
+src/pages/mapa-da-rede/
+  DashboardMapaRede.tsx       # admin: tabela editável de bandeira/CNPJ/serviços por PDV
+  EditPdvServicesDialog.tsx   # marca serviços do PDV
+
+src/hooks/
+  usePublicNetwork.ts         # query pública: pdvs ativos + serviços agregados
+  usePdvServices.ts           # CRUD pivot pdv_servicos (admin)
+```
+
+Adicionar em `ModuleContext`: incluir `'mapa-da-rede'` no tipo `ActiveModule`.
+
+## SEO / WhatsApp preview
+
+- Título: "Rede de Postos — Gestão & Marketing".
+- Meta description com nº de postos + cidades atendidas.
+- OpenGraph + JSON-LD (`ItemList` de `GasStation`) para indexação.
+
+## Pontos fora de escopo (não fazer agora)
+
+- Mapa interativo (Mapbox) — usuário escolheu lista + filtros.
+- Edição pública / login no portal.
+- Geração automática de bandeira a partir de outro dado.
+
+## Resumo técnico (para o time)
+
+| Item | Decisão |
+|---|---|
+| Fonte de postos | `pdvs` (sem duplicar cadastro) |
+| Campos novos em `pdvs` | `bandeira`, `cnpj`, `phone` |
+| Serviços | tabela pivot `pdv_servicos` + `system_options.tipo='servico_posto'` |
+| Acesso público | `GRANT SELECT … TO anon` + RLS pública restrita a colunas seguras |
+| Rota pública | `/rede` |
+| Rota admin | `/mapa-da-rede/dashboard` (Super Admin) |
+| Design | tokens do sistema; sem cores cruas; shadcn + Nazox |

@@ -72,6 +72,8 @@ import InsightsPage from "./pages/analise-estrategica/InsightsPage";
 import RelatoriosAnalise from "./pages/analise-estrategica/RelatoriosAnalise";
 import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseEstrategica";
 import NotFound from "./pages/NotFound";
+import PublicNetworkPortal from "./pages/rede/PublicNetworkPortal";
+import DashboardMapaRede from "./pages/mapa-da-rede/DashboardMapaRede";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { RequireManagerMenuPermission } from "@/components/auth/RequireManagerMenuPermission";
 import { RequireDirectorMenuPermission } from "@/components/auth/RequireDirectorMenuPermission";
@@ -112,6 +114,17 @@ const AppRoutes = () => (
     <Route path="/auth" element={<Auth />} />
     <Route path="/acesso/:token" element={<AccessLink />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/rede" element={<PublicNetworkPortal />} />
+    <Route
+      path="/mapa-da-rede/dashboard"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <DashboardMapaRede />
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    />
     <Route 
       path="/pending-approval" 
       element={

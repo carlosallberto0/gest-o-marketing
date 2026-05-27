@@ -2387,11 +2387,39 @@ export type Database = {
           },
         ]
       }
+      pdv_servicos: {
+        Row: {
+          created_at: string
+          pdv_id: string
+          servico_key: string
+        }
+        Insert: {
+          created_at?: string
+          pdv_id: string
+          servico_key: string
+        }
+        Update: {
+          created_at?: string
+          pdv_id?: string
+          servico_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdv_servicos_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdvs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdvs: {
         Row: {
           active_modules: Database["public"]["Enums"]["module_access"][]
           address: string
+          bandeira: string | null
           city: string
+          cnpj: string | null
           code: string
           created_at: string
           fonte_importacao: string | null
@@ -2402,6 +2430,7 @@ export type Database = {
           manager_id: string | null
           maps_url: string | null
           name: string
+          phone: string | null
           photo_url: string | null
           state: string
           status: string
@@ -2412,7 +2441,9 @@ export type Database = {
         Insert: {
           active_modules?: Database["public"]["Enums"]["module_access"][]
           address: string
+          bandeira?: string | null
           city: string
+          cnpj?: string | null
           code: string
           created_at?: string
           fonte_importacao?: string | null
@@ -2423,6 +2454,7 @@ export type Database = {
           manager_id?: string | null
           maps_url?: string | null
           name: string
+          phone?: string | null
           photo_url?: string | null
           state: string
           status?: string
@@ -2433,7 +2465,9 @@ export type Database = {
         Update: {
           active_modules?: Database["public"]["Enums"]["module_access"][]
           address?: string
+          bandeira?: string | null
           city?: string
+          cnpj?: string | null
           code?: string
           created_at?: string
           fonte_importacao?: string | null
@@ -2444,6 +2478,7 @@ export type Database = {
           manager_id?: string | null
           maps_url?: string | null
           name?: string
+          phone?: string | null
           photo_url?: string | null
           state?: string
           status?: string
