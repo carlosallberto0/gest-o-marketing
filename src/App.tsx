@@ -114,6 +114,17 @@ const AppRoutes = () => (
     <Route path="/auth" element={<Auth />} />
     <Route path="/acesso/:token" element={<AccessLink />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/rede" element={<PublicNetworkPortal />} />
+    <Route
+      path="/mapa-da-rede/dashboard"
+      element={
+        <ProtectedRoute>
+          <RequireRole allowedRoles={['super_admin']}>
+            <DashboardMapaRede />
+          </RequireRole>
+        </ProtectedRoute>
+      }
+    />
     <Route 
       path="/pending-approval" 
       element={
