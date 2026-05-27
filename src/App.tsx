@@ -72,6 +72,8 @@ import InsightsPage from "./pages/analise-estrategica/InsightsPage";
 import RelatoriosAnalise from "./pages/analise-estrategica/RelatoriosAnalise";
 import ConfigAnaliseEstrategica from "./pages/analise-estrategica/ConfigAnaliseEstrategica";
 import NotFound from "./pages/NotFound";
+import PublicNetworkPortal from "./pages/rede/PublicNetworkPortal";
+import DashboardMapaRede from "./pages/mapa-da-rede/DashboardMapaRede";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { RequireManagerMenuPermission } from "@/components/auth/RequireManagerMenuPermission";
 import { RequireDirectorMenuPermission } from "@/components/auth/RequireDirectorMenuPermission";
