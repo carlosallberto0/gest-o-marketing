@@ -56,14 +56,21 @@ export default function PublicNetworkPortal() {
     setSelectedServicos((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
   };
 
+  useEffect(() => {
+    document.title = 'Rede de Postos — Gestão & Marketing';
+    const desc = `Conheça a rede de postos: ${pdvs.length} unidades em ${estados.length} estados, com serviços de conveniência, lava jato, troca de óleo e mais.`;
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', desc);
+  }, [pdvs.length, estados.length]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Helmet>
-        <title>Rede de Postos — Gestão & Marketing</title>
-        <meta name="description" content={`Conheça a rede de postos: ${pdvs.length} unidades em ${estados.length} estados, com serviços de conveniência, lava jato, troca de óleo e mais.`} />
-        <meta property="og:title" content="Rede de Postos" />
-        <meta property="og:description" content={`${pdvs.length} postos disponíveis na rede.`} />
-      </Helmet>
+
 
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
