@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModule } from '@/contexts/ModuleContext';
-import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign, Settings, Building2, Home, TrendingUp } from 'lucide-react';
+import { ClipboardCheck, Megaphone, Map, LogOut, Loader2, DollarSign, Settings, Building2, Home, TrendingUp, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ModuleCard } from '@/components/ui/module-card';
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import { AdminCalendarWidget } from '@/components/calendar/AdminCalendarWidget';
 import { useManagerMenuPermissions, getManagerDefaultRoute } from '@/hooks/useManagerMenuPermissions';
 import { useDirectorMenuPermissions, getDirectorDefaultRoute } from '@/hooks/useDirectorMenuPermissions';
-const moduleIcons = {
+const moduleIcons: Record<string, any> = {
   merchandising: ClipboardCheck,
   media: Megaphone,
   mapa: Map,
@@ -21,6 +21,7 @@ const moduleIcons = {
   agencia: Building2,
   loteamentos: Home,
   analise: TrendingUp,
+  'mapa-da-rede': Network,
 };
 
 const modulePaths = {
