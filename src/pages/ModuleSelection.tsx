@@ -78,7 +78,7 @@ export default function ModuleSelection() {
     }
   }, [profile?.status, loading, navigate]);
 
-  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise'] as const;
+  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise', 'mapa-da-rede'] as const;
   
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
