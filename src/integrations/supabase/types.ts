@@ -2428,8 +2428,10 @@ export type Database = {
           lat: number | null
           lng: number | null
           manager_id: string | null
+          manager_name: string | null
           maps_url: string | null
           name: string
+          operating_hours: string | null
           phone: string | null
           photo_url: string | null
           state: string
@@ -2452,8 +2454,10 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
+          manager_name?: string | null
           maps_url?: string | null
           name: string
+          operating_hours?: string | null
           phone?: string | null
           photo_url?: string | null
           state: string
@@ -2476,8 +2480,10 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           manager_id?: string | null
+          manager_name?: string | null
           maps_url?: string | null
           name?: string
+          operating_hours?: string | null
           phone?: string | null
           photo_url?: string | null
           state?: string

@@ -1,87 +1,55 @@
 
-# Módulo Mapa da Rede
+## Objetivo
 
-Portal **público (sem login)** em `/rede` que lista os postos da rede com filtros, KPIs e serviços oferecidos. Consome a tabela `pdvs` existente (fonte única da verdade) e adiciona apenas os campos/relações que faltam. Tudo respeitando o design system (tokens semânticos do `index.css` + `tailwind.config.ts` + componentes shadcn — nada de cores hardcoded).
+Atualizar o módulo **Mapa da Rede** com os dados da planilha `RELAÇÃO_POSTOS_CONSOLIDADA` (44 postos): telefone, bandeira, gerente, horário, link do Google Maps e os 9 serviços de cada posto.
 
-## Princípios
+## 1. Banco de dados (1 migration)
 
-- **Integração, não substituição** — usa `pdvs` direto; sem cadastro paralelo.
-- **Acesso público** — rota `/rede` fora de `AppLayout`/`AuthContext`, leitura via `anon`.
-- **Design system** — `bg-background`, `text-foreground`, `border-border`, `Card`, `Badge`, `Input`, `Select`, `Dialog` do shadcn. Sem `#3B82F6`, `--blue` ou cores cruas do HTML original. Tipografia segue a do sistema (não importar Inter de novo).
-- **Categorias dinâmicas** — serviços virão de `system_options` (`tipo='servico_posto'`), gerenciados em Configurações > Opções do Sistema, padrão já existente.
+Adicionar 2 colunas em `pdvs`:
+- `manager_name TEXT` — nome do gerente em texto livre (independente do `manager_id` que vincula usuário do sistema).
+- `operating_hours TEXT` — horário (ex: "24h").
 
-## Banco de dados (1 migração)
+Garantir `GRANT SELECT` ao `anon` nessas colunas (já liberado para a tabela inteira pela política pública existente).
 
-1. **Adicionar colunas em `pdvs`** (opcionais, não quebram o existente):
-   - `bandeira TEXT` (Shell, BR, Ipiranga, Branca…)
-   - `cnpj TEXT`
-   - `phone TEXT`
-2. **Nova tabela `pdv_servicos`** (N:N pdv ↔ chave de serviço):
-   - `pdv_id UUID FK → pdvs(id) ON DELETE CASCADE`
-   - `servico_key TEXT` (referencia `system_options.value` do tipo `servico_posto`)
-   - PK composta (`pdv_id`, `servico_key`)
-   - Índice por `pdv_id`
-3. **GRANTs + RLS**:
-   - `GRANT SELECT ON pdvs TO anon` (apenas SELECT — já tinha para authenticated)
-   - `GRANT SELECT ON pdv_servicos TO anon, authenticated; GRANT ALL TO service_role`
-   - Política pública de SELECT em `pdv_servicos` (e SELECT pública em `pdvs` já filtrada apenas para campos seguros).
-4. **Seed inicial** em `system_options` com as 9 categorias do HTML (Troca de Óleo, Conveniência, Loja de Acessórios, Restaurante, Lanchonete, Lava Jato, Banheiro c/ Chuveiro, Borracharia, Calibrador de Pneus).
+## 2. Script de importação (one-shot via `supabase--insert`)
 
-> Observação de segurança: a página pública não exibirá `manager_id`, telefone do gerente nem `id_importacao`. O hook público fará `select` somente das colunas seguras.
+Algoritmo executado pelo agente no build:
 
-## Rotas
+1. Ler `/tmp/postos.xlsx` (44 linhas válidas).
+2. Buscar todos os `pdvs` atuais.
+3. Para cada linha:
+   - **Match por similaridade de nome** (normaliza removendo "POSTO", "SÃO ROQUE", acentos; usa `difflib` ≥ 0.55).
+   - **Se match**: `UPDATE pdvs` com `bandeira`, `cnpj`, `phone`, `manager_name`, `operating_hours`, e `maps_url` (quando vazio).
+   - **Se sem match**: `INSERT` novo PDV com `name`, `address`, `city`, `state` (extraídos do endereço), `bandeira`, `cnpj`, `phone`, `manager_name`, `operating_hours`, `maps_url`, `status='active'`. Coordenadas ficam `NULL` (ajustáveis depois pelo Mapa Estratégico).
+4. Para cada linha: limpar `pdv_servicos` daquele posto e reinserir as chaves marcadas como "SIM" entre as 9: `troca_oleo`, `conveniencia`, `loja_acessorios`, `restaurante`, `lanchonete`, `lava_jato`, `banheiro_chuveiro`, `borracharia`, `calibrador_pneus`.
+5. Garantir que as 9 entradas existam em `system_options` (`category='servico_posto'`) — inserir as faltantes.
 
-- `/rede` — pública, lista + filtros + KPIs (não passa por `AppLayout`, `RequireRole` nem `ModuleSelection`).
-- `/mapa-da-rede/dashboard` — admin (Super Admin), com:
-  - Gestão de **bandeira / CNPJ / telefone / serviços** por posto (edita `pdvs` + `pdv_servicos`).
-  - Atalho para Configurações > Opções do Sistema (categorias).
+Após executar, mostro um relatório: `X atualizados`, `Y criados`, `Z postos com serviços vinculados`, e a lista de matches para conferência.
 
-Adicionar card "Mapa da Rede" em `ModuleSelection` (somente Super Admin), seguindo `ModuleCard` existente, ícone `Network`/`Map`.
+## 3. Frontend (ajustes pequenos)
 
-## Frontend — arquivos novos
+- **`usePublicNetwork.ts`**: incluir `manager_name` e `operating_hours` no SELECT e na interface `PublicPdv`.
+- **`PdvDetailDialog.tsx`**: exibir Gerente (ícone User) e Horário (ícone Clock) quando preenchidos.
+- **`NetworkGrid.tsx`**: badge discreto com horário no canto inferior.
+- **`DashboardMapaRede.tsx`**: nova coluna "Gerente" na tabela admin.
+- **`EditPdvServicesDialog.tsx`**: adicionar inputs para `manager_name` e `operating_hours` junto dos já existentes (bandeira, CNPJ, telefone).
+
+## 4. O que NÃO será alterado
+
+- `manager_id` (vínculo com `profiles`) — fica intacto.
+- Coordenadas e endereços dos PDVs já existentes — não sobrescrevo.
+- Estrutura de rotas, RLS pública já configurada, design system.
+
+## Pré-visualização do matching (amostra)
 
 ```text
-src/pages/rede/
-  PublicNetworkPortal.tsx     # /rede — layout próprio, header simples + footer
-  components/
-    NetworkKPIs.tsx           # 4 cards (total, bandeiras, com conveniência, com lava jato)
-    NetworkFilters.tsx        # busca + select bandeira + select estado + chips serviço
-    NetworkGrid.tsx           # cards de posto (view grid)
-    NetworkTable.tsx          # view tabela
-    PdvDetailDialog.tsx       # modal com info + serviços
-    ShareDialog.tsx           # seleção + texto + WhatsApp/copiar
-
-src/pages/mapa-da-rede/
-  DashboardMapaRede.tsx       # admin: tabela editável de bandeira/CNPJ/serviços por PDV
-  EditPdvServicesDialog.tsx   # marca serviços do PDV
-
-src/hooks/
-  usePublicNetwork.ts         # query pública: pdvs ativos + serviços agregados
-  usePdvServices.ts           # CRUD pivot pdv_servicos (admin)
+Planilha                     →  PDV no banco
+CERRADÃO                     →  Posto São Roque Cerradão      (match)
+SOF NORTE                    →  (sem match → cria novo)
+POSTO SÃO ROQUE BRAZLÂNDIA   →  Posto São Roque Brazlândia    (match)
+RODOTRUCK P. PRUDENTE        →  Posto Rodotruck Presidente …  (match)
+TIGRE 163                    →  (sem match → cria novo)
+POSTO 080                    →  Posto São Roque 080           (match)
 ```
 
-Adicionar em `ModuleContext`: incluir `'mapa-da-rede'` no tipo `ActiveModule`.
-
-## SEO / WhatsApp preview
-
-- Título: "Rede de Postos — Gestão & Marketing".
-- Meta description com nº de postos + cidades atendidas.
-- OpenGraph + JSON-LD (`ItemList` de `GasStation`) para indexação.
-
-## Pontos fora de escopo (não fazer agora)
-
-- Mapa interativo (Mapbox) — usuário escolheu lista + filtros.
-- Edição pública / login no portal.
-- Geração automática de bandeira a partir de outro dado.
-
-## Resumo técnico (para o time)
-
-| Item | Decisão |
-|---|---|
-| Fonte de postos | `pdvs` (sem duplicar cadastro) |
-| Campos novos em `pdvs` | `bandeira`, `cnpj`, `phone` |
-| Serviços | tabela pivot `pdv_servicos` + `system_options.tipo='servico_posto'` |
-| Acesso público | `GRANT SELECT … TO anon` + RLS pública restrita a colunas seguras |
-| Rota pública | `/rede` |
-| Rota admin | `/mapa-da-rede/dashboard` (Super Admin) |
-| Design | tokens do sistema; sem cores cruas; shadcn + Nazox |
+Os matches definitivos serão listados no relatório final logo após a execução, antes de qualquer ação adicional.
