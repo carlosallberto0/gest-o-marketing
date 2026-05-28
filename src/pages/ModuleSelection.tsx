@@ -86,7 +86,7 @@ export default function ModuleSelection() {
     if (!isSuperAdmin && !isModuleEnabled(moduleId)) return false;
 
     // Super Admin only modules
-    if (['mapa', 'configuracoes', 'agencia', 'loteamentos'].includes(moduleId)) {
+    if (['mapa', 'configuracoes', 'agencia', 'loteamentos', 'mapa-da-rede'].includes(moduleId)) {
       return isSuperAdmin;
     }
     // Análise Estratégica: Super Admin and Directors
