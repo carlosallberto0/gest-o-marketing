@@ -26,6 +26,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   campaign_status: 'Status de Campanha',
   supplier_service_type: 'Tipos de Serviço (Fornecedor)',
   contract_payment_method: 'Formas de Pagamento (Contratos)',
+  servico_posto: 'Serviços do Posto (Mapa da Rede)',
 };
 
 // Buscar opções de uma categoria específica
