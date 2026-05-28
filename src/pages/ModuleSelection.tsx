@@ -24,7 +24,7 @@ const moduleIcons: Record<string, any> = {
   'mapa-da-rede': Network,
 };
 
-const modulePaths = {
+const modulePaths: Record<string, string> = {
   merchandising: '/merchandising/dashboard',
   media: '/media/dashboard',
   mapa: '/mapa',
@@ -33,6 +33,7 @@ const modulePaths = {
   agencia: '/agencia/dashboard',
   loteamentos: '/loteamentos/dashboard',
   analise: '/analise-estrategica/dashboard',
+  'mapa-da-rede': '/mapa-da-rede/dashboard',
 };
 
 const containerVariants = {
