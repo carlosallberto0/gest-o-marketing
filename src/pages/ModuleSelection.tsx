@@ -24,7 +24,7 @@ const moduleIcons: Record<string, any> = {
   'mapa-da-rede': Network,
 };
 
-const modulePaths = {
+const modulePaths: Record<string, string> = {
   merchandising: '/merchandising/dashboard',
   media: '/media/dashboard',
   mapa: '/mapa',
@@ -33,6 +33,7 @@ const modulePaths = {
   agencia: '/agencia/dashboard',
   loteamentos: '/loteamentos/dashboard',
   analise: '/analise-estrategica/dashboard',
+  'mapa-da-rede': '/mapa-da-rede/dashboard',
 };
 
 const containerVariants = {
@@ -77,7 +78,7 @@ export default function ModuleSelection() {
     }
   }, [profile?.status, loading, navigate]);
 
-  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise'] as const;
+  const moduleKeys = ['merchandising', 'media', 'mapa', 'financeiro', 'configuracoes', 'agencia', 'loteamentos', 'analise', 'mapa-da-rede'] as const;
   
   // Filter modules based on user access
   const availableModules = moduleKeys.filter(moduleId => {
@@ -85,7 +86,7 @@ export default function ModuleSelection() {
     if (!isSuperAdmin && !isModuleEnabled(moduleId)) return false;
 
     // Super Admin only modules
-    if (['mapa', 'configuracoes', 'agencia', 'loteamentos'].includes(moduleId)) {
+    if (['mapa', 'configuracoes', 'agencia', 'loteamentos', 'mapa-da-rede'].includes(moduleId)) {
       return isSuperAdmin;
     }
     // Análise Estratégica: Super Admin and Directors
