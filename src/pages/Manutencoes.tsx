@@ -220,7 +220,15 @@ function TransicaoDialog({ open, onOpenChange, manutencao, fornecedores, transic
   const [formError, setFormError] = useState<string | null>(null);
 
   const busy = submitting || transicionarManutencao.isPending;
-  const exigeJustificativa = status === "em_espera";
+  // Espelha os 3 CHECK de public.manutencoes (migration
+  // 20260908140000_midia_externa_outdoors_manutencao.sql, ~linha 398) — só
+  // pra dar erro amigável antes de bater no banco; quem decide se a
+  // transição em si é permitida continua sendo o trigger, não isto aqui.
+  const exigeDataReavaliacao = status === "em_espera";
+  const exigeJustificativa =
+    status === "em_espera" || status === "rejeitada" || status === "correcao_solicitada" || status === "cancelada";
+  const exigeFornecedor =
+    status === "atribuida" || status === "em_execucao" || status === "concluida_fornecedor" || status === "validada";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -228,8 +236,16 @@ function TransicaoDialog({ open, onOpenChange, manutencao, fornecedores, transic
 
     setFormError(null);
 
-    if (exigeJustificativa && (!justificativa.trim() || !dataReavaliacao)) {
+    if (exigeDataReavaliacao && (!justificativa.trim() || !dataReavaliacao)) {
       setFormError("Justificativa e data de reavaliação são obrigatórias para o status \"Em espera\".");
+      return;
+    }
+    if (exigeJustificativa && !justificativa.trim()) {
+      setFormError(`Justificativa é obrigatória para o status "${STATUS_LABEL[status]}".`);
+      return;
+    }
+    if (exigeFornecedor && fornecedorId === "none") {
+      setFormError(`Selecione um fornecedor para o status "${STATUS_LABEL[status]}".`);
       return;
     }
 
@@ -277,7 +293,7 @@ function TransicaoDialog({ open, onOpenChange, manutencao, fornecedores, transic
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="transicao-fornecedor">Fornecedor (opcional)</Label>
+            <Label htmlFor="transicao-fornecedor">Fornecedor{exigeFornecedor ? "" : " (opcional)"}</Label>
             <Select value={fornecedorId} onValueChange={setFornecedorId}>
               <SelectTrigger id="transicao-fornecedor">
                 <SelectValue />
@@ -293,18 +309,18 @@ function TransicaoDialog({ open, onOpenChange, manutencao, fornecedores, transic
             </Select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="transicao-data-reavaliacao">
-              Data de reavaliação{exigeJustificativa ? "" : " (opcional)"}
-            </Label>
-            <Input
-              id="transicao-data-reavaliacao"
-              type="date"
-              required={exigeJustificativa}
-              value={dataReavaliacao}
-              onChange={(event) => setDataReavaliacao(event.target.value)}
-            />
-          </div>
+          {exigeDataReavaliacao && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="transicao-data-reavaliacao">Data de reavaliação</Label>
+              <Input
+                id="transicao-data-reavaliacao"
+                type="date"
+                required
+                value={dataReavaliacao}
+                onChange={(event) => setDataReavaliacao(event.target.value)}
+              />
+            </div>
+          )}
 
           {exigeJustificativa && (
             <div className="flex flex-col gap-2">
