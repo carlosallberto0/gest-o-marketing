@@ -8,6 +8,7 @@ import {
 import { usePdvs, type Pdv } from "@/hooks/usePdvs";
 import { useFornecedores, type Fornecedor } from "@/hooks/useFornecedores";
 import { useUploadFoto, useFotoSignedUrl } from "@/hooks/useFoto";
+import { AvaliacoesOutdoorDialog } from "@/components/outdoors/AvaliacoesOutdoorDialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -311,6 +312,7 @@ export default function Outdoors() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Outdoor | null>(null);
+  const [avaliacoesOutdoor, setAvaliacoesOutdoor] = useState<Outdoor | null>(null);
 
   const pdvNomeById = new Map(pdvs.map((pdv) => [pdv.id, pdv.nome]));
 
@@ -370,6 +372,9 @@ export default function Outdoors() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => setAvaliacoesOutdoor(outdoor)}>
+                      Avaliações
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(outdoor)}>
                       Editar
                     </Button>
@@ -402,6 +407,14 @@ export default function Outdoors() {
         createOutdoor={createOutdoor}
         updateOutdoor={updateOutdoor}
       />
+
+      {avaliacoesOutdoor && (
+        <AvaliacoesOutdoorDialog
+          open={!!avaliacoesOutdoor}
+          onOpenChange={(open) => !open && setAvaliacoesOutdoor(null)}
+          outdoor={avaliacoesOutdoor}
+        />
+      )}
     </div>
   );
 }
