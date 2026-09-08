@@ -1,4 +1,4 @@
-project_id = "mgknzbjzwtkumdihzthd"
+project_id = "qlezexylaixllhakpezv"
 
 [functions.create-user]
 verify_jwt = false
