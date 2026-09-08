@@ -7,6 +7,8 @@ import {
 } from "@/hooks/useOutdoors";
 import { usePdvs, type Pdv } from "@/hooks/usePdvs";
 import { useFornecedores, type Fornecedor } from "@/hooks/useFornecedores";
+import { useUploadFoto, useFotoSignedUrl } from "@/hooks/useFoto";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,26 +44,14 @@ const STATUS_VARIANT: Record<Outdoor["status_operacional"], NonNullable<BadgePro
   pendente_avaliacao: "soft-warning",
 };
 
-interface OutdoorFormValues {
-  pdv_id: string;
-  codigo: string;
-  localizacao: string;
-  largura_m: number | null;
-  altura_m: number | null;
-  status_operacional: Outdoor["status_operacional"];
-  motivo_nao_operacional: string | null;
-  supplier_id: string | null;
-}
-
 interface OutdoorFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   outdoor: Outdoor | null;
   pdvs: Pdv[];
   fornecedores: Fornecedor[];
-  onSubmit: (values: OutdoorFormValues) => Promise<void>;
-  isPending: boolean;
-  errorMessage: string | null;
+  createOutdoor: ReturnType<typeof useCreateOutdoor>;
+  updateOutdoor: ReturnType<typeof useUpdateOutdoor>;
 }
 
 // Fora do corpo de Outdoors: dentro, o formulário perderia estado a cada
@@ -72,13 +62,16 @@ function OutdoorFormDialog({
   outdoor,
   pdvs,
   fornecedores,
-  onSubmit,
-  isPending,
-  errorMessage,
+  createOutdoor,
+  updateOutdoor,
 }: OutdoorFormDialogProps) {
   const isEditing = !!outdoor;
+  const uploadFoto = useUploadFoto("outdoor-fotos");
+  const { data: fotoAtualUrl, isLoading: fotoAtualCarregando } = useFotoSignedUrl(
+    "outdoor-fotos",
+    outdoor?.foto_url,
+  );
   const [pdvId, setPdvId] = useState(outdoor?.pdv_id ?? "");
-  const [codigo, setCodigo] = useState(outdoor?.codigo ?? "");
   const [localizacao, setLocalizacao] = useState(outdoor?.localizacao ?? "");
   const [larguraM, setLarguraM] = useState(outdoor?.largura_m != null ? String(outdoor.largura_m) : "");
   const [alturaM, setAlturaM] = useState(outdoor?.altura_m != null ? String(outdoor.altura_m) : "");
@@ -87,10 +80,11 @@ function OutdoorFormDialog({
   );
   const [motivo, setMotivo] = useState(outdoor?.motivo_nao_operacional ?? "");
   const [supplierId, setSupplierId] = useState(outdoor?.supplier_id ?? "none");
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const busy = submitting || isPending;
+  const busy = submitting || createOutdoor.isPending || updateOutdoor.isPending || uploadFoto.isPending;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,21 +101,42 @@ function OutdoorFormDialog({
       return;
     }
 
+    const basePayload = {
+      pdv_id: pdvId,
+      localizacao,
+      largura_m: larguraM ? Number(larguraM) : null,
+      altura_m: alturaM ? Number(alturaM) : null,
+      status_operacional: status,
+      motivo_nao_operacional: status === "nao_operacional" ? motivo.trim() : null,
+      supplier_id: supplierId === "none" ? null : supplierId,
+    };
+
     setSubmitting(true);
     try {
-      await onSubmit({
-        pdv_id: pdvId,
-        codigo,
-        localizacao,
-        largura_m: larguraM ? Number(larguraM) : null,
-        altura_m: alturaM ? Number(alturaM) : null,
-        status_operacional: status,
-        motivo_nao_operacional: status === "nao_operacional" ? motivo.trim() : null,
-        supplier_id: supplierId === "none" ? null : supplierId,
-      });
-    } catch {
-      // Erro real já fica em activeMutation.error (React Query), repassado
-      // via prop errorMessage — aqui só evita rejection não tratada.
+      if (outdoor) {
+        // Editar: upload primeiro (se houver arquivo novo) para incluir o
+        // foto_url resultante na mesma atualização — nunca grava o resto do
+        // formulário se o upload falhar no meio.
+        const fotoUrl = fotoFile
+          ? await uploadFoto.mutateAsync({ entidadeId: outdoor.id, file: fotoFile })
+          : undefined;
+        await updateOutdoor.mutateAsync({
+          id: outdoor.id,
+          ...basePayload,
+          ...(fotoUrl ? { foto_url: fotoUrl } : {}),
+        });
+      } else {
+        // Criar: o id só existe depois do INSERT, então a foto (se houver)
+        // só pode subir — e ser gravada — depois que o outdoor já existe.
+        const created = await createOutdoor.mutateAsync(basePayload);
+        if (fotoFile) {
+          const fotoUrl = await uploadFoto.mutateAsync({ entidadeId: created.id, file: fotoFile });
+          await updateOutdoor.mutateAsync({ id: created.id, foto_url: fotoUrl });
+        }
+      }
+      onOpenChange(false);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Erro ao salvar outdoor.");
     } finally {
       setSubmitting(false);
     }
@@ -154,16 +169,13 @@ function OutdoorFormDialog({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="outdoor-codigo">Código</Label>
-              <Input
-                id="outdoor-codigo"
-                required
-                value={codigo}
-                onChange={(event) => setCodigo(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
+            {isEditing && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="outdoor-codigo">Código</Label>
+                <Input id="outdoor-codigo" value={outdoor.codigo} readOnly disabled aria-readonly="true" />
+              </div>
+            )}
+            <div className={cn("flex flex-col gap-2", !isEditing && "sm:col-span-2")}>
               <Label htmlFor="outdoor-localizacao">Localização</Label>
               <Input
                 id="outdoor-localizacao"
@@ -242,9 +254,33 @@ function OutdoorFormDialog({
             </Select>
           </div>
 
-          {(formError ?? errorMessage) && (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="outdoor-foto">Foto (opcional)</Label>
+            {isEditing && outdoor.foto_url && (
+              <div className="flex items-center gap-3">
+                {fotoAtualCarregando ? (
+                  <Skeleton className="h-16 w-16 rounded-md" />
+                ) : fotoAtualUrl ? (
+                  <img
+                    src={fotoAtualUrl}
+                    alt={`Foto atual do outdoor ${outdoor.codigo}`}
+                    className="h-16 w-16 rounded-md border border-border object-cover"
+                  />
+                ) : null}
+                <span className="text-sm text-muted-foreground">Foto atual — envie um arquivo para substituir</span>
+              </div>
+            )}
+            <Input
+              id="outdoor-foto"
+              type="file"
+              accept="image/*"
+              onChange={(event) => setFotoFile(event.target.files?.[0] ?? null)}
+            />
+          </div>
+
+          {formError && (
             <p role="alert" className="text-sm text-destructive">
-              {formError ?? errorMessage}
+              {formError}
             </p>
           )}
 
@@ -281,17 +317,6 @@ export default function Outdoors() {
     setDialogOpen(true);
   }
 
-  async function handleSubmit(values: OutdoorFormValues) {
-    if (editing) {
-      await updateOutdoor.mutateAsync({ id: editing.id, ...values });
-    } else {
-      await createOutdoor.mutateAsync(values);
-    }
-    setDialogOpen(false);
-  }
-
-  const activeMutation = editing ? updateOutdoor : createOutdoor;
-  const mutationError = activeMutation.error ? (activeMutation.error as Error).message : null;
   const dialogKey = dialogOpen ? (editing?.id ?? "new") : "closed";
 
   return (
@@ -367,9 +392,8 @@ export default function Outdoors() {
         outdoor={editing}
         pdvs={pdvs}
         fornecedores={fornecedores}
-        onSubmit={handleSubmit}
-        isPending={activeMutation.isPending}
-        errorMessage={mutationError}
+        createOutdoor={createOutdoor}
+        updateOutdoor={updateOutdoor}
       />
     </div>
   );
