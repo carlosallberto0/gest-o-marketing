@@ -1,10 +1,19 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import Pdvs from "@/pages/Pdvs";
+import Outdoors from "@/pages/Outdoors";
+
+const NAV_ITEMS = [
+  { to: "/", label: "Dashboard", end: true },
+  { to: "/pdvs", label: "PDVs", end: false },
+  { to: "/outdoors", label: "Outdoors", end: false },
+] as const;
 
 const queryClient = new QueryClient();
 
@@ -40,16 +49,24 @@ function AppShell({ children }: { children: ReactNode }) {
         <div className="flex flex-1 flex-col gap-4 md:flex-none">
           <p className="text-lg font-semibold">Marketing OS</p>
           <ul className="flex gap-2 md:flex-col">
-            <li>
-              <Button variant="ghost" className="w-full justify-start" disabled>
-                Dashboard
-              </Button>
-            </li>
-            <li>
-              <Button variant="ghost" className="w-full justify-start" disabled>
-                Mídia Externa
-              </Button>
-            </li>
+            {NAV_ITEMS.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex h-9 w-full items-center justify-start rounded-md px-3 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </div>
         <Button variant="outline" size="sm" onClick={signOut}>
@@ -74,6 +91,26 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Dashboard />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pdvs"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Pdvs />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/outdoors"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Outdoors />
                   </AppShell>
                 </ProtectedRoute>
               }
