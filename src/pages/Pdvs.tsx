@@ -1,10 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Pdv, useCreatePdv, useDeactivatePdv, usePdvs, useUpdatePdv } from "@/hooks/usePdvs";
+import { SystemOption, useSystemOptions } from "@/hooks/useSystemOptions";
+import { useFotoSignedUrl, useUploadFoto } from "@/hooks/useFoto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -16,9 +19,9 @@ import {
 } from "@/components/ui/dialog";
 
 interface PdvFormValues {
-  codigo: string;
   nome: string;
   tipo: string;
+  file: File | null;
 }
 
 // Fora do corpo de Pdvs: definido aqui dentro, o input perderia estado a cada render do pai.
@@ -26,6 +29,7 @@ function PdvFormDialog({
   open,
   onOpenChange,
   pdv,
+  tipoOptions,
   onSubmit,
   submitting,
   error,
@@ -33,27 +37,34 @@ function PdvFormDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pdv: Pdv | null;
+  tipoOptions: SystemOption[];
   onSubmit: (values: PdvFormValues) => void;
   submitting: boolean;
   error: string | null;
 }) {
-  const [codigo, setCodigo] = useState("");
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+
+  const { data: fotoAtualUrl } = useFotoSignedUrl("pdv-fotos", pdv?.foto_url ?? null);
 
   // Reidrata o formulário sempre que o dialog abre (criação zera, edição pré-preenche).
   useEffect(() => {
     if (open) {
-      setCodigo(pdv?.codigo ?? "");
       setNome(pdv?.nome ?? "");
       setTipo(pdv?.tipo ?? "");
+      setFile(null);
     }
   }, [open, pdv]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    onSubmit({ codigo, nome, tipo });
+    onSubmit({ nome, tipo, file });
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    setFile(event.target.files?.[0] ?? null);
   }
 
   return (
@@ -66,16 +77,12 @@ function PdvFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pdv-codigo">Código</Label>
-            <Input
-              id="pdv-codigo"
-              name="codigo"
-              required
-              value={codigo}
-              onChange={(event) => setCodigo(event.target.value)}
-            />
-          </div>
+          {pdv && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="pdv-codigo">Código</Label>
+              <Input id="pdv-codigo" readOnly value={pdv.codigo} className="bg-muted text-muted-foreground" />
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="pdv-nome">Nome</Label>
             <Input
@@ -88,13 +95,28 @@ function PdvFormDialog({
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="pdv-tipo">Tipo</Label>
-            <Input
-              id="pdv-tipo"
-              name="tipo"
-              required
-              value={tipo}
-              onChange={(event) => setTipo(event.target.value)}
-            />
+            <Select value={tipo} onValueChange={setTipo}>
+              <SelectTrigger id="pdv-tipo">
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {tipoOptions.map((opcao) => (
+                  <SelectItem key={opcao.valor} value={opcao.valor}>
+                    {opcao.rotulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="pdv-foto">Foto do PDV (opcional)</Label>
+            {fotoAtualUrl && (
+              <div className="flex items-center gap-2">
+                <img src={fotoAtualUrl} alt="Foto atual do PDV" className="h-16 w-16 rounded object-cover" />
+                <span className="text-sm text-muted-foreground">Foto atual</span>
+              </div>
+            )}
+            <Input id="pdv-foto" type="file" accept="image/*" onChange={handleFileChange} />
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">
@@ -114,13 +136,17 @@ function PdvFormDialog({
 
 export default function Pdvs() {
   const { data: pdvs, isLoading } = usePdvs();
+  const { data: tipoOptions = [] } = useSystemOptions("core", "pdv_tipo");
   const createPdv = useCreatePdv();
   const updatePdv = useUpdatePdv();
   const deactivatePdv = useDeactivatePdv();
+  const uploadFoto = useUploadFoto("pdv-fotos");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPdv, setEditingPdv] = useState<Pdv | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const tipoRotuloPorValor = new Map(tipoOptions.map((opcao) => [opcao.valor, opcao.rotulo]));
 
   function openCreateDialog() {
     setEditingPdv(null);
@@ -138,9 +164,17 @@ export default function Pdvs() {
     setFormError(null);
     try {
       if (editingPdv) {
-        await updatePdv.mutateAsync({ id: editingPdv.id, ...values });
+        let foto_url = editingPdv.foto_url;
+        if (values.file) {
+          foto_url = await uploadFoto.mutateAsync({ entidadeId: editingPdv.id, file: values.file });
+        }
+        await updatePdv.mutateAsync({ id: editingPdv.id, nome: values.nome, tipo: values.tipo, foto_url });
       } else {
-        await createPdv.mutateAsync(values);
+        const created = await createPdv.mutateAsync({ nome: values.nome, tipo: values.tipo });
+        if (values.file) {
+          const foto_url = await uploadFoto.mutateAsync({ entidadeId: created.id, file: values.file });
+          await updatePdv.mutateAsync({ id: created.id, foto_url });
+        }
       }
       setDialogOpen(false);
     } catch (err) {
@@ -157,7 +191,7 @@ export default function Pdvs() {
     }
   }
 
-  const isSubmitting = createPdv.isPending || updatePdv.isPending;
+  const isSubmitting = createPdv.isPending || updatePdv.isPending || uploadFoto.isPending;
   const hasPdvs = (pdvs?.length ?? 0) > 0;
 
   return (
@@ -197,7 +231,7 @@ export default function Pdvs() {
                 <TableRow key={pdv.id}>
                   <TableCell className="font-medium">{pdv.codigo}</TableCell>
                   <TableCell>{pdv.nome}</TableCell>
-                  <TableCell>{pdv.tipo}</TableCell>
+                  <TableCell>{tipoRotuloPorValor.get(pdv.tipo) ?? pdv.tipo}</TableCell>
                   <TableCell>
                     <Badge variant={pdv.status === "ativo" ? "success" : "outline"}>{pdv.status}</Badge>
                   </TableCell>
@@ -229,6 +263,7 @@ export default function Pdvs() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         pdv={editingPdv}
+        tipoOptions={tipoOptions}
         onSubmit={handleSubmit}
         submitting={isSubmitting}
         error={formError}
