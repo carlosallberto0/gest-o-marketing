@@ -119,6 +119,9 @@ function OutdoorFormDialog({
         motivo_nao_operacional: status === "nao_operacional" ? motivo.trim() : null,
         supplier_id: supplierId === "none" ? null : supplierId,
       });
+    } catch {
+      // Erro real já fica em activeMutation.error (React Query), repassado
+      // via prop errorMessage — aqui só evita rejection não tratada.
     } finally {
       setSubmitting(false);
     }
