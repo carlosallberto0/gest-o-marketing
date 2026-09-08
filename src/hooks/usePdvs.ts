@@ -9,6 +9,7 @@ export interface Pdv {
   nome: string;
   tipo: string;
   status: "ativo" | "inativo";
+  foto_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,11 +43,14 @@ export function usePdv(id: string) {
   });
 }
 
+// codigo nunca vai no payload — o trigger before_insert_gerar_codigo (banco)
+// gera "<tipo>-NNNN" quando NEW.codigo vem nulo (migration
+// 20260908160000_system_options_codigo_sequencial_fotos.sql).
 export function useCreatePdv() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { codigo: string; nome: string; tipo: string }) => {
+    mutationFn: async (input: { nome: string; tipo: string; foto_url?: string | null }) => {
       const { data, error } = await supabase.from("pdvs").insert(input).select().single();
       if (error) throw error;
       return data as Pdv;
@@ -66,10 +70,10 @@ export function useUpdatePdv() {
       ...input
     }: {
       id: string;
-      codigo?: string;
       nome?: string;
       tipo?: string;
       status?: "ativo" | "inativo";
+      foto_url?: string | null;
     }) => {
       const { data, error } = await supabase.from("pdvs").update(input).eq("id", id).select().single();
       if (error) throw error;

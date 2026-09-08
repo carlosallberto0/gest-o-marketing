@@ -20,9 +20,11 @@ export interface Outdoor {
   updated_at: string;
 }
 
+// codigo nunca vai no payload — o trigger before_insert_gerar_codigo (banco)
+// gera "OUT-NNNN" quando NEW.codigo vem nulo (migration
+// 20260908160000_system_options_codigo_sequencial_fotos.sql).
 interface CreateOutdoorInput {
   pdv_id: string;
-  codigo: string;
   localizacao: string;
   largura_m?: number | null;
   altura_m?: number | null;
