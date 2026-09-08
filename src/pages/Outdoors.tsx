@@ -83,6 +83,11 @@ function OutdoorFormDialog({
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // Guarda o id assim que o outdoor é criado, mesmo que a etapa de foto
+  // falhe depois — sem isso, clicar em "Salvar" de novo após um erro de
+  // upload cairia de novo no branch de create e duplicaria o registro.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const targetId = outdoor?.id ?? createdId;
 
   const busy = submitting || createOutdoor.isPending || updateOutdoor.isPending || uploadFoto.isPending;
 
@@ -113,15 +118,16 @@ function OutdoorFormDialog({
 
     setSubmitting(true);
     try {
-      if (outdoor) {
-        // Editar: upload primeiro (se houver arquivo novo) para incluir o
-        // foto_url resultante na mesma atualização — nunca grava o resto do
-        // formulário se o upload falhar no meio.
+      if (targetId) {
+        // Editar (ou retry após create ter dado certo mas a foto ter
+        // falhado antes): upload primeiro para incluir o foto_url resultante
+        // na mesma atualização — nunca grava o resto do formulário se o
+        // upload falhar no meio.
         const fotoUrl = fotoFile
-          ? await uploadFoto.mutateAsync({ entidadeId: outdoor.id, file: fotoFile })
+          ? await uploadFoto.mutateAsync({ entidadeId: targetId, file: fotoFile })
           : undefined;
         await updateOutdoor.mutateAsync({
-          id: outdoor.id,
+          id: targetId,
           ...basePayload,
           ...(fotoUrl ? { foto_url: fotoUrl } : {}),
         });
@@ -129,6 +135,7 @@ function OutdoorFormDialog({
         // Criar: o id só existe depois do INSERT, então a foto (se houver)
         // só pode subir — e ser gravada — depois que o outdoor já existe.
         const created = await createOutdoor.mutateAsync(basePayload);
+        setCreatedId(created.id);
         if (fotoFile) {
           const fotoUrl = await uploadFoto.mutateAsync({ entidadeId: created.id, file: fotoFile });
           await updateOutdoor.mutateAsync({ id: created.id, foto_url: fotoUrl });

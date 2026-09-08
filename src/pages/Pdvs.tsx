@@ -171,6 +171,10 @@ export default function Pdvs() {
         await updatePdv.mutateAsync({ id: editingPdv.id, nome: values.nome, tipo: values.tipo, foto_url });
       } else {
         const created = await createPdv.mutateAsync({ nome: values.nome, tipo: values.tipo });
+        // PDV já existe no banco a partir daqui — promove o dialog para modo
+        // edição antes de tentar a foto, para que um retry (upload/update
+        // falhou) reenvie como update, e não crie um segundo PDV duplicado.
+        setEditingPdv(created);
         if (values.file) {
           const foto_url = await uploadFoto.mutateAsync({ entidadeId: created.id, file: values.file });
           await updatePdv.mutateAsync({ id: created.id, foto_url });
