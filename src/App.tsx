@@ -8,11 +8,13 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Pdvs from "@/pages/Pdvs";
 import Outdoors from "@/pages/Outdoors";
+import Manutencoes from "@/pages/Manutencoes";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/pdvs", label: "PDVs", end: false },
   { to: "/outdoors", label: "Outdoors", end: false },
+  { to: "/manutencoes", label: "Manutenções", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -111,6 +113,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Outdoors />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manutencoes"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Manutencoes />
                   </AppShell>
                 </ProtectedRoute>
               }
