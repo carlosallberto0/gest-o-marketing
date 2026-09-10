@@ -14,6 +14,7 @@ import ChecklistConfig from "@/pages/ChecklistConfig";
 import Manutencoes from "@/pages/Manutencoes";
 import AvaliacoesPdv from "@/pages/AvaliacoesPdv";
 import PlanosAcao from "@/pages/PlanosAcao";
+import Campanhas from "@/pages/Campanhas";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: "/avaliacoes-pdv", label: "Avaliação de PDV", end: false },
   { to: "/planos-acao", label: "Planos de Ação", end: false },
   { to: "/manutencoes", label: "Manutenções", end: false },
+  { to: "/campanhas", label: "Campanhas", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -183,6 +185,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Manutencoes />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/campanhas"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Campanhas />
                   </AppShell>
                 </ProtectedRoute>
               }
