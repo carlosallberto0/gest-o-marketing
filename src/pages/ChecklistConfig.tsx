@@ -141,7 +141,6 @@ interface PerguntaFormValues {
   exige_comentario: boolean;
   is_critica: boolean;
   exige_material: boolean;
-  tipo_material: string;
 }
 
 // Fora do corpo de ChecklistConfig pelo mesmo motivo do form de categoria.
@@ -172,7 +171,6 @@ function PerguntaFormDialog({
   const [exigeComentario, setExigeComentario] = useState(false);
   const [isCritica, setIsCritica] = useState(false);
   const [exigeMaterial, setExigeMaterial] = useState(false);
-  const [tipoMaterial, setTipoMaterial] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Reidrata o formulário sempre que o dialog abre (criação zera com a
@@ -187,7 +185,6 @@ function PerguntaFormDialog({
       setExigeComentario(pergunta?.exige_comentario ?? false);
       setIsCritica(pergunta?.is_critica ?? false);
       setExigeMaterial(pergunta?.exige_material ?? false);
-      setTipoMaterial(pergunta?.tipo_material ?? "");
       setValidationError(null);
     }
   }, [open, pergunta, defaultCategoriaId]);
@@ -212,7 +209,6 @@ function PerguntaFormDialog({
       exige_comentario: exigeComentario,
       is_critica: isCritica,
       exige_material: exigeMaterial,
-      tipo_material: tipoMaterial,
     });
   }
 
@@ -309,16 +305,6 @@ function PerguntaFormDialog({
                 Exige material
               </Label>
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pergunta-tipo-material">Tipo de material</Label>
-            <Input
-              id="pergunta-tipo-material"
-              name="tipo_material"
-              disabled={!exigeMaterial}
-              value={tipoMaterial}
-              onChange={(event) => setTipoMaterial(event.target.value)}
-            />
           </div>
           {(validationError ?? error) && (
             <p role="alert" className="text-sm text-destructive">
@@ -442,7 +428,6 @@ export default function ChecklistConfig() {
         exige_comentario: values.exige_comentario,
         is_critica: values.is_critica,
         exige_material: values.exige_material,
-        tipo_material: values.exige_material ? values.tipo_material || null : null,
       };
       if (editingPergunta) {
         await updatePergunta.mutateAsync({ id: editingPergunta.id, ...payload });

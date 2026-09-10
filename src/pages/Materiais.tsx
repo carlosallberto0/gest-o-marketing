@@ -25,8 +25,6 @@ import {
 
 interface MaterialFormValues {
   nome: string;
-  tipo: string;
-  categoria: string;
   custo_unitario: number;
   estoque_minimo: number;
   file: File | null;
@@ -49,8 +47,6 @@ function MaterialFormDialog({
   error: string | null;
 }) {
   const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState("");
-  const [categoria, setCategoria] = useState("");
   const [custoUnitario, setCustoUnitario] = useState(0);
   const [estoqueMinimo, setEstoqueMinimo] = useState(0);
   const [file, setFile] = useState<File | null>(null);
@@ -61,8 +57,6 @@ function MaterialFormDialog({
   useEffect(() => {
     if (open) {
       setNome(material?.nome ?? "");
-      setTipo(material?.tipo ?? "");
-      setCategoria(material?.categoria ?? "");
       setCustoUnitario(material?.custo_unitario ?? 0);
       setEstoqueMinimo(material?.estoque_minimo ?? 0);
       setFile(null);
@@ -72,7 +66,7 @@ function MaterialFormDialog({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    onSubmit({ nome, tipo, categoria, custo_unitario: custoUnitario, estoque_minimo: estoqueMinimo, file });
+    onSubmit({ nome, custo_unitario: custoUnitario, estoque_minimo: estoqueMinimo, file });
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -103,19 +97,6 @@ function MaterialFormDialog({
               required
               value={nome}
               onChange={(event) => setNome(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="material-tipo">Tipo (opcional)</Label>
-            <Input id="material-tipo" name="tipo" value={tipo} onChange={(event) => setTipo(event.target.value)} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="material-categoria">Categoria (opcional)</Label>
-            <Input
-              id="material-categoria"
-              name="categoria"
-              value={categoria}
-              onChange={(event) => setCategoria(event.target.value)}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -285,8 +266,6 @@ export default function Materiais() {
         await updateMaterial.mutateAsync({
           id: editingMaterial.id,
           nome: values.nome,
-          tipo: values.tipo || null,
-          categoria: values.categoria || null,
           custo_unitario: values.custo_unitario,
           estoque_minimo: values.estoque_minimo,
           imagem_url,
@@ -294,8 +273,6 @@ export default function Materiais() {
       } else {
         const created = await createMaterial.mutateAsync({
           nome: values.nome,
-          tipo: values.tipo || null,
-          categoria: values.categoria || null,
           custo_unitario: values.custo_unitario,
           estoque_minimo: values.estoque_minimo,
         });
@@ -364,8 +341,6 @@ export default function Materiais() {
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Categoria</TableHead>
                 <TableHead>Estoque</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -378,8 +353,6 @@ export default function Materiais() {
                   <TableRow key={material.id}>
                     <TableCell className="font-medium">{material.codigo}</TableCell>
                     <TableCell>{material.nome}</TableCell>
-                    <TableCell>{material.tipo ?? "—"}</TableCell>
-                    <TableCell>{material.categoria ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span>{material.estoque_atual}</span>
