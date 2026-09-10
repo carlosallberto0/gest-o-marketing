@@ -8,12 +8,14 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Pdvs from "@/pages/Pdvs";
 import Outdoors from "@/pages/Outdoors";
+import Materiais from "@/pages/Materiais";
 import Manutencoes from "@/pages/Manutencoes";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/pdvs", label: "PDVs", end: false },
   { to: "/outdoors", label: "Outdoors", end: false },
+  { to: "/materiais", label: "Materiais", end: false },
   { to: "/manutencoes", label: "Manutenções", end: false },
 ] as const;
 
@@ -113,6 +115,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Outdoors />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/materiais"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Materiais />
                   </AppShell>
                 </ProtectedRoute>
               }
