@@ -15,6 +15,7 @@ import Manutencoes from "@/pages/Manutencoes";
 import AvaliacoesPdv from "@/pages/AvaliacoesPdv";
 import PlanosAcao from "@/pages/PlanosAcao";
 import Campanhas from "@/pages/Campanhas";
+import Aprovacoes from "@/pages/Aprovacoes";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { to: "/planos-acao", label: "Planos de Ação", end: false },
   { to: "/manutencoes", label: "Manutenções", end: false },
   { to: "/campanhas", label: "Campanhas", end: false },
+  { to: "/aprovacoes", label: "Aprovações", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -195,6 +197,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Campanhas />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/aprovacoes"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Aprovacoes />
                   </AppShell>
                 </ProtectedRoute>
               }
