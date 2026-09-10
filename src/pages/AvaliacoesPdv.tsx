@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   useAvaliacaoPdv,
   useAvaliacoesPdv,
@@ -16,6 +16,7 @@ import {
 import { usePdvs } from "@/hooks/usePdvs";
 import { useMateriais, type Material } from "@/hooks/useMateriais";
 import { useFotoSignedUrl, useUploadFoto } from "@/hooks/useFoto";
+import { useCreatePlanoAcao } from "@/hooks/usePlanosAcao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const VALOR_LABEL: Record<RespostaChecklist["valor"], string> = {
@@ -332,6 +341,98 @@ function AvaliacaoFormulario({
   );
 }
 
+// Fora do corpo do pai: cada instância tem seu próprio dialog e estado de
+// formulário, um por resposta "não" — dentro do .map() do pai perderia
+// estado a cada render (mesmo motivo de PerguntaChecklistItem).
+function CriarPlanoAcaoButton({ respostaId }: { respostaId: string }) {
+  const [open, setOpen] = useState(false);
+  const [descricao, setDescricao] = useState("");
+  const [prazo, setPrazo] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const createPlanoAcao = useCreatePlanoAcao();
+  const busy = submitting || createPlanoAcao.isPending;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+
+    setFormError(null);
+
+    if (!descricao.trim()) {
+      setFormError("Descrição é obrigatória.");
+      return;
+    }
+    if (!prazo) {
+      setFormError("Prazo é obrigatório.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await createPlanoAcao.mutateAsync({ resposta_id: respostaId, descricao: descricao.trim(), prazo });
+      setOpen(false);
+      setDescricao("");
+      setPrazo("");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Erro ao criar plano de ação.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        Criar plano de ação
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Criar plano de ação</DialogTitle>
+            <DialogDescription>Registre a ação corretiva para esta resposta "Não".</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`plano-acao-${respostaId}-descricao`}>Descrição</Label>
+              <Textarea
+                id={`plano-acao-${respostaId}-descricao`}
+                required
+                value={descricao}
+                onChange={(event) => setDescricao(event.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`plano-acao-${respostaId}-prazo`}>Prazo</Label>
+              <Input
+                id={`plano-acao-${respostaId}-prazo`}
+                type="date"
+                required
+                value={prazo}
+                onChange={(event) => setPrazo(event.target.value)}
+              />
+            </div>
+
+            {formError && (
+              <p role="alert" className="text-sm text-destructive">
+                {formError}
+              </p>
+            )}
+
+            <DialogFooter>
+              <Button type="submit" disabled={busy}>
+                {busy ? "Criando…" : "Criar plano de ação"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // Fora do corpo do pai pelo mesmo motivo dos demais subcomponentes de formulário/visão.
 function AvaliacaoResumo({
   avaliacao,
@@ -419,6 +520,11 @@ function AvaliacaoResumo({
                     </p>
                   )}
                   {resposta.foto_url && <AvaliacaoFotoThumb path={resposta.foto_url} />}
+                  {resposta.valor === "nao" && (
+                    <div>
+                      <CriarPlanoAcaoButton respostaId={resposta.id} />
+                    </div>
+                  )}
                 </li>
               );
             })}
