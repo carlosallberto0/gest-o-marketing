@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import Pdvs from "@/pages/Pdvs";
 import Outdoors from "@/pages/Outdoors";
 import Materiais from "@/pages/Materiais";
+import ChecklistConfig from "@/pages/ChecklistConfig";
 import Manutencoes from "@/pages/Manutencoes";
 
 const NAV_ITEMS = [
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { to: "/pdvs", label: "PDVs", end: false },
   { to: "/outdoors", label: "Outdoors", end: false },
   { to: "/materiais", label: "Materiais", end: false },
+  { to: "/checklist-config", label: "Config. Checklist", end: false },
   { to: "/manutencoes", label: "Manutenções", end: false },
 ] as const;
 
@@ -125,6 +127,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <Materiais />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checklist-config"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <ChecklistConfig />
                   </AppShell>
                 </ProtectedRoute>
               }
