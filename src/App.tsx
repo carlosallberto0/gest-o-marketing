@@ -16,6 +16,7 @@ import AvaliacoesPdv from "@/pages/AvaliacoesPdv";
 import PlanosAcao from "@/pages/PlanosAcao";
 import Campanhas from "@/pages/Campanhas";
 import Aprovacoes from "@/pages/Aprovacoes";
+import AprovacaoPublica from "@/pages/AprovacaoPublica";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -211,6 +212,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
