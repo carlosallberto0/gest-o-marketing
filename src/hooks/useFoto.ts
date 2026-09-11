@@ -1,7 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-type FotoBucket = "pdv-fotos" | "outdoor-fotos" | "material-fotos" | "avaliacao-pdv-fotos" | "aprovacao-arquivos";
+type FotoBucket =
+  | "pdv-fotos"
+  | "outdoor-fotos"
+  | "material-fotos"
+  | "avaliacao-pdv-fotos"
+  | "aprovacao-arquivos"
+  | "demanda-criativa-arquivos"
+  | "biblioteca-marca-arquivos";
 
 // Buckets privados — path é sempre "{entidade_id}/{arquivo}" (ADR-009,
 // migration 20260908160000_system_options_codigo_sequencial_fotos.sql).
