@@ -21,6 +21,7 @@ import DemandasCriativas from "@/pages/DemandasCriativas";
 import BibliotecaMarca from "@/pages/BibliotecaMarca";
 import EstudioElementos from "@/pages/EstudioElementos";
 import EstudioTemplates from "@/pages/EstudioTemplates";
+import EstudioColaborador from "@/pages/EstudioColaborador";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { to: "/aprovacoes", label: "Aprovações", end: false },
   { to: "/demandas-criativas", label: "Demandas Criativas", end: false },
   { to: "/biblioteca-marca", label: "Biblioteca de Marca", end: false },
+  { to: "/estudio", label: "Estúdio", end: false },
   { to: "/estudio/elementos", label: "Elementos do Estúdio", end: false },
   { to: "/estudio/templates", label: "Templates do Estúdio", end: false },
 ] as const;
@@ -236,6 +238,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <BibliotecaMarca />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estudio"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <EstudioColaborador />
                   </AppShell>
                 </ProtectedRoute>
               }
