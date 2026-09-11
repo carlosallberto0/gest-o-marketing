@@ -19,6 +19,7 @@ import Aprovacoes from "@/pages/Aprovacoes";
 import AprovacaoPublica from "@/pages/AprovacaoPublica";
 import DemandasCriativas from "@/pages/DemandasCriativas";
 import BibliotecaMarca from "@/pages/BibliotecaMarca";
+import EstudioElementos from "@/pages/EstudioElementos";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { to: "/aprovacoes", label: "Aprovações", end: false },
   { to: "/demandas-criativas", label: "Demandas Criativas", end: false },
   { to: "/biblioteca-marca", label: "Biblioteca de Marca", end: false },
+  { to: "/estudio/elementos", label: "Elementos do Estúdio", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -232,6 +234,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <BibliotecaMarca />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estudio/elementos"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <EstudioElementos />
                   </AppShell>
                 </ProtectedRoute>
               }
