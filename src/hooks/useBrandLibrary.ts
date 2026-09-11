@@ -67,6 +67,7 @@ export function useCreateBrandLibraryItem() {
 
   return useMutation({
     mutationFn: async (input: {
+      id?: string;
       nome: string;
       tipo: BrandLibraryItem["tipo"];
       arquivo_url: string;
