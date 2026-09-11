@@ -8,7 +8,9 @@ type FotoBucket =
   | "avaliacao-pdv-fotos"
   | "aprovacao-arquivos"
   | "demanda-criativa-arquivos"
-  | "biblioteca-marca-arquivos";
+  | "biblioteca-marca-arquivos"
+  | "estudio-templates"
+  | "estudio-elementos";
 
 // Buckets privados — path é sempre "{entidade_id}/{arquivo}" (ADR-009,
 // migration 20260908160000_system_options_codigo_sequencial_fotos.sql).
