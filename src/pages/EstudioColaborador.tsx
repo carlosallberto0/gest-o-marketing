@@ -94,6 +94,182 @@ function composicaoElementoPreenchido(elemento: EstudioComposicaoElemento | unde
   return !!elemento.elemento_id || !!elemento.valor_texto?.trim();
 }
 
+// --- Exportação da peça: rasterização em <canvas> nativo, sem dependência
+// nova — o layout já é conhecido (retângulos em percentual + imagem/texto por
+// área), então desenhar direto no canvas é menos código e mais preciso na
+// resolução final (largura_px/altura_px do template) do que tirar um
+// "screenshot" da prévia responsiva da tela com uma lib como html2canvas.
+
+interface RectPx {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function areaRectPx(area: EstudioTemplateArea, larguraPx: number, alturaPx: number): RectPx {
+  return {
+    x: (area.x_percent / 100) * larguraPx,
+    y: (area.y_percent / 100) * alturaPx,
+    w: (area.largura_percent / 100) * larguraPx,
+    h: (area.altura_percent / 100) * alturaPx,
+  };
+}
+
+function carregarImagem(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Não foi possível carregar uma imagem da peça para exportação."));
+    img.src = url;
+  });
+}
+
+function canvasParaPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Não foi possível gerar a imagem exportada."))),
+      "image/png",
+    );
+  });
+}
+
+function quebrarLinhas(ctx: CanvasRenderingContext2D, texto: string, larguraMaxima: number): string[] {
+  const palavras = texto.split(/\s+/).filter(Boolean);
+  const linhas: string[] = [];
+  let atual = "";
+  for (const palavra of palavras) {
+    const teste = atual ? `${atual} ${palavra}` : palavra;
+    if (atual && ctx.measureText(teste).width > larguraMaxima) {
+      linhas.push(atual);
+      atual = palavra;
+    } else {
+      atual = teste;
+    }
+  }
+  if (atual) linhas.push(atual);
+  return linhas;
+}
+
+// ponytail: heurística simples de ajuste de fonte (reduz até caber, sem
+// otimizar a quebra de linha em si) — teto: texto muito longo corta no
+// tamanho mínimo (8px) em vez de estourar a área. Upgrade: expor fonte/cor
+// por área se isso virar problema real com templates de verdade.
+function desenharTextoNaArea(ctx: CanvasRenderingContext2D, texto: string, rect: RectPx): void {
+  const padding = Math.max(4, rect.h * 0.08);
+  const larguraMaxima = Math.max(1, rect.w - padding * 2);
+  const alturaMaxima = Math.max(1, rect.h - padding * 2);
+
+  let fontSize = Math.floor(rect.h * 0.6);
+  let linhas: string[] = [texto];
+  while (fontSize > 8) {
+    ctx.font = `600 ${fontSize}px sans-serif`;
+    linhas = quebrarLinhas(ctx, texto, larguraMaxima);
+    if (linhas.length * fontSize * 1.2 <= alturaMaxima) break;
+    fontSize -= 2;
+  }
+
+  ctx.font = `600 ${fontSize}px sans-serif`;
+  ctx.fillStyle = "#111827";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const alturaLinha = fontSize * 1.2;
+  const inicioY = rect.y + rect.h / 2 - ((linhas.length - 1) * alturaLinha) / 2;
+  linhas.forEach((linha, indice) => {
+    ctx.fillText(linha, rect.x + rect.w / 2, inicioY + indice * alturaLinha, larguraMaxima);
+  });
+}
+
+// object-contain dentro da área, com deslocamento/escala já existentes no
+// schema (estudio_composicao_elementos.deslocamento_x_px/y_px/fator_escala) —
+// hoje sempre 0/0/1 porque a UI ainda não tem controle de arrastar/redimensionar,
+// mas o export já honra os campos para quando esse controle existir.
+function desenharImagemNaArea(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  rect: RectPx,
+  deslocamentoXPx: number,
+  deslocamentoYPx: number,
+  fatorEscala: number,
+): void {
+  const escalaBase = Math.min(rect.w / img.naturalWidth, rect.h / img.naturalHeight);
+  const largura = img.naturalWidth * escalaBase * fatorEscala;
+  const altura = img.naturalHeight * escalaBase * fatorEscala;
+  const x = rect.x + (rect.w - largura) / 2 + deslocamentoXPx;
+  const y = rect.y + (rect.h - altura) / 2 + deslocamentoYPx;
+  ctx.drawImage(img, x, y, largura, altura);
+}
+
+async function gerarImagemComposicao(
+  template: EstudioTemplateComCategoria,
+  imagemBaseUrl: string,
+  areas: EstudioTemplateArea[],
+  elementoPorAreaId: Map<string, EstudioComposicaoElemento>,
+): Promise<Blob> {
+  const idsElementosVisuais = Array.from(
+    new Set(
+      areas
+        .filter((area) => !isTipoTexto(area.tipo_elemento_permitido))
+        .map((area) => elementoPorAreaId.get(area.id)?.elemento_id)
+        .filter((id): id is string => !!id),
+    ),
+  );
+
+  const arquivoPorElementoId = new Map<string, string>();
+  if (idsElementosVisuais.length > 0) {
+    const { data, error } = await supabase
+      .from("estudio_elementos")
+      .select("id, arquivo_url")
+      .in("id", idsElementosVisuais);
+    if (error) throw error;
+    for (const elemento of data ?? []) {
+      if (elemento.arquivo_url) arquivoPorElementoId.set(elemento.id as string, elemento.arquivo_url as string);
+    }
+  }
+
+  const imagemPorElementoId = new Map<string, HTMLImageElement>();
+  for (const [elementoId, arquivoUrl] of arquivoPorElementoId) {
+    const { data, error } = await supabase.storage.from("estudio-elementos").createSignedUrl(arquivoUrl, 60);
+    if (error) throw error;
+    imagemPorElementoId.set(elementoId, await carregarImagem(data.signedUrl));
+  }
+
+  const imagemBase = await carregarImagem(imagemBaseUrl);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = template.largura_px;
+  canvas.height = template.altura_px;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas não suportado neste navegador.");
+
+  ctx.drawImage(imagemBase, 0, 0, canvas.width, canvas.height);
+
+  const areasOrdenadas = [...areas].sort((a, b) => a.z_index - b.z_index);
+  for (const area of areasOrdenadas) {
+    const composicaoElemento = elementoPorAreaId.get(area.id);
+    const rect = areaRectPx(area, canvas.width, canvas.height);
+    if (isTipoTexto(area.tipo_elemento_permitido)) {
+      const texto = composicaoElemento?.valor_texto?.trim();
+      if (texto) desenharTextoNaArea(ctx, texto, rect);
+    } else {
+      const img = composicaoElemento?.elemento_id ? imagemPorElementoId.get(composicaoElemento.elemento_id) : undefined;
+      if (img) {
+        desenharImagemNaArea(
+          ctx,
+          img,
+          rect,
+          composicaoElemento?.deslocamento_x_px ?? 0,
+          composicaoElemento?.deslocamento_y_px ?? 0,
+          composicaoElemento?.fator_escala ?? 1,
+        );
+      }
+    }
+  }
+
+  return canvasParaPngBlob(canvas);
+}
+
 // Fora do corpo do componente pai: cada card de canal é só leitura, mas
 // mantido fora por consistência com os demais subcomponentes desta tela.
 function CanalCard({
@@ -442,6 +618,8 @@ function ComposicaoEditor({
 
   const salvarComposicao = useUpdateEstudioComposicao();
   const finalizarComposicao = useUpdateEstudioComposicao();
+  const exportarComposicao = useUpdateEstudioComposicao();
+  const { data: exportadaUrl } = useFotoSignedUrl("estudio-composicoes", composicao?.export_file_url);
 
   const [nome, setNome] = useState("");
   const [nomeCarregado, setNomeCarregado] = useState(false);
@@ -449,6 +627,8 @@ function ComposicaoEditor({
   const [nomeError, setNomeError] = useState<string | null>(null);
   const [rascunhoError, setRascunhoError] = useState<string | null>(null);
   const [finalizarError, setFinalizarError] = useState<string | null>(null);
+  const [exportarError, setExportarError] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
     if (composicao && !nomeCarregado) {
@@ -478,10 +658,7 @@ function ComposicaoEditor({
     }
   }
 
-  async function handleFinalizar() {
-    if (finalizarComposicao.isPending) return;
-    setFinalizarError(null);
-
+  function areasFaltando(): string[] {
     const faltando: string[] = [];
     if (!nome.trim()) faltando.push("Nome da peça");
     for (const area of areas ?? []) {
@@ -489,6 +666,14 @@ function ComposicaoEditor({
         faltando.push(area.nome);
       }
     }
+    return faltando;
+  }
+
+  async function handleFinalizar() {
+    if (finalizarComposicao.isPending) return;
+    setFinalizarError(null);
+
+    const faltando = areasFaltando();
     if (faltando.length > 0) {
       setFinalizarError(`Antes de finalizar, preencha: ${faltando.join(", ")}.`);
       return;
@@ -502,6 +687,43 @@ function ComposicaoEditor({
       await finalizarComposicao.mutateAsync({ id: composicaoId, nome: nome.trim(), status: "saved" });
     } catch (err) {
       setFinalizarError(err instanceof Error ? err.message : "Não foi possível finalizar a peça.");
+    }
+  }
+
+  async function handleExportar() {
+    // `exportarComposicao.isPending` só cobre o UPDATE final — a geração do
+    // canvas e o upload rodam antes dela e também precisam travar o clique
+    // duplo, daí o estado local cobrindo a função inteira (try/finally).
+    if (exportando || exportarComposicao.isPending || !imagemBaseUrl || areasLoading) return;
+    setExportarError(null);
+
+    const faltando = areasFaltando();
+    if (faltando.length > 0) {
+      setExportarError(`Antes de exportar, preencha: ${faltando.join(", ")}.`);
+      return;
+    }
+
+    setExportando(true);
+    try {
+      const blob = await gerarImagemComposicao(template, imagemBaseUrl, areas ?? [], elementoPorAreaId);
+      const path = `${composicaoId}/${Date.now()}-exportada.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("estudio-composicoes")
+        .upload(path, blob, { upsert: true, contentType: "image/png" });
+      if (uploadError) throw uploadError;
+
+      // nome vai junto neste UPDATE pelo mesmo motivo do handleFinalizar: sem
+      // ordem garantida com o autosave do onBlur.
+      await exportarComposicao.mutateAsync({
+        id: composicaoId,
+        nome: nome.trim(),
+        status: "exported",
+        export_file_url: path,
+      });
+    } catch (err) {
+      setExportarError(err instanceof Error ? err.message : "Não foi possível exportar a peça.");
+    } finally {
+      setExportando(false);
     }
   }
 
@@ -588,6 +810,21 @@ function ComposicaoEditor({
           <Button type="button" disabled={finalizarComposicao.isPending} onClick={handleFinalizar}>
             {finalizarComposicao.isPending ? "Finalizando…" : "Finalizar peça"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exportando || exportarComposicao.isPending || !imagemBaseUrl || areasLoading}
+            onClick={handleExportar}
+          >
+            {exportando || exportarComposicao.isPending ? "Exportando…" : "Exportar peça"}
+          </Button>
+          {composicao?.export_file_url && exportadaUrl && (
+            <Button asChild variant="outline">
+              <a href={exportadaUrl} target="_blank" rel="noreferrer">
+                Baixar peça exportada
+              </a>
+            </Button>
+          )}
         </div>
         {rascunhoError && (
           <p role="alert" className="text-sm text-destructive">
@@ -597,6 +834,11 @@ function ComposicaoEditor({
         {finalizarError && (
           <p role="alert" className="text-sm text-destructive">
             {finalizarError}
+          </p>
+        )}
+        {exportarError && (
+          <p role="alert" className="text-sm text-destructive">
+            {exportarError}
           </p>
         )}
       </div>
