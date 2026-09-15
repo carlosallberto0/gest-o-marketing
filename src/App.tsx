@@ -22,6 +22,7 @@ import BibliotecaMarca from "@/pages/BibliotecaMarca";
 import EstudioElementos from "@/pages/EstudioElementos";
 import EstudioTemplates from "@/pages/EstudioTemplates";
 import EstudioColaborador from "@/pages/EstudioColaborador";
+import EstudioHistorico from "@/pages/EstudioHistorico";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { to: "/estudio", label: "Estúdio", end: false },
   { to: "/estudio/elementos", label: "Elementos do Estúdio", end: false },
   { to: "/estudio/templates", label: "Templates do Estúdio", end: false },
+  { to: "/estudio/historico", label: "Histórico de Peças", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -268,6 +270,16 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <EstudioTemplates />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estudio/historico"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <EstudioHistorico />
                   </AppShell>
                 </ProtectedRoute>
               }

@@ -8,10 +8,12 @@
 // configuração.
 import { useEffect, useState, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useEstudioCategorias,
   useEstudioTemplates,
+  useEstudioTemplate,
   useEstudioTemplateAreas,
   type EstudioCanal,
   type EstudioTemplateComCategoria,
@@ -872,6 +874,25 @@ export default function EstudioColaborador() {
   const { data: pdvs, isLoading: pdvsLoading } = usePdvs();
   const createComposicao = useCreateEstudioComposicao();
 
+  // Retomada a partir do histórico de peças (EstudioHistorico.tsx): /estudio?composicao=<id>
+  // pula direto pro passo 3, sem passar por canal/template. Mesma composicao_id
+  // detail-key do ComposicaoEditor abaixo — cache compartilhado, sem fetch duplicado.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const composicaoIdParam = searchParams.get("composicao");
+  const composicaoResumoQuery = useEstudioComposicao(composicaoIdParam ?? "");
+  const templateResumoQuery = useEstudioTemplate(composicaoResumoQuery.data?.template_id ?? "");
+  const resumindoPeca = !!composicaoIdParam && composicaoId !== composicaoIdParam;
+  const resumoComErro = composicaoResumoQuery.isError || templateResumoQuery.isError;
+
+  useEffect(() => {
+    if (!composicaoIdParam || composicaoId === composicaoIdParam) return;
+    if (composicaoResumoQuery.data && templateResumoQuery.data) {
+      setTemplateEscolhido(templateResumoQuery.data);
+      setComposicaoId(composicaoResumoQuery.data.id);
+      setStep("peca");
+    }
+  }, [composicaoIdParam, composicaoId, composicaoResumoQuery.data, templateResumoQuery.data]);
+
   // pdv_id do usuário logado — consulta pontual desta tela (não vira hook
   // reutilizável em hooks/: só esta tela precisa decidir entre "usar o pdv do
   // colaborador" e "deixar quem não tem posto fixo escolher"). auth.getUser()
@@ -937,6 +958,13 @@ export default function EstudioColaborador() {
     setComposicaoId(null);
     setPdvSelecionadoId("");
     setCriarComposicaoError(null);
+    // Limpa ?composicao= da URL — sem isso, o efeito de retomada acima
+    // reabriria a mesma composição no próximo render (ou num F5).
+    if (searchParams.has("composicao")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("composicao");
+      setSearchParams(next, { replace: true });
+    }
   }
 
   async function criarComposicao(pdvId: string) {
@@ -962,6 +990,32 @@ export default function EstudioColaborador() {
     }
     // se meuPdvIdQuery.data for null (usuário de gestão sem posto fixo), a
     // composição só é criada depois que ele escolher um PDV no passo 3.
+  }
+
+  // Retomando uma peça do histórico (?composicao=<id>): mostra skeleton
+  // enquanto composição+template carregam, ou erro amigável se a RLS negar
+  // acesso (composição de outro PDV) — não deixa a tela estourar em branco.
+  if (resumindoPeca) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Estúdio de Comunicação</h1>
+          <p className="text-muted-foreground">Monte peças de comunicação a partir de templates pré-aprovados.</p>
+        </div>
+        {resumoComErro ? (
+          <div className="flex flex-col items-start gap-2">
+            <p role="alert" className="text-sm text-destructive">
+              Não foi possível abrir esta peça.
+            </p>
+            <Button variant="outline" size="sm" onClick={handleVoltarInicio}>
+              Voltar ao início
+            </Button>
+          </div>
+        ) : (
+          <Skeleton className="h-64 w-full max-w-xl" />
+        )}
+      </div>
+    );
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { EstudioCanal } from "@/hooks/useEstudioTemplates";
 
 // Sem `Database` gerado ainda (ver client.ts) — tipo local até o primeiro
 // `supabase gen types` do projeto novo existir.
@@ -15,6 +16,11 @@ export interface EstudioComposicao {
   versao: number;
   created_at: string;
   updated_at: string;
+  // Embed via FK template_id -> estudio_templates (mesma técnica de
+  // TEMPLATE_SELECT_COM_CATEGORIA em useEstudioTemplates.ts) — usado pelo
+  // histórico de peças do posto (EstudioHistorico.tsx) pra mostrar nome do
+  // template e canal sem cruzar client-side.
+  template?: { nome: string; categoria: { nome: string; canal: EstudioCanal } | null } | null;
 }
 
 export interface EstudioComposicaoElemento {
@@ -33,6 +39,10 @@ interface EstudioComposicoesFiltros {
   pdvId?: string;
   status?: string;
   templateId?: string;
+  // Opcional, default true — permite adiar a query (ex.: tela ainda mostrando
+  // Select de escolha de PDV, antes de pdvId fazer sentido) sem mudar a
+  // assinatura pública pros consumidores que não precisam disso.
+  enabled?: boolean;
 }
 
 const estudioComposicoesKeys = {
@@ -45,6 +55,11 @@ const estudioComposicaoElementosKeys = {
   list: (composicaoId: string) => ["estudio_composicao_elementos", composicaoId] as const,
 };
 
+// FK simples (template_id é a única FK de estudio_composicoes para
+// estudio_templates) — embed direto pelo nome da tabela, mesma técnica de
+// TEMPLATE_SELECT_COM_CATEGORIA.
+const COMPOSICAO_SELECT_COM_TEMPLATE = "*, template:estudio_templates(nome, categoria:estudio_categorias(nome, canal))";
+
 // RLS decide o que volta (rede_toda vs. proprio_pdv) — filtros aqui são
 // refinamento de tela, não segurança. Ordenado por updated_at desc: composição
 // é reeditável (sem trava de transição, ver migration), então "editada mais
@@ -54,15 +69,19 @@ export function useEstudioComposicoes(filtros?: EstudioComposicoesFiltros) {
   return useQuery({
     queryKey: estudioComposicoesKeys.list(filtros),
     queryFn: async () => {
-      let query = supabase.from("estudio_composicoes").select("*").order("updated_at", { ascending: false });
+      let query = supabase
+        .from("estudio_composicoes")
+        .select(COMPOSICAO_SELECT_COM_TEMPLATE)
+        .order("updated_at", { ascending: false });
       if (filtros?.pdvId) query = query.eq("pdv_id", filtros.pdvId);
       if (filtros?.status) query = query.eq("status", filtros.status);
       if (filtros?.templateId) query = query.eq("template_id", filtros.templateId);
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as EstudioComposicao[];
+      return data as unknown as EstudioComposicao[];
     },
+    enabled: filtros?.enabled ?? true,
   });
 }
 
@@ -70,9 +89,13 @@ export function useEstudioComposicao(id: string) {
   return useQuery({
     queryKey: estudioComposicoesKeys.detail(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from("estudio_composicoes").select("*").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("estudio_composicoes")
+        .select(COMPOSICAO_SELECT_COM_TEMPLATE)
+        .eq("id", id)
+        .single();
       if (error) throw error;
-      return data as EstudioComposicao;
+      return data as unknown as EstudioComposicao;
     },
     enabled: !!id,
   });
