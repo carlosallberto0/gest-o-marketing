@@ -23,6 +23,11 @@ import EstudioElementos from "@/pages/EstudioElementos";
 import EstudioTemplates from "@/pages/EstudioTemplates";
 import EstudioColaborador from "@/pages/EstudioColaborador";
 import EstudioHistorico from "@/pages/EstudioHistorico";
+import AnaliseEstrategicaDashboard from "@/pages/AnaliseEstrategicaDashboard";
+import AnaliseEstrategicaClustersConveniencia from "@/pages/AnaliseEstrategicaClustersConveniencia";
+import AnaliseEstrategicaClustersOutdoors from "@/pages/AnaliseEstrategicaClustersOutdoors";
+import AnaliseEstrategicaClustersComparativo from "@/pages/AnaliseEstrategicaClustersComparativo";
+import AnaliseEstrategicaInsights from "@/pages/AnaliseEstrategicaInsights";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -42,6 +47,11 @@ const NAV_ITEMS = [
   { to: "/estudio/elementos", label: "Elementos do Estúdio", end: false },
   { to: "/estudio/templates", label: "Templates do Estúdio", end: false },
   { to: "/estudio/historico", label: "Histórico de Peças", end: false },
+  { to: "/analise-estrategica/dashboard", label: "Análise Estratégica", end: false },
+  { to: "/analise-estrategica/clusters/conveniencia", label: "Clusters — Conveniência", end: false },
+  { to: "/analise-estrategica/clusters/outdoors", label: "Clusters — Outdoor", end: false },
+  { to: "/analise-estrategica/clusters/comparativo", label: "Clusters — Comparativo", end: false },
+  { to: "/analise-estrategica/insights", label: "Insights", end: false },
 ] as const;
 
 const queryClient = new QueryClient();
@@ -280,6 +290,56 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <EstudioHistorico />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaDashboard />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/clusters/conveniencia"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaClustersConveniencia />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/clusters/outdoors"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaClustersOutdoors />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/clusters/comparativo"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaClustersComparativo />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/insights"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaInsights />
                   </AppShell>
                 </ProtectedRoute>
               }
