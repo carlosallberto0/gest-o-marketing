@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "v2/**"]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Não-bloqueante: 238 erros pré-existentes em código do sistema antigo
+      # (components/ui gerado pelo shadcn, edge functions legadas,
+      # tailwind.config.ts). Corrigir é fora de escopo deste CI — ver
+      # continue-on-error.
+      - run: npm run lint
+        continue-on-error: true
+      - run: npx tsc --noEmit
+      - run: npm run build
