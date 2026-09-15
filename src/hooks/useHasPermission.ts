@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // Infraestrutura do Core, não de um módulo específico — has_permission() é a
-// mesma RPC que qualquer fase pode precisar checar no frontend (ver comentário
-// em AuthContext.tsx: "Papel/permissão vem do banco via has_permission()
-// quando telas precisarem checar — não replicar essa lógica em JS"). Um hook
-// genérico, uma chamada RPC por ponto de uso — sem contexto global de
-// permissão nem cache de "todas as permissões do usuário" (abstração
-// especulativa não pedida).
+// mesma RPC que qualquer fase pode precisar checar no frontend para 1 ponto
+// de uso isolado dentro de uma tela (ex.: mostrar/esconder 1 botão). Para
+// filtrar o menu inteiro por papel, use useMinhasPermissoes() em vez deste —
+// ele busca todos os grants em 1 RPC só, evitando 1 chamada de
+// has_permission() por item de navegação.
 export function useHasPermission(modulo: string, recurso: string, acao: string, escopo: string) {
   return useQuery({
     queryKey: ["has_permission", modulo, recurso, acao, escopo],
