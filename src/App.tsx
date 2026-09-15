@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Login from "@/pages/Login";
@@ -28,6 +29,8 @@ import AnaliseEstrategicaClustersConveniencia from "@/pages/AnaliseEstrategicaCl
 import AnaliseEstrategicaClustersOutdoors from "@/pages/AnaliseEstrategicaClustersOutdoors";
 import AnaliseEstrategicaClustersComparativo from "@/pages/AnaliseEstrategicaClustersComparativo";
 import AnaliseEstrategicaInsights from "@/pages/AnaliseEstrategicaInsights";
+import AnaliseEstrategicaConfig from "@/pages/AnaliseEstrategicaConfig";
+import AnaliseEstrategicaRelatorios from "@/pages/AnaliseEstrategicaRelatorios";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
@@ -52,7 +55,14 @@ const NAV_ITEMS = [
   { to: "/analise-estrategica/clusters/outdoors", label: "Clusters — Outdoor", end: false },
   { to: "/analise-estrategica/clusters/comparativo", label: "Clusters — Comparativo", end: false },
   { to: "/analise-estrategica/insights", label: "Insights", end: false },
+  { to: "/analise-estrategica/relatorios", label: "Relatórios da Análise", end: false },
+  { to: "/analise-estrategica/config", label: "Configuração da Análise", end: false },
 ] as const;
+
+// Único item de nav com visibilidade condicional por permissão (super_admin).
+// NAV_ITEMS continua uma lista estática — filtra só esta rota em vez de
+// redesenhar a navegação toda por causa de um item.
+const NAV_ITEM_CONFIG_ANALISE = "/analise-estrategica/config";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +88,8 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function AppShell({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
+  const podeConfigAnalise = useHasPermission("analise", "config", "editar", "rede_toda");
+  const navItems = NAV_ITEMS.filter((item) => item.to !== NAV_ITEM_CONFIG_ANALISE || podeConfigAnalise.data);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -88,7 +100,7 @@ function AppShell({ children }: { children: ReactNode }) {
         <div className="flex flex-1 flex-col gap-4 md:flex-none">
           <p className="text-lg font-semibold">Marketing OS</p>
           <ul className="flex gap-2 md:flex-col">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
@@ -340,6 +352,26 @@ export default function App() {
                 <ProtectedRoute>
                   <AppShell>
                     <AnaliseEstrategicaInsights />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/relatorios"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaRelatorios />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analise-estrategica/config"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <AnaliseEstrategicaConfig />
                   </AppShell>
                 </ProtectedRoute>
               }
