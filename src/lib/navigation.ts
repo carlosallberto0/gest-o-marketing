@@ -17,7 +17,7 @@ export interface NavGroup {
 
 // Fase 1 do redesenho (docs/design/DIAGNOSTICO-REDESIGN-FRONTEND.md, seção
 // C.2) — 24 itens flat viram 9 grupos. Nenhuma rota nova aqui: só reagrupa as
-// 27 rotas que já existem em App.tsx. Páginas que ainda não existem
+// 24 rotas que já existem em App.tsx. Páginas que ainda não existem
 // (Avaliação de Outdoor, Usuários e Permissões) entram quando forem
 // construídas em fases futuras, não como placeholder aqui.
 export const NAV_GROUPS: NavGroup[] = [
