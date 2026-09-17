@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { useHasPermission } from "@/hooks/useHasPermission";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { MobileNav } from "@/components/layout/MobileNav";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Pdvs from "@/pages/Pdvs";
@@ -32,38 +31,6 @@ import AnaliseEstrategicaInsights from "@/pages/AnaliseEstrategicaInsights";
 import AnaliseEstrategicaConfig from "@/pages/AnaliseEstrategicaConfig";
 import AnaliseEstrategicaRelatorios from "@/pages/AnaliseEstrategicaRelatorios";
 
-const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/pdvs", label: "PDVs", end: false },
-  { to: "/outdoors", label: "Outdoors", end: false },
-  { to: "/materiais", label: "Materiais", end: false },
-  { to: "/solicitacoes-material", label: "Solicitações de Material", end: false },
-  { to: "/checklist-config", label: "Config. Checklist", end: false },
-  { to: "/avaliacoes-pdv", label: "Avaliação de PDV", end: false },
-  { to: "/planos-acao", label: "Planos de Ação", end: false },
-  { to: "/manutencoes", label: "Manutenções", end: false },
-  { to: "/campanhas", label: "Campanhas", end: false },
-  { to: "/aprovacoes", label: "Aprovações", end: false },
-  { to: "/demandas-criativas", label: "Demandas Criativas", end: false },
-  { to: "/biblioteca-marca", label: "Biblioteca de Marca", end: false },
-  { to: "/estudio", label: "Estúdio", end: false },
-  { to: "/estudio/elementos", label: "Elementos do Estúdio", end: false },
-  { to: "/estudio/templates", label: "Templates do Estúdio", end: false },
-  { to: "/estudio/historico", label: "Histórico de Peças", end: false },
-  { to: "/analise-estrategica/dashboard", label: "Análise Estratégica", end: false },
-  { to: "/analise-estrategica/clusters/conveniencia", label: "Clusters — Conveniência", end: false },
-  { to: "/analise-estrategica/clusters/outdoors", label: "Clusters — Outdoor", end: false },
-  { to: "/analise-estrategica/clusters/comparativo", label: "Clusters — Comparativo", end: false },
-  { to: "/analise-estrategica/insights", label: "Insights", end: false },
-  { to: "/analise-estrategica/relatorios", label: "Relatórios da Análise", end: false },
-  { to: "/analise-estrategica/config", label: "Configuração da Análise", end: false },
-] as const;
-
-// Único item de nav com visibilidade condicional por permissão (super_admin).
-// NAV_ITEMS continua uma lista estática — filtra só esta rota em vez de
-// redesenhar a navegação toda por causa de um item.
-const NAV_ITEM_CONFIG_ANALISE = "/analise-estrategica/config";
-
 const queryClient = new QueryClient();
 
 // Definidos fora de App: componente aninhado no corpo do pai perde estado a
@@ -87,43 +54,10 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function AppShell({ children }: { children: ReactNode }) {
-  const { signOut } = useAuth();
-  const podeConfigAnalise = useHasPermission("analise", "config", "editar", "rede_toda");
-  const navItems = NAV_ITEMS.filter((item) => item.to !== NAV_ITEM_CONFIG_ANALISE || podeConfigAnalise.data);
-
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <nav
-        aria-label="Navegação principal"
-        className="flex shrink-0 items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:w-56 md:flex-col md:items-stretch md:justify-start md:border-b-0 md:border-r"
-      >
-        <div className="flex flex-1 flex-col gap-4 md:flex-none">
-          <p className="text-lg font-semibold">Marketing OS</p>
-          <ul className="flex gap-2 md:flex-col">
-            {navItems.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex h-9 w-full items-center justify-start rounded-md px-3 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Button variant="outline" size="sm" onClick={signOut}>
-          Sair
-        </Button>
-      </nav>
+      <MobileNav />
+      <AppSidebar />
       <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   );
