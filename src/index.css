@@ -14,6 +14,38 @@
   height: 100% !important;
 }
 
+::selection {
+  background-color: hsl(var(--primary) / 0.25);
+  color: hsl(var(--foreground));
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+* {
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
 @layer base {
   :root {
     --background: 240 5% 97%;

@@ -33,7 +33,7 @@ export function KpiCard({ titulo, valor, detalhe, icon: Icon, accent = "primary"
         )}
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{valor}</p>
+        <p className="text-2xl font-semibold text-foreground tabular-nums">{valor}</p>
         {detalhe && <p className="text-xs text-muted-foreground">{detalhe}</p>}
       </CardContent>
     </Card>
