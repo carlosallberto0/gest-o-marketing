@@ -30,16 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const FILTRO_TODAS = "todas";
 
@@ -681,7 +672,7 @@ export default function ChecklistConfig() {
         error={perguntaFormError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmandoCategoria}
         onOpenChange={(open) => {
           if (!open) {
@@ -689,35 +680,15 @@ export default function ChecklistConfig() {
             setConfirmCategoriaError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar categoria</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar a categoria "{confirmandoCategoria?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmCategoriaError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmCategoriaError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDeactivateCategoria();
-              }}
-              disabled={deactivateCategoria.isPending}
-            >
-              {deactivateCategoria.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar categoria"
+        descricao={`Desativar a categoria "${confirmandoCategoria?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={deactivateCategoria.isPending}
+        erro={confirmCategoriaError}
+        onConfirm={confirmDeactivateCategoria}
+      />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmandoPergunta}
         onOpenChange={(open) => {
           if (!open) {
@@ -725,31 +696,13 @@ export default function ChecklistConfig() {
             setConfirmPerguntaError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar pergunta</AlertDialogTitle>
-            <AlertDialogDescription>Desativar esta pergunta?</AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmPerguntaError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmPerguntaError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDeactivatePergunta();
-              }}
-              disabled={deactivatePergunta.isPending}
-            >
-              {deactivatePergunta.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar pergunta"
+        descricao="Desativar esta pergunta?"
+        rotuloAcao="Desativar"
+        pendente={deactivatePergunta.isPending}
+        erro={confirmPerguntaError}
+        onConfirm={confirmDeactivatePergunta}
+      />
     </div>
   );
 }

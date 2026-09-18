@@ -17,16 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface PdvFormValues {
   nome: string;
@@ -291,7 +282,7 @@ export default function Pdvs() {
         error={formError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmando}
         onOpenChange={(open) => {
           if (!open) {
@@ -299,33 +290,13 @@ export default function Pdvs() {
             setConfirmError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar PDV</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o PDV "{confirmando?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDeactivate();
-              }}
-              disabled={deactivatePdv.isPending}
-            >
-              {deactivatePdv.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar PDV"
+        descricao={`Desativar o PDV "${confirmando?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={deactivatePdv.isPending}
+        erro={confirmError}
+        onConfirm={confirmDeactivate}
+      />
     </div>
   );
 }

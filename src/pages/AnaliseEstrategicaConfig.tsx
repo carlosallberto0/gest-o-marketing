@@ -30,16 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClusterBadge } from "@/components/analise-estrategica/ClusterVisual";
 
@@ -569,7 +560,7 @@ function ConfigConteudo() {
         error={clusterFormError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmando}
         onOpenChange={(open) => {
           if (!open) {
@@ -577,33 +568,13 @@ function ConfigConteudo() {
             setConfirmError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar cluster</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o cluster "{confirmando?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDesativarCluster();
-              }}
-              disabled={desativarCluster.isPending}
-            >
-              {desativarCluster.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar cluster"
+        descricao={`Desativar o cluster "${confirmando?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={desativarCluster.isPending}
+        erro={confirmError}
+        onConfirm={confirmDesativarCluster}
+      />
     </>
   );
 }

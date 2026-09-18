@@ -29,7 +29,7 @@ a {
 }
 
 * {
-  scrollbar-color: hsl(var(--border)) transparent;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -42,7 +42,7 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--border));
+  background-color: hsl(var(--muted-foreground));
   border-radius: 9999px;
 }
 

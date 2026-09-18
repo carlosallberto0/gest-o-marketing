@@ -557,6 +557,7 @@ export default function AvaliacoesPdv() {
   function handlePdvChange(value: string) {
     setPdvId(value);
     setAvaliacaoId(null);
+    setErroNovaAvaliacao(null);
   }
 
   async function handleNovaAvaliacao() {

@@ -22,16 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface MaterialFormValues {
   nome: string;
@@ -427,7 +418,7 @@ export default function Materiais() {
         error={estoqueError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmando}
         onOpenChange={(open) => {
           if (!open) {
@@ -435,33 +426,13 @@ export default function Materiais() {
             setConfirmError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar material</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o material "{confirmando?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDeactivate();
-              }}
-              disabled={deactivateMaterial.isPending}
-            >
-              {deactivateMaterial.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar material"
+        descricao={`Desativar o material "${confirmando?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={deactivateMaterial.isPending}
+        erro={confirmError}
+        onConfirm={confirmDeactivate}
+      />
     </div>
   );
 }

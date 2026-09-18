@@ -44,16 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const CANAL_LABEL: Record<EstudioCanal, string> = {
@@ -1274,7 +1265,7 @@ export default function EstudioTemplates() {
         error={areaFormError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmandoCategoria}
         onOpenChange={(open) => {
           if (!open) {
@@ -1282,35 +1273,15 @@ export default function EstudioTemplates() {
             setConfirmCategoriaError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar categoria</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar a categoria "{confirmandoCategoria?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmCategoriaError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmCategoriaError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDesativarCategoria();
-              }}
-              disabled={desativarCategoria.isPending}
-            >
-              {desativarCategoria.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar categoria"
+        descricao={`Desativar a categoria "${confirmandoCategoria?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={desativarCategoria.isPending}
+        erro={confirmCategoriaError}
+        onConfirm={confirmDesativarCategoria}
+      />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmandoTemplate}
         onOpenChange={(open) => {
           if (!open) {
@@ -1318,35 +1289,15 @@ export default function EstudioTemplates() {
             setConfirmTemplateError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar template</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o template "{confirmandoTemplate?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmTemplateError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmTemplateError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDesativarTemplate();
-              }}
-              disabled={desativarTemplate.isPending}
-            >
-              {desativarTemplate.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar template"
+        descricao={`Desativar o template "${confirmandoTemplate?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={desativarTemplate.isPending}
+        erro={confirmTemplateError}
+        onConfirm={confirmDesativarTemplate}
+      />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!excluindoTemplate}
         onOpenChange={(open) => {
           if (!open) {
@@ -1354,36 +1305,15 @@ export default function EstudioTemplates() {
             setExcluirTemplateError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir template</AlertDialogTitle>
-            <AlertDialogDescription>
-              Excluir PERMANENTEMENTE o template "{excluindoTemplate?.nome}"? Esta ação não pode ser desfeita e
-              só funciona se nenhuma composição estiver usando este template.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {excluirTemplateError && (
-            <p role="alert" className="text-sm text-destructive">
-              {excluirTemplateError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmExcluirTemplate();
-              }}
-              disabled={excluirTemplate.isPending}
-            >
-              {excluirTemplate.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Excluir template"
+        descricao={`Excluir PERMANENTEMENTE o template "${excluindoTemplate?.nome}"? Esta ação não pode ser desfeita e só funciona se nenhuma composição estiver usando este template.`}
+        rotuloAcao="Excluir"
+        pendente={excluirTemplate.isPending}
+        erro={excluirTemplateError}
+        onConfirm={confirmExcluirTemplate}
+      />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmandoArea}
         onOpenChange={(open) => {
           if (!open) {
@@ -1391,33 +1321,13 @@ export default function EstudioTemplates() {
             setConfirmAreaError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir área</AlertDialogTitle>
-            <AlertDialogDescription>
-              Excluir a área "{confirmandoArea?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmAreaError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmAreaError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmExcluirArea();
-              }}
-              disabled={excluirArea.isPending}
-            >
-              {excluirArea.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Excluir área"
+        descricao={`Excluir a área "${confirmandoArea?.nome}"?`}
+        rotuloAcao="Excluir"
+        pendente={excluirArea.isPending}
+        erro={confirmAreaError}
+        onConfirm={confirmExcluirArea}
+      />
     </div>
   );
 }

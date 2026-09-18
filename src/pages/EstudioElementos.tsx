@@ -25,16 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TIPO_LABEL: Record<EstudioTipoElemento, string> = {
@@ -489,7 +480,7 @@ export default function EstudioElementos() {
         error={formError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmando}
         onOpenChange={(open) => {
           if (!open) {
@@ -497,33 +488,13 @@ export default function EstudioElementos() {
             setConfirmError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar elemento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o elemento "{confirmando?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDesativar();
-              }}
-              disabled={desativarElemento.isPending}
-            >
-              {desativarElemento.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar elemento"
+        descricao={`Desativar o elemento "${confirmando?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={desativarElemento.isPending}
+        erro={confirmError}
+        onConfirm={confirmDesativar}
+      />
     </div>
   );
 }

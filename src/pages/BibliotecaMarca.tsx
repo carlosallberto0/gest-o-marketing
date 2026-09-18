@@ -30,16 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TIPO_LABEL: Record<BrandLibraryTipo, string> = {
@@ -508,7 +499,7 @@ export default function BibliotecaMarca() {
         error={formError}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!confirmando}
         onOpenChange={(open) => {
           if (!open) {
@@ -516,33 +507,13 @@ export default function BibliotecaMarca() {
             setConfirmError(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar item</AlertDialogTitle>
-            <AlertDialogDescription>
-              Desativar o item "{confirmando?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {confirmError && (
-            <p role="alert" className="text-sm text-destructive">
-              {confirmError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                confirmDesativar();
-              }}
-              disabled={desativarItem.isPending}
-            >
-              {desativarItem.isPending ? "Aguarde…" : "Confirmar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        titulo="Desativar item"
+        descricao={`Desativar o item "${confirmando?.nome}"?`}
+        rotuloAcao="Desativar"
+        pendente={desativarItem.isPending}
+        erro={confirmError}
+        onConfirm={confirmDesativar}
+      />
     </div>
   );
 }
