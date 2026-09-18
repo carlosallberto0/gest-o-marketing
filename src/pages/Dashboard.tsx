@@ -8,6 +8,7 @@ import { useCampanhas } from "@/hooks/useCampanhas";
 import { useDemandasCriativas } from "@/hooks/useDemandasCriativas";
 import { useManutencoes } from "@/hooks/useManutencoes";
 import { useAtividadesRecentes } from "@/hooks/useAtividadesRecentes";
+import { useMinhasPermissoes } from "@/hooks/useMinhasPermissoes";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,12 +37,14 @@ export default function Dashboard() {
   const demandas = useDemandasCriativas();
   const manutencoes = useManutencoes();
   const atividades = useAtividadesRecentes();
+  const { podeAcessar } = useMinhasPermissoes();
+  const podeVerAtividades = podeAcessar("core", "audit_logs", "ler", "rede_toda");
 
   const demandasAbertas = (demandas.data ?? []).filter(
     (d) => d.status !== "concluida" && d.status !== "cancelada",
   );
   const manutencoesPendentes = (manutencoes.data ?? []).filter(
-    (m) => m.status !== "validada" && m.status !== "cancelada",
+    (m) => m.status !== "validada" && m.status !== "cancelada" && m.status !== "rejeitada",
   );
 
   const kpisLoading =
@@ -53,21 +56,27 @@ export default function Dashboard() {
     manutencoes.isError ||
     campanhasAtivas.isError ||
     atividades.isError;
+  const algumFetching =
+    aprovacoesPendentes.isFetching ||
+    demandas.isFetching ||
+    manutencoes.isFetching ||
+    campanhasAtivas.isFetching ||
+    atividades.isFetching;
 
   const pendencias: PendenciaItem[] = [
-    ...(aprovacoesPendentes.data ?? []).slice(0, 2).map((item) => ({
+    ...(aprovacoesPendentes.data ?? []).slice(-2).map((item) => ({
       id: item.id,
       titulo: item.titulo,
       detalhe: "Aguardando aprovação",
       href: "/aprovacoes",
     })),
-    ...demandasAbertas.slice(0, 2).map((d) => ({
+    ...demandasAbertas.slice(-2).map((d) => ({
       id: d.id,
       titulo: d.titulo,
       detalhe: d.prazo ? `Prazo: ${new Date(d.prazo).toLocaleDateString("pt-BR")}` : "Sem prazo definido",
       href: "/demandas-criativas",
     })),
-    ...manutencoesPendentes.slice(0, 2).map((m) => ({
+    ...manutencoesPendentes.slice(-2).map((m) => ({
       id: m.id,
       titulo: `Manutenção ${m.urgencia}`,
       detalhe: m.prazo_atendimento
@@ -90,6 +99,7 @@ export default function Dashboard() {
           <Button
             variant="link"
             className="h-auto p-0 text-destructive underline"
+            disabled={algumFetching}
             onClick={() => {
               aprovacoesPendentes.refetch();
               demandas.refetch();
@@ -98,7 +108,7 @@ export default function Dashboard() {
               atividades.refetch();
             }}
           >
-            Tentar novamente
+            {algumFetching ? "Atualizando…" : "Tentar novamente"}
           </Button>
         </p>
       )}
@@ -114,25 +124,25 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             titulo="Aprovações pendentes"
-            valor={String(aprovacoesPendentes.data?.length ?? 0)}
+            valor={aprovacoesPendentes.isError ? "—" : String(aprovacoesPendentes.data?.length ?? 0)}
             icon={CheckCircle2}
             accent="warning"
           />
           <KpiCard
             titulo="Demandas em aberto"
-            valor={String(demandasAbertas.length)}
+            valor={demandas.isError ? "—" : String(demandasAbertas.length)}
             icon={ClipboardList}
             accent="info"
           />
           <KpiCard
             titulo="Campanhas ativas"
-            valor={String(campanhasAtivas.data?.length ?? 0)}
+            valor={campanhasAtivas.isError ? "—" : String(campanhasAtivas.data?.length ?? 0)}
             icon={Megaphone}
             accent="success"
           />
           <KpiCard
             titulo="Manutenções pendentes"
-            valor={String(manutencoesPendentes.length)}
+            valor={manutencoes.isError ? "—" : String(manutencoesPendentes.length)}
             icon={Wrench}
             accent="orange"
           />
@@ -173,7 +183,11 @@ export default function Dashboard() {
             <CardTitle>Atividades recentes</CardTitle>
           </CardHeader>
           <CardContent>
-            {atividades.isLoading ? (
+            {!podeVerAtividades ? (
+              <p className="text-sm text-muted-foreground">
+                Atividades recentes ficam disponíveis só para quem tem acesso à trilha de auditoria.
+              </p>
+            ) : atividades.isLoading ? (
               <div className="flex flex-col gap-2">
                 <Skeleton className="h-5 w-full" />
                 <Skeleton className="h-5 w-full" />
