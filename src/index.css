@@ -14,16 +14,9 @@
   height: 100% !important;
 }
 
-/*
- * PLACEHOLDER: paleta neutra mínima (grayscale + azul genérico), só para o
- * app novo não ficar sem estilo nenhum enquanto a fase de design não
- * aconteceu. Substituir por tokens de verdade quando
- * docs/design/referencia-visual-marketing-os.md existir. Nomes de variável
- * mantidos idênticos porque tailwind.config.ts os referencia por nome.
- */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 240 5% 97%;
     --foreground: 240 10% 12%;
 
     --card: 0 0% 100%;
@@ -53,7 +46,7 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 199 89% 48%;
+    --info: 199 89% 36%;
     --info-foreground: 0 0% 100%;
 
     --border: 240 6% 90%;

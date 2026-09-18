@@ -31,7 +31,7 @@ export function NavGroupList({ groups, onNavigate }: NavGroupListProps) {
           open={openGroups[group.label] ?? false}
           onOpenChange={(open) => setOpenGroups((prev) => ({ ...prev, [group.label]: open }))}
         >
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/60 hover:text-sidebar-foreground">
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/80 hover:text-sidebar-foreground">
             {group.label}
             <ChevronDown
               className={cn(

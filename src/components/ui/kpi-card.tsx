@@ -28,7 +28,7 @@ export function KpiCard({ titulo, valor, detalhe, icon: Icon, accent = "primary"
         <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
         {Icon && (
           <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", ACCENT_CLASSES[accent])}>
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" aria-hidden="true" />
           </span>
         )}
       </CardHeader>
