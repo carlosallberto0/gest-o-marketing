@@ -30,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClusterBadge } from "@/components/analise-estrategica/ClusterVisual";
 
@@ -381,6 +391,8 @@ function ConfigConteudo() {
   const [editingCluster, setEditingCluster] = useState<AnaliseClusterConfig | null>(null);
   const [tipoPdvPadrao, setTipoPdvPadrao] = useState<TipoPdv>("CONV");
   const [clusterFormError, setClusterFormError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<AnaliseClusterConfig | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   function openCreateClusterDialog(tipoPdv: TipoPdv) {
     setEditingCluster(null);
@@ -426,12 +438,18 @@ function ConfigConteudo() {
     }
   }
 
-  async function handleDesativarCluster(cluster: AnaliseClusterConfig) {
-    if (!window.confirm(`Desativar o cluster "${cluster.nome}"?`)) return;
+  function handleDesativarCluster(cluster: AnaliseClusterConfig) {
+    setConfirmError(null);
+    setConfirmando(cluster);
+  }
+
+  async function confirmDesativarCluster() {
+    if (!confirmando) return;
     try {
-      await desativarCluster.mutateAsync(cluster.id);
+      await desativarCluster.mutateAsync(confirmando.id);
+      setConfirmando(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o cluster.");
+      setConfirmError(err instanceof Error ? err.message : "Não foi possível desativar o cluster.");
     }
   }
 
@@ -550,6 +568,42 @@ function ConfigConteudo() {
         submitting={isClusterSubmitting}
         error={clusterFormError}
       />
+
+      <AlertDialog
+        open={!!confirmando}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmando(null);
+            setConfirmError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar cluster</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o cluster "{confirmando?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDesativarCluster();
+              }}
+              disabled={desativarCluster.isPending}
+            >
+              {desativarCluster.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

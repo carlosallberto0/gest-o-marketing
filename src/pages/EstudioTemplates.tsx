@@ -44,6 +44,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const CANAL_LABEL: Record<EstudioCanal, string> = {
@@ -818,6 +828,8 @@ export default function EstudioTemplates() {
   const [categoriaDialogOpen, setCategoriaDialogOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<EstudioCategoria | null>(null);
   const [categoriaFormError, setCategoriaFormError] = useState<string | null>(null);
+  const [confirmandoCategoria, setConfirmandoCategoria] = useState<EstudioCategoria | null>(null);
+  const [confirmCategoriaError, setConfirmCategoriaError] = useState<string | null>(null);
 
   const categoriasAtivas = (categorias ?? []).filter((categoria) => categoria.is_active);
   const hasCategorias = (categorias?.length ?? 0) > 0;
@@ -836,6 +848,10 @@ export default function EstudioTemplates() {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EstudioTemplateComCategoria | null>(null);
   const [templateFormError, setTemplateFormError] = useState<string | null>(null);
+  const [confirmandoTemplate, setConfirmandoTemplate] = useState<EstudioTemplateComCategoria | null>(null);
+  const [confirmTemplateError, setConfirmTemplateError] = useState<string | null>(null);
+  const [excluindoTemplate, setExcluindoTemplate] = useState<EstudioTemplateComCategoria | null>(null);
+  const [excluirTemplateError, setExcluirTemplateError] = useState<string | null>(null);
 
   // Seção 3 — áreas do template selecionado
   const [templateSelecionado, setTemplateSelecionado] = useState<EstudioTemplateComCategoria | null>(null);
@@ -846,6 +862,8 @@ export default function EstudioTemplates() {
   const [areaDialogOpen, setAreaDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<EstudioTemplateArea | null>(null);
   const [areaFormError, setAreaFormError] = useState<string | null>(null);
+  const [confirmandoArea, setConfirmandoArea] = useState<EstudioTemplateArea | null>(null);
+  const [confirmAreaError, setConfirmAreaError] = useState<string | null>(null);
 
   function openCreateCategoriaDialog() {
     setEditingCategoria(null);
@@ -884,12 +902,18 @@ export default function EstudioTemplates() {
     }
   }
 
-  async function handleDesativarCategoria(categoria: EstudioCategoria) {
-    if (!window.confirm(`Desativar a categoria "${categoria.nome}"?`)) return;
+  function handleDesativarCategoria(categoria: EstudioCategoria) {
+    setConfirmCategoriaError(null);
+    setConfirmandoCategoria(categoria);
+  }
+
+  async function confirmDesativarCategoria() {
+    if (!confirmandoCategoria) return;
     try {
-      await desativarCategoria.mutateAsync(categoria.id);
+      await desativarCategoria.mutateAsync(confirmandoCategoria.id);
+      setConfirmandoCategoria(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar a categoria.");
+      setConfirmCategoriaError(err instanceof Error ? err.message : "Não foi possível desativar a categoria.");
     }
   }
 
@@ -975,25 +999,34 @@ export default function EstudioTemplates() {
     }
   }
 
-  async function handleDesativarTemplate(template: EstudioTemplateComCategoria) {
-    if (!window.confirm(`Desativar o template "${template.nome}"?`)) return;
+  function handleDesativarTemplate(template: EstudioTemplateComCategoria) {
+    setConfirmTemplateError(null);
+    setConfirmandoTemplate(template);
+  }
+
+  async function confirmDesativarTemplate() {
+    if (!confirmandoTemplate) return;
     try {
-      await desativarTemplate.mutateAsync(template.id);
+      await desativarTemplate.mutateAsync(confirmandoTemplate.id);
+      setConfirmandoTemplate(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o template.");
+      setConfirmTemplateError(err instanceof Error ? err.message : "Não foi possível desativar o template.");
     }
   }
 
-  async function handleExcluirTemplate(template: EstudioTemplateComCategoria) {
-    const confirmado = window.confirm(
-      `Excluir PERMANENTEMENTE o template "${template.nome}"? Esta ação não pode ser desfeita e só funciona se nenhuma composição estiver usando este template.`,
-    );
-    if (!confirmado) return;
+  function handleExcluirTemplate(template: EstudioTemplateComCategoria) {
+    setExcluirTemplateError(null);
+    setExcluindoTemplate(template);
+  }
+
+  async function confirmExcluirTemplate() {
+    if (!excluindoTemplate) return;
     try {
-      await excluirTemplate.mutateAsync(template.id);
-      if (templateSelecionado?.id === template.id) setTemplateSelecionado(null);
+      await excluirTemplate.mutateAsync(excluindoTemplate.id);
+      if (templateSelecionado?.id === excluindoTemplate.id) setTemplateSelecionado(null);
+      setExcluindoTemplate(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível excluir o template.");
+      setExcluirTemplateError(err instanceof Error ? err.message : "Não foi possível excluir o template.");
     }
   }
 
@@ -1036,12 +1069,18 @@ export default function EstudioTemplates() {
     }
   }
 
-  async function handleExcluirArea(area: EstudioTemplateArea) {
-    if (!window.confirm(`Excluir a área "${area.nome}"?`)) return;
+  function handleExcluirArea(area: EstudioTemplateArea) {
+    setConfirmAreaError(null);
+    setConfirmandoArea(area);
+  }
+
+  async function confirmExcluirArea() {
+    if (!confirmandoArea) return;
     try {
-      await excluirArea.mutateAsync({ id: area.id, template_id: area.template_id });
+      await excluirArea.mutateAsync({ id: confirmandoArea.id, template_id: confirmandoArea.template_id });
+      setConfirmandoArea(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível excluir a área.");
+      setConfirmAreaError(err instanceof Error ? err.message : "Não foi possível excluir a área.");
     }
   }
 
@@ -1234,6 +1273,151 @@ export default function EstudioTemplates() {
         submitting={isAreaSubmitting}
         error={areaFormError}
       />
+
+      <AlertDialog
+        open={!!confirmandoCategoria}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmandoCategoria(null);
+            setConfirmCategoriaError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar a categoria "{confirmandoCategoria?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmCategoriaError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmCategoriaError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDesativarCategoria();
+              }}
+              disabled={desativarCategoria.isPending}
+            >
+              {desativarCategoria.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmandoTemplate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmandoTemplate(null);
+            setConfirmTemplateError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o template "{confirmandoTemplate?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmTemplateError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmTemplateError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDesativarTemplate();
+              }}
+              disabled={desativarTemplate.isPending}
+            >
+              {desativarTemplate.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!excluindoTemplate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExcluindoTemplate(null);
+            setExcluirTemplateError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir PERMANENTEMENTE o template "{excluindoTemplate?.nome}"? Esta ação não pode ser desfeita e
+              só funciona se nenhuma composição estiver usando este template.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {excluirTemplateError && (
+            <p role="alert" className="text-sm text-destructive">
+              {excluirTemplateError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmExcluirTemplate();
+              }}
+              disabled={excluirTemplate.isPending}
+            >
+              {excluirTemplate.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmandoArea}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmandoArea(null);
+            setConfirmAreaError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir área</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir a área "{confirmandoArea?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmAreaError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmAreaError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmExcluirArea();
+              }}
+              disabled={excluirArea.isPending}
+            >
+              {excluirArea.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -17,6 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PdvFormValues {
   nome: string;
@@ -145,6 +155,8 @@ export default function Pdvs() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPdv, setEditingPdv] = useState<Pdv | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<Pdv | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const tipoRotuloPorValor = new Map(tipoOptions.map((opcao) => [opcao.valor, opcao.rotulo]));
 
@@ -186,12 +198,18 @@ export default function Pdvs() {
     }
   }
 
-  async function handleDeactivate(pdv: Pdv) {
-    if (!window.confirm(`Desativar o PDV "${pdv.nome}"?`)) return;
+  function handleDeactivate(pdv: Pdv) {
+    setConfirmError(null);
+    setConfirmando(pdv);
+  }
+
+  async function confirmDeactivate() {
+    if (!confirmando) return;
     try {
-      await deactivatePdv.mutateAsync(pdv.id);
+      await deactivatePdv.mutateAsync(confirmando.id);
+      setConfirmando(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o PDV.");
+      setConfirmError(err instanceof Error ? err.message : "Não foi possível desativar o PDV.");
     }
   }
 
@@ -272,6 +290,42 @@ export default function Pdvs() {
         submitting={isSubmitting}
         error={formError}
       />
+
+      <AlertDialog
+        open={!!confirmando}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmando(null);
+            setConfirmError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar PDV</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o PDV "{confirmando?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDeactivate();
+              }}
+              disabled={deactivatePdv.isPending}
+            >
+              {deactivatePdv.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

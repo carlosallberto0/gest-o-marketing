@@ -541,6 +541,7 @@ export default function AvaliacoesPdv() {
 
   const [pdvId, setPdvId] = useState("");
   const [avaliacaoId, setAvaliacaoId] = useState<string | null>(null);
+  const [erroNovaAvaliacao, setErroNovaAvaliacao] = useState<string | null>(null);
 
   const { data: avaliacoes, isLoading: avaliacoesLoading } = useAvaliacoesPdv(pdvId || undefined);
   const { data: avaliacaoDetalhe, isLoading: avaliacaoDetalheLoading } = useAvaliacaoPdv(avaliacaoId ?? "");
@@ -560,11 +561,12 @@ export default function AvaliacoesPdv() {
 
   async function handleNovaAvaliacao() {
     if (!pdvId || createAvaliacao.isPending) return;
+    setErroNovaAvaliacao(null);
     try {
       const created = await createAvaliacao.mutateAsync({ pdv_id: pdvId });
       setAvaliacaoId(created.id);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Erro ao criar avaliação.");
+      setErroNovaAvaliacao(error instanceof Error ? error.message : "Erro ao criar avaliação.");
     }
   }
 
@@ -602,6 +604,12 @@ export default function AvaliacoesPdv() {
                 {createAvaliacao.isPending ? "Criando…" : "Nova avaliação"}
               </Button>
             </div>
+
+            {erroNovaAvaliacao && (
+              <p role="alert" className="text-sm text-destructive">
+                {erroNovaAvaliacao}
+              </p>
+            )}
 
             <div className="overflow-x-auto rounded-md border border-border">
               <Table>

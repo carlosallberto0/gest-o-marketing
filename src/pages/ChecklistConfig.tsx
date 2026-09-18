@@ -30,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const FILTRO_TODAS = "todas";
 
@@ -331,6 +341,8 @@ export default function ChecklistConfig() {
   const [categoriaDialogOpen, setCategoriaDialogOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<CategoriaChecklist | null>(null);
   const [categoriaFormError, setCategoriaFormError] = useState<string | null>(null);
+  const [confirmandoCategoria, setConfirmandoCategoria] = useState<CategoriaChecklist | null>(null);
+  const [confirmCategoriaError, setConfirmCategoriaError] = useState<string | null>(null);
 
   const categoriasAtivas = (categorias ?? []).filter((categoria) => categoria.is_active);
   const hasCategorias = (categorias?.length ?? 0) > 0;
@@ -357,6 +369,8 @@ export default function ChecklistConfig() {
   const [perguntaDialogOpen, setPerguntaDialogOpen] = useState(false);
   const [editingPergunta, setEditingPergunta] = useState<PerguntaChecklist | null>(null);
   const [perguntaFormError, setPerguntaFormError] = useState<string | null>(null);
+  const [confirmandoPergunta, setConfirmandoPergunta] = useState<PerguntaChecklist | null>(null);
+  const [confirmPerguntaError, setConfirmPerguntaError] = useState<string | null>(null);
 
   const categoriaNomePorId = new Map((categorias ?? []).map((categoria) => [categoria.id, categoria.nome]));
 
@@ -395,12 +409,18 @@ export default function ChecklistConfig() {
     }
   }
 
-  async function handleDeactivateCategoria(categoria: CategoriaChecklist) {
-    if (!window.confirm(`Desativar a categoria "${categoria.nome}"?`)) return;
+  function handleDeactivateCategoria(categoria: CategoriaChecklist) {
+    setConfirmCategoriaError(null);
+    setConfirmandoCategoria(categoria);
+  }
+
+  async function confirmDeactivateCategoria() {
+    if (!confirmandoCategoria) return;
     try {
-      await deactivateCategoria.mutateAsync(categoria.id);
+      await deactivateCategoria.mutateAsync(confirmandoCategoria.id);
+      setConfirmandoCategoria(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar a categoria.");
+      setConfirmCategoriaError(err instanceof Error ? err.message : "Não foi possível desativar a categoria.");
     }
   }
 
@@ -440,12 +460,18 @@ export default function ChecklistConfig() {
     }
   }
 
-  async function handleDeactivatePergunta(pergunta: PerguntaChecklist) {
-    if (!window.confirm("Desativar esta pergunta?")) return;
+  function handleDeactivatePergunta(pergunta: PerguntaChecklist) {
+    setConfirmPerguntaError(null);
+    setConfirmandoPergunta(pergunta);
+  }
+
+  async function confirmDeactivatePergunta() {
+    if (!confirmandoPergunta) return;
     try {
-      await deactivatePergunta.mutateAsync(pergunta.id);
+      await deactivatePergunta.mutateAsync(confirmandoPergunta.id);
+      setConfirmandoPergunta(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar a pergunta.");
+      setConfirmPerguntaError(err instanceof Error ? err.message : "Não foi possível desativar a pergunta.");
     }
   }
 
@@ -654,6 +680,76 @@ export default function ChecklistConfig() {
         submitting={isPerguntaSubmitting}
         error={perguntaFormError}
       />
+
+      <AlertDialog
+        open={!!confirmandoCategoria}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmandoCategoria(null);
+            setConfirmCategoriaError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar a categoria "{confirmandoCategoria?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmCategoriaError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmCategoriaError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDeactivateCategoria();
+              }}
+              disabled={deactivateCategoria.isPending}
+            >
+              {deactivateCategoria.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmandoPergunta}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmandoPergunta(null);
+            setConfirmPerguntaError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar pergunta</AlertDialogTitle>
+            <AlertDialogDescription>Desativar esta pergunta?</AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmPerguntaError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmPerguntaError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDeactivatePergunta();
+              }}
+              disabled={deactivatePergunta.isPending}
+            >
+              {deactivatePergunta.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

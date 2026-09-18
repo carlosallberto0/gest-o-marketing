@@ -22,6 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface MaterialFormValues {
   nome: string;
@@ -237,6 +247,9 @@ export default function Materiais() {
   const [ajustandoMaterial, setAjustandoMaterial] = useState<Material | null>(null);
   const [estoqueError, setEstoqueError] = useState<string | null>(null);
 
+  const [confirmando, setConfirmando] = useState<Material | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
   function openCreateDialog() {
     setEditingMaterial(null);
     setFormError(null);
@@ -302,12 +315,18 @@ export default function Materiais() {
     }
   }
 
-  async function handleDeactivate(material: Material) {
-    if (!window.confirm(`Desativar o material "${material.nome}"?`)) return;
+  function handleDeactivate(material: Material) {
+    setConfirmError(null);
+    setConfirmando(material);
+  }
+
+  async function confirmDeactivate() {
+    if (!confirmando) return;
     try {
-      await deactivateMaterial.mutateAsync(material.id);
+      await deactivateMaterial.mutateAsync(confirmando.id);
+      setConfirmando(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o material.");
+      setConfirmError(err instanceof Error ? err.message : "Não foi possível desativar o material.");
     }
   }
 
@@ -407,6 +426,42 @@ export default function Materiais() {
         submitting={ajustarEstoque.isPending}
         error={estoqueError}
       />
+
+      <AlertDialog
+        open={!!confirmando}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmando(null);
+            setConfirmError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar material</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o material "{confirmando?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDeactivate();
+              }}
+              disabled={deactivateMaterial.isPending}
+            >
+              {deactivateMaterial.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -30,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TIPO_LABEL: Record<BrandLibraryTipo, string> = {
@@ -329,6 +339,8 @@ export default function BibliotecaMarca() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BrandLibraryItem | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<BrandLibraryItem | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   function openCreateDialog() {
     setEditingItem(null);
@@ -413,12 +425,18 @@ export default function BibliotecaMarca() {
     }
   }
 
-  async function handleDesativar(item: BrandLibraryItem) {
-    if (!window.confirm(`Desativar o item "${item.nome}"?`)) return;
+  function handleDesativar(item: BrandLibraryItem) {
+    setConfirmError(null);
+    setConfirmando(item);
+  }
+
+  async function confirmDesativar() {
+    if (!confirmando) return;
     try {
-      await desativarItem.mutateAsync(item.id);
+      await desativarItem.mutateAsync(confirmando.id);
+      setConfirmando(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o item.");
+      setConfirmError(err instanceof Error ? err.message : "Não foi possível desativar o item.");
     }
   }
 
@@ -489,6 +507,42 @@ export default function BibliotecaMarca() {
         submitting={isSubmitting}
         error={formError}
       />
+
+      <AlertDialog
+        open={!!confirmando}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmando(null);
+            setConfirmError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o item "{confirmando?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDesativar();
+              }}
+              disabled={desativarItem.isPending}
+            >
+              {desativarItem.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

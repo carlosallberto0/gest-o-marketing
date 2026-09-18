@@ -25,6 +25,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TIPO_LABEL: Record<EstudioTipoElemento, string> = {
@@ -314,6 +324,8 @@ export default function EstudioElementos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingElemento, setEditingElemento] = useState<EstudioElemento | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<EstudioElemento | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   function openCreateDialog() {
     setEditingElemento(null);
@@ -394,12 +406,18 @@ export default function EstudioElementos() {
     }
   }
 
-  async function handleDesativar(elemento: EstudioElemento) {
-    if (!window.confirm(`Desativar o elemento "${elemento.nome}"?`)) return;
+  function handleDesativar(elemento: EstudioElemento) {
+    setConfirmError(null);
+    setConfirmando(elemento);
+  }
+
+  async function confirmDesativar() {
+    if (!confirmando) return;
     try {
-      await desativarElemento.mutateAsync(elemento.id);
+      await desativarElemento.mutateAsync(confirmando.id);
+      setConfirmando(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Não foi possível desativar o elemento.");
+      setConfirmError(err instanceof Error ? err.message : "Não foi possível desativar o elemento.");
     }
   }
 
@@ -470,6 +488,42 @@ export default function EstudioElementos() {
         submitting={isSubmitting}
         error={formError}
       />
+
+      <AlertDialog
+        open={!!confirmando}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmando(null);
+            setConfirmError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar elemento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o elemento "{confirmando?.nome}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmError && (
+            <p role="alert" className="text-sm text-destructive">
+              {confirmError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDesativar();
+              }}
+              disabled={desativarElemento.isPending}
+            >
+              {desativarElemento.isPending ? "Aguarde…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
