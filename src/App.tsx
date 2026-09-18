@@ -1,35 +1,36 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
-import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Pdvs from "@/pages/Pdvs";
-import Outdoors from "@/pages/Outdoors";
-import Materiais from "@/pages/Materiais";
-import SolicitacoesMaterial from "@/pages/SolicitacoesMaterial";
-import ChecklistConfig from "@/pages/ChecklistConfig";
-import Manutencoes from "@/pages/Manutencoes";
-import AvaliacoesPdv from "@/pages/AvaliacoesPdv";
-import PlanosAcao from "@/pages/PlanosAcao";
-import Campanhas from "@/pages/Campanhas";
-import Aprovacoes from "@/pages/Aprovacoes";
-import AprovacaoPublica from "@/pages/AprovacaoPublica";
-import DemandasCriativas from "@/pages/DemandasCriativas";
-import BibliotecaMarca from "@/pages/BibliotecaMarca";
-import EstudioElementos from "@/pages/EstudioElementos";
-import EstudioTemplates from "@/pages/EstudioTemplates";
-import EstudioColaborador from "@/pages/EstudioColaborador";
-import EstudioHistorico from "@/pages/EstudioHistorico";
-import AnaliseEstrategicaDashboard from "@/pages/AnaliseEstrategicaDashboard";
-import AnaliseEstrategicaClustersConveniencia from "@/pages/AnaliseEstrategicaClustersConveniencia";
-import AnaliseEstrategicaClustersOutdoors from "@/pages/AnaliseEstrategicaClustersOutdoors";
-import AnaliseEstrategicaClustersComparativo from "@/pages/AnaliseEstrategicaClustersComparativo";
-import AnaliseEstrategicaInsights from "@/pages/AnaliseEstrategicaInsights";
-import AnaliseEstrategicaConfig from "@/pages/AnaliseEstrategicaConfig";
-import AnaliseEstrategicaRelatorios from "@/pages/AnaliseEstrategicaRelatorios";
+
+const Login = lazy(() => import("@/pages/Login"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Pdvs = lazy(() => import("@/pages/Pdvs"));
+const Outdoors = lazy(() => import("@/pages/Outdoors"));
+const Materiais = lazy(() => import("@/pages/Materiais"));
+const SolicitacoesMaterial = lazy(() => import("@/pages/SolicitacoesMaterial"));
+const ChecklistConfig = lazy(() => import("@/pages/ChecklistConfig"));
+const Manutencoes = lazy(() => import("@/pages/Manutencoes"));
+const AvaliacoesPdv = lazy(() => import("@/pages/AvaliacoesPdv"));
+const PlanosAcao = lazy(() => import("@/pages/PlanosAcao"));
+const Campanhas = lazy(() => import("@/pages/Campanhas"));
+const Aprovacoes = lazy(() => import("@/pages/Aprovacoes"));
+const AprovacaoPublica = lazy(() => import("@/pages/AprovacaoPublica"));
+const DemandasCriativas = lazy(() => import("@/pages/DemandasCriativas"));
+const BibliotecaMarca = lazy(() => import("@/pages/BibliotecaMarca"));
+const EstudioElementos = lazy(() => import("@/pages/EstudioElementos"));
+const EstudioTemplates = lazy(() => import("@/pages/EstudioTemplates"));
+const EstudioColaborador = lazy(() => import("@/pages/EstudioColaborador"));
+const EstudioHistorico = lazy(() => import("@/pages/EstudioHistorico"));
+const AnaliseEstrategicaDashboard = lazy(() => import("@/pages/AnaliseEstrategicaDashboard"));
+const AnaliseEstrategicaClustersConveniencia = lazy(() => import("@/pages/AnaliseEstrategicaClustersConveniencia"));
+const AnaliseEstrategicaClustersOutdoors = lazy(() => import("@/pages/AnaliseEstrategicaClustersOutdoors"));
+const AnaliseEstrategicaClustersComparativo = lazy(() => import("@/pages/AnaliseEstrategicaClustersComparativo"));
+const AnaliseEstrategicaInsights = lazy(() => import("@/pages/AnaliseEstrategicaInsights"));
+const AnaliseEstrategicaConfig = lazy(() => import("@/pages/AnaliseEstrategicaConfig"));
+const AnaliseEstrategicaRelatorios = lazy(() => import("@/pages/AnaliseEstrategicaRelatorios"));
 
 const queryClient = new QueryClient();
 
@@ -68,7 +69,14 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+                Carregando…
+              </div>
+            }
+          >
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route
               path="/"
@@ -312,7 +320,8 @@ export default function App() {
             />
             <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
