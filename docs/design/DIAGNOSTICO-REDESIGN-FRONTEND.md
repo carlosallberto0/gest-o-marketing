@@ -80,8 +80,8 @@
 | Manutenções | Mídia Externa, aba "Manutenções" (junto de Outdoors) |
 | *(sem tela hoje)* | Mídia Externa, aba "Avaliações" — **nova tela**, ver problema #6 |
 | Campanhas | Marketing |
-| Aprovações | Marketing — fundida com Demandas Criativas numa única tela com estados (D.1) |
-| Demandas Criativas | Marketing — fundida com Aprovações numa única tela com estados (D.1) |
+| Aprovações | Marketing — tela própria, linkada a Demandas Criativas (D.1 revertido) |
+| Demandas Criativas | Marketing — tela própria, linkada a Aprovações (D.1 revertido) |
 | Biblioteca de Marca | Marca (grupo próprio, sem massa para mais split) |
 | Estúdio | Estúdio (tela do colaborador é a principal) |
 | Elementos do Estúdio | Estúdio, aba "Elementos" (configuração) |
@@ -101,7 +101,7 @@ VISÃO GERAL       Dashboard
 OPERAÇÃO          PDVs
 MÍDIA EXTERNA     Outdoors · Avaliações · Manutenções
 MERCHANDISING     Materiais (+ Solicitações) · Avaliações (+ Planos de Ação)
-MARKETING         Campanhas · Demanda/Aprovação (tela única com estados, D.1)
+MARKETING         Campanhas · Demandas Criativas · Aprovações (telas separadas, linkadas, D.1 revertido)
 ESTÚDIO           Colaborador (principal) · Templates · Elementos · Histórico
 MARCA             Biblioteca de Marca
 INTELIGÊNCIA      Dashboard · Clusters · Insights · Relatórios
@@ -121,7 +121,11 @@ Isso bate com o padrão já confirmado na referência visual: o papel "Marketing
 
 ## D. Decisões de produto
 
-**D.1 — Aprovações × Demandas Criativas. DECIDIDO (2026-09-15): Demanda gera Aprovação.** Fluxo sequencial — demanda interna → produção → aprovação executiva. Vira **uma tela com estados diferentes**, não duas telas com navegação separada. Impacto: Fase 6 do plano de implementação (seção H) precisa desenhar a máquina de estado única antes de tocar nas duas páginas atuais; a duplicação dos 9 hooks (achado #3) se resolve por consequência, não como refactor isolado.
+**D.1 — Aprovações × Demandas Criativas. REVERTIDO em 2026-09-18** (decisão original de 2026-09-15 era "fundir numa tela com estados" — mantida abaixo, riscada, por rastreabilidade).
+
+~~DECIDIDO (2026-09-15): Demanda gera Aprovação. Fluxo sequencial — demanda interna → produção → aprovação executiva. Vira uma tela com estados diferentes, não duas telas com navegação separada.~~
+
+**Nova decisão (2026-09-18): manter como dois módulos/telas separados, já ligados por dado — não fundir.** Motivo: investigação do código mostrou que `demandas_criativas` e `aprovacao_itens` são duas tabelas distintas com ciclo de vida próprio (a demanda tem comentários/arquivos/histórico/status internos que a aprovação não tem), já conectadas por um hook dedicado, `useVincularAprovacaoDemanda` — `DemandasCriativas.tsx` reaproveita os hooks de rascunho de `Aprovacoes.tsx` (`useCreateAprovacaoItemDraft`/`useUpdateAprovacaoItemDraft`/`useEnviarParaAprovacao`) só no ponto de integração (gerar o item de aprovação a partir da demanda), não porque são a mesma entidade duplicada — o achado #3 original interpretou mal esse reaproveitamento como duplicação de propósito. A referência visual de 2026-09-17 (`referencia-visual-marketing-os-v2-completa.png`) também mostra os dois como módulos de navegação separados, com ícone e descrição próprios, reforçando a decisão. Impacto: Fase 6 do plano de implementação (seção H) deixa de ser "fundir telas" e passa a ser "reforçar a ligação visual entre as duas" (ex.: mostrar na tela de Demanda um link pro item de Aprovação vinculado, e vice-versa) — as duas rotas (`/demandas-criativas`, `/aprovacoes`) já existem separadas desde a Fase 1 e continuam assim.
 
 **D.2 — PDVs: Operação ou Administração? DECIDIDO: Operação.** Confirma o que já estava na estrutura proposta em C.2 — gerentes/colaboradores interagem com o próprio posto no dia a dia.
 
@@ -184,7 +188,7 @@ Veredito: isto não é "desfazer decisões visuais ruins" — é aplicar tokens 
 | **3 — App Shell + limpeza** | Aplicar Fase 1+2 no shell real; code-splitting por rota (`React.lazy`); remover código morto do `framer-motion` | Decisão D.4 |
 | **4 — Dashboard** | Dashboard real (KPIs, pendências, atividades, ações rápidas) por papel | Decisão D.5 |
 | **5 — Operação/Mídia Externa/Merchandising** | Abas consolidadas; **nova tela de Avaliação de Outdoor** (gap #6) | Fase 1-4 |
-| **6 — Marketing/Estúdio** | Fundir Demandas Criativas + Aprovações em uma tela com máquina de estado única (D.1); conectar exportação do Estúdio direto à submissão de aprovação, sem download+reupload (fluxo #1) | Decisão D.1 |
+| **6 — Marketing/Estúdio** | Reforçar a ligação visual entre Demandas Criativas e Aprovações — já são telas separadas ligadas por dado, não fundir (D.1 revertido); conectar exportação do Estúdio direto à submissão de aprovação, sem download+reupload (fluxo #1) | Decisão D.1 |
 | **7 — Inteligência** | Consolidar 6 itens em 1 com abas | Fase 1-4 |
 | **8 — Administração** | Config. Checklist, Config. Análise, nova tela de Usuários e Permissões (gap #7) | Fase 1-4 |
 | **9 — Responsive/A11y/Polish** | Touch target, `Dialog` no lugar de `confirm()` nativo, `staleTime` no QueryClient | Todas anteriores |
