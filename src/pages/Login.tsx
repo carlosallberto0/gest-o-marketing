@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login() {
   const { session, loading: authLoading } = useAuth();
@@ -38,9 +38,16 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Marketing OS</CardTitle>
-          <CardDescription>Entre com seu e-mail e senha</CardDescription>
+        <CardHeader className="items-center text-center">
+          <div
+            aria-hidden="true"
+            className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary font-bold text-primary-foreground"
+          >
+            M
+          </div>
+          <CardDescription>Marketing OS</CardDescription>
+          <CardTitle>Bem-vindo de volta!</CardTitle>
+          <CardDescription>Entre com seu e-mail e senha para continuar</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -78,6 +85,9 @@ export default function Login() {
             </Button>
           </form>
         </CardContent>
+        <CardFooter className="justify-center text-center text-sm text-muted-foreground">
+          Não tem uma conta? Fale com o administrador.
+        </CardFooter>
       </Card>
     </div>
   );
