@@ -79,6 +79,10 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        category: {
+          indigo: "hsl(var(--category-indigo))",
+          orange: "hsl(var(--category-orange))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

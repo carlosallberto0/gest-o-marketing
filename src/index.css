@@ -53,7 +53,7 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 217 91% 60%;
+    --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
     --border: 240 6% 90%;
@@ -77,6 +77,9 @@
     --chart-3: 38 92% 50%;
     --chart-4: 0 72% 51%;
     --chart-5: 240 4% 46%;
+
+    --category-indigo: 243 75% 59%;
+    --category-orange: 20 90% 56%;
   }
 
   .dark {
