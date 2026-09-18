@@ -290,7 +290,7 @@ function CanalCard({
       disabled={!disponivel}
       onClick={() => onSelecionar(canal)}
       className={cn(
-        "flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-md border border-border bg-card p-4 text-center shadow-nazox transition-colors",
+        "flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-md border border-border bg-card p-4 text-center shadow-subtle transition-colors",
         disponivel ? "hover:bg-accent hover:text-accent-foreground" : "opacity-50",
       )}
     >
