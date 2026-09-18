@@ -1,9 +1,10 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { Component, lazy, Suspense, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { Button } from "@/components/ui/button";
 
 const Login = lazy(() => import("@/pages/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -54,12 +55,44 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Classe: getDerivedStateFromError não existe como hook. Definido fora de
+// App para não perder estado a cada render, como as demais convenções aqui.
+class RouteErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+          <p>Não foi possível carregar esta página.</p>
+          <Button onClick={() => window.location.reload()}>Recarregar</Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <MobileNav />
       <AppSidebar />
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+      <main className="flex-1 p-4 md:p-8">
+        <Suspense
+          fallback={
+            <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
+              Carregando…
+            </div>
+          }
+        >
+          {children}
+        </Suspense>
+      </main>
     </div>
   );
 }
@@ -69,6 +102,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <RouteErrorBoundary>
           <Suspense
             fallback={
               <div className="flex min-h-screen items-center justify-center text-muted-foreground">
@@ -322,6 +356,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          </RouteErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
