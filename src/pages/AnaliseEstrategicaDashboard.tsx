@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { ClusterDistribuicaoChart } from "@/components/analise-estrategica/ClusterVisual";
 import { agruparPorCluster } from "@/lib/analise-estrategica";
 
@@ -219,19 +220,5 @@ function DashboardConteudo({
         </CardContent>
       </Card>
     </>
-  );
-}
-
-function KpiCard({ titulo, valor, detalhe }: { titulo: string; valor: string; detalhe?: string }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{valor}</p>
-        {detalhe && <p className="text-xs text-muted-foreground">{detalhe}</p>}
-      </CardContent>
-    </Card>
   );
 }
