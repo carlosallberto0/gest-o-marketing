@@ -95,7 +95,7 @@ export function useEstudioCategorias() {
   return useQuery({
     queryKey: estudioCategoriasKeys.all,
     queryFn: async () => {
-      const { data, error } = await supabase.from("estudio_categorias").select("*").order("ordem");
+      const { data, error } = await supabase.from("estudio_categorias").select("*").order("ordem").order("id");
       if (error) throw error;
       return data as EstudioCategoria[];
     },
@@ -186,7 +186,7 @@ export function useEstudioTemplates(filtros?: EstudioTemplatesFiltros) {
   return useQuery({
     queryKey: estudioTemplatesKeys.list(filtros),
     queryFn: async () => {
-      let query = supabase.from("estudio_templates").select(TEMPLATE_SELECT_COM_CATEGORIA).order("ordem");
+      let query = supabase.from("estudio_templates").select(TEMPLATE_SELECT_COM_CATEGORIA).order("ordem").order("id");
       if (filtros?.categoriaId) query = query.eq("categoria_id", filtros.categoriaId);
 
       const { data, error } = await query;

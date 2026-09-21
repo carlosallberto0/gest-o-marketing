@@ -4,7 +4,7 @@
 // (preview estático por percentuais fixos — Cenário A do backlog, sem
 // biblioteca de canvas). Botões de gestão visíveis a todo mundo: RLS decide,
 // guarda de rota no frontend é UX, não segurança.
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   useEstudioCategorias,
   useCreateEstudioCategoria,
@@ -310,7 +310,11 @@ function TemplateFormDialog({
       setThumbnailFile(null);
       setValidationError(null);
     }
-  }, [open, template, categoriasAtivas]);
+    // categoriasAtivas de propósito fora das deps: reset deve rodar só quando
+    // o diálogo abre/fecha ou o registro muda, não a cada nova referência de
+    // array vinda do React Query (ver causa raiz do bug de imagem sumindo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, template]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -822,7 +826,10 @@ export default function EstudioTemplates() {
   const [confirmandoCategoria, setConfirmandoCategoria] = useState<EstudioCategoria | null>(null);
   const [confirmCategoriaError, setConfirmCategoriaError] = useState<string | null>(null);
 
-  const categoriasAtivas = (categorias ?? []).filter((categoria) => categoria.is_active);
+  const categoriasAtivas = useMemo(
+    () => (categorias ?? []).filter((categoria) => categoria.is_active),
+    [categorias],
+  );
   const hasCategorias = (categorias?.length ?? 0) > 0;
 
   // Seção 2 — templates
