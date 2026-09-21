@@ -6,7 +6,7 @@
 // EstudioTemplates.tsx — a mesma técnica de posicionamento absoluto por
 // percentual é reaproveitada aqui, agora para preenchimento em vez de
 // configuração.
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -346,32 +346,122 @@ function TemplateEscolhaCard({
   );
 }
 
-// Fora do corpo do pai: cada zona resolve sua própria imagem (área visual
-// preenchida) via signed URL, mesmo motivo dos demais cards com foto.
+// Fora do corpo do pai: cada zona resolve sua própria imagem/estado de edição
+// de texto — evita re-render de todas as áreas a cada tecla digitada em uma.
 function AreaZona({
   area,
   composicaoElemento,
-  onClick,
+  composicaoId,
+  destacada,
+  onClicarImagem,
 }: {
   area: EstudioTemplateArea;
   composicaoElemento: EstudioComposicaoElemento | undefined;
-  onClick: () => void;
+  composicaoId: string;
+  destacada: boolean;
+  onClicarImagem: () => void;
 }) {
   const isTexto = isTipoTexto(area.tipo_elemento_permitido);
   const elementoId = !isTexto ? composicaoElemento?.elemento_id ?? null : null;
-  // Sem hook de busca de elemento por id isolado — reaproveita o filtro por
-  // tipo já existente (useEstudioElementos) só para resolver nome/arquivo do
-  // elemento_id salvo nesta área; cache compartilhado entre áreas do mesmo tipo.
   const { data: elementosDoTipo } = useEstudioElementos(!isTexto ? { tipo: area.tipo_elemento_permitido } : undefined);
   const elemento = elementoId ? (elementosDoTipo ?? []).find((item) => item.id === elementoId) ?? null : null;
   const { data: imagemUrl } = useFotoSignedUrl("estudio-elementos", elemento?.thumbnail_url ?? elemento?.arquivo_url);
 
+  const [editandoTexto, setEditandoTexto] = useState(false);
+  const [valorTexto, setValorTexto] = useState(composicaoElemento?.valor_texto ?? "");
+  const [erroTexto, setErroTexto] = useState<string | null>(null);
+  const salvarTextoMutation = useSalvarComposicaoElemento();
+  const cancelandoRef = useRef(false);
+
+  useEffect(() => {
+    if (!editandoTexto) setValorTexto(composicaoElemento?.valor_texto ?? "");
+  }, [composicaoElemento, editandoTexto]);
+
   const preenchida = isTexto ? !!composicaoElemento?.valor_texto?.trim() : !!elemento;
+  const usarTextarea = isTexto && area.tipo_elemento_permitido !== "texto_preco";
+
+  async function salvarTexto() {
+    if (cancelandoRef.current) {
+      cancelandoRef.current = false;
+      return;
+    }
+    if (salvarTextoMutation.isPending) return;
+    setErroTexto(null);
+    const texto = valorTexto.trim();
+    if (!texto || texto === composicaoElemento?.valor_texto) {
+      setValorTexto(composicaoElemento?.valor_texto ?? "");
+      setEditandoTexto(false);
+      return;
+    }
+    try {
+      await salvarTextoMutation.mutateAsync({ composicao_id: composicaoId, area_id: area.id, valor_texto: texto });
+      setEditandoTexto(false);
+    } catch (err) {
+      setErroTexto(err instanceof Error ? err.message : "Não foi possível salvar o texto.");
+    }
+  }
+
+  const estiloPosicao = {
+    left: `${area.x_percent}%`,
+    top: `${area.y_percent}%`,
+    width: `${area.largura_percent}%`,
+    height: `${area.altura_percent}%`,
+    zIndex: area.z_index,
+  };
+
+  if (isTexto && editandoTexto) {
+    return (
+      <div className="absolute" style={estiloPosicao}>
+        {usarTextarea ? (
+          <Textarea
+            autoFocus
+            value={valorTexto}
+            onChange={(event) => setValorTexto(event.target.value)}
+            onBlur={salvarTexto}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                cancelandoRef.current = true;
+                setValorTexto(composicaoElemento?.valor_texto ?? "");
+                setEditandoTexto(false);
+              }
+            }}
+            disabled={salvarTextoMutation.isPending}
+            className="h-full w-full resize-none bg-background/90 text-xs"
+          />
+        ) : (
+          <Input
+            autoFocus
+            value={valorTexto}
+            onChange={(event) => setValorTexto(event.target.value)}
+            onBlur={salvarTexto}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                salvarTexto();
+              }
+              if (event.key === "Escape") {
+                cancelandoRef.current = true;
+                setValorTexto(composicaoElemento?.valor_texto ?? "");
+                setEditandoTexto(false);
+              }
+            }}
+            disabled={salvarTextoMutation.isPending}
+            className="h-full w-full bg-background/90 text-xs"
+          />
+        )}
+        {erroTexto && (
+          <p role="alert" className="absolute left-0 top-full z-10 whitespace-nowrap text-[10px] text-destructive">
+            {erroTexto}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={isTexto ? () => setEditandoTexto(true) : onClicarImagem}
       aria-label={`${preenchida ? "Editar" : "Preencher"} área ${area.nome}${area.obrigatorio ? " (obrigatória)" : ""}`}
       className={cn(
         "absolute overflow-hidden text-left text-[11px] leading-tight",
@@ -380,14 +470,9 @@ function AreaZona({
           : area.obrigatorio
             ? "border-2 border-dashed border-destructive bg-destructive/10"
             : "border-2 border-dashed border-muted-foreground/50 bg-muted/60",
+        destacada && "ring-2 ring-primary ring-offset-2",
       )}
-      style={{
-        left: `${area.x_percent}%`,
-        top: `${area.y_percent}%`,
-        width: `${area.largura_percent}%`,
-        height: `${area.altura_percent}%`,
-        zIndex: area.z_index,
-      }}
+      style={estiloPosicao}
     >
       {preenchida ? (
         isTexto ? (
@@ -461,42 +546,21 @@ function AreaFillDialog({
   composicaoId: string;
   composicaoElemento: EstudioComposicaoElemento | undefined;
 }) {
-  const [valorTexto, setValorTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
   const salvar = useSalvarComposicaoElemento();
   const remover = useRemoverComposicaoElemento();
 
-  const isTexto = area ? isTipoTexto(area.tipo_elemento_permitido) : false;
   const { data: elementosDisponiveis, isLoading: elementosLoading } = useEstudioElementos(
-    area && !isTexto ? { tipo: area.tipo_elemento_permitido } : undefined,
+    area ? { tipo: area.tipo_elemento_permitido } : undefined,
   );
 
   useEffect(() => {
-    if (open) {
-      setValorTexto(composicaoElemento?.valor_texto ?? "");
-      setError(null);
-    }
-  }, [open, composicaoElemento]);
+    if (open) setError(null);
+  }, [open]);
 
   if (!area) return null;
 
   const elementosAtivos = (elementosDisponiveis ?? []).filter((elemento) => elemento.is_active);
-  const usarTextarea = area.tipo_elemento_permitido !== "texto_preco";
-
-  async function handleSalvarTexto() {
-    if (salvar.isPending || !area) return;
-    setError(null);
-    if (!valorTexto.trim()) {
-      setError("Preencha o texto antes de salvar.");
-      return;
-    }
-    try {
-      await salvar.mutateAsync({ composicao_id: composicaoId, area_id: area.id, valor_texto: valorTexto.trim() });
-      onOpenChange(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível salvar o texto.");
-    }
-  }
 
   async function handleSelecionarElemento(elementoId: string) {
     if (salvar.isPending || !area) return;
@@ -533,21 +597,7 @@ function AreaFillDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {isTexto ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="area-fill-texto">Texto</Label>
-              {usarTextarea ? (
-                <Textarea
-                  id="area-fill-texto"
-                  rows={3}
-                  value={valorTexto}
-                  onChange={(event) => setValorTexto(event.target.value)}
-                />
-              ) : (
-                <Input id="area-fill-texto" value={valorTexto} onChange={(event) => setValorTexto(event.target.value)} />
-              )}
-            </div>
-          ) : elementosLoading ? (
+          {elementosLoading ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
@@ -590,11 +640,6 @@ function AreaFillDialog({
             </Button>
           ) : (
             <span />
-          )}
-          {isTexto && (
-            <Button type="button" disabled={salvar.isPending} onClick={handleSalvarTexto}>
-              {salvar.isPending ? "Salvando…" : "Salvar"}
-            </Button>
           )}
         </DialogFooter>
       </DialogContent>
@@ -798,7 +843,9 @@ function ComposicaoEditor({
               key={area.id}
               area={area}
               composicaoElemento={elementoPorAreaId.get(area.id)}
-              onClick={() => setAreaSelecionada(area)}
+              composicaoId={composicaoId}
+              destacada={false}
+              onClicarImagem={() => setAreaSelecionada(area)}
             />
           ))}
         </div>
