@@ -4,7 +4,7 @@
 // (preview estático por percentuais fixos — Cenário A do backlog, sem
 // biblioteca de canvas). Botões de gestão visíveis a todo mundo: RLS decide,
 // guarda de rota no frontend é UX, não segurança.
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   useEstudioCategorias,
   useCreateEstudioCategoria,
@@ -46,6 +46,12 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  pontoParaPercentual,
+  clampRetangulo,
+  TAMANHO_MINIMO_PERCENT,
+  type RetanguloPercentual,
+} from "@/lib/estudioAreaGeometria";
 
 const CANAL_LABEL: Record<EstudioCanal, string> = {
   whatsapp: "WhatsApp",
@@ -478,10 +484,6 @@ function TemplateFormDialog({
 interface AreaFormValues {
   nome: string;
   tipo: EstudioTipoElemento;
-  xPercent: number;
-  yPercent: number;
-  larguraPercent: number;
-  alturaPercent: number;
   obrigatorio: boolean;
   maxElementos: number;
   zIndex: number;
@@ -493,6 +495,7 @@ function AreaFormDialog({
   open,
   onOpenChange,
   area,
+  retanguloNovo,
   onSubmit,
   submitting,
   error,
@@ -500,16 +503,13 @@ function AreaFormDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   area: EstudioTemplateArea | null;
+  retanguloNovo: RetanguloPercentual | null;
   onSubmit: (values: AreaFormValues) => void;
   submitting: boolean;
   error: string | null;
 }) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<EstudioTipoElemento>("imagem_produto");
-  const [xPercent, setXPercent] = useState(0);
-  const [yPercent, setYPercent] = useState(0);
-  const [larguraPercent, setLarguraPercent] = useState(10);
-  const [alturaPercent, setAlturaPercent] = useState(10);
   const [obrigatorio, setObrigatorio] = useState(true);
   const [maxElementos, setMaxElementos] = useState(1);
   const [zIndex, setZIndex] = useState(0);
@@ -519,10 +519,6 @@ function AreaFormDialog({
     if (open) {
       setNome(area?.nome ?? "");
       setTipo(area?.tipo_elemento_permitido ?? "imagem_produto");
-      setXPercent(area?.x_percent ?? 0);
-      setYPercent(area?.y_percent ?? 0);
-      setLarguraPercent(area?.largura_percent ?? 10);
-      setAlturaPercent(area?.altura_percent ?? 10);
       setObrigatorio(area?.obrigatorio ?? true);
       setMaxElementos(area?.max_elementos ?? 1);
       setZIndex(area?.z_index ?? 0);
@@ -533,8 +529,19 @@ function AreaFormDialog({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    onSubmit({ nome, tipo, xPercent, yPercent, larguraPercent, alturaPercent, obrigatorio, maxElementos, zIndex, notas });
+    onSubmit({ nome, tipo, obrigatorio, maxElementos, zIndex, notas });
   }
+
+  // Área existente: mostra a posição atual (read-only, ajustada só pelo
+  // canvas). Área nova: mostra o retângulo que acabou de ser desenhado.
+  const posicao = area
+    ? {
+        xPercent: area.x_percent,
+        yPercent: area.y_percent,
+        larguraPercent: area.largura_percent,
+        alturaPercent: area.altura_percent,
+      }
+    : retanguloNovo;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -542,7 +549,9 @@ function AreaFormDialog({
         <DialogHeader>
           <DialogTitle>{area ? "Editar área" : "Nova área"}</DialogTitle>
           <DialogDescription>
-            {area ? "Atualize a posição e as regras desta área do template." : "Defina uma nova área sobre o template."}
+            {area
+              ? "Atualize as regras desta área. Para mudar posição ou tamanho, arraste a área direto na imagem."
+              : "Preencha as regras da área que você acabou de desenhar sobre o template."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto" noValidate>
@@ -567,63 +576,12 @@ function AreaFormDialog({
             </Select>
           </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="area-x">X (%)</Label>
-              <Input
-                id="area-x"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                required
-                value={xPercent}
-                onChange={(event) => setXPercent(Number(event.target.value))}
-              />
-            </div>
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="area-y">Y (%)</Label>
-              <Input
-                id="area-y"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                required
-                value={yPercent}
-                onChange={(event) => setYPercent(Number(event.target.value))}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="area-largura">Largura (%)</Label>
-              <Input
-                id="area-largura"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                required
-                value={larguraPercent}
-                onChange={(event) => setLarguraPercent(Number(event.target.value))}
-              />
-            </div>
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="area-altura">Altura (%)</Label>
-              <Input
-                id="area-altura"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                required
-                value={alturaPercent}
-                onChange={(event) => setAlturaPercent(Number(event.target.value))}
-              />
-            </div>
-          </div>
+          {posicao && (
+            <p className="text-xs text-muted-foreground">
+              Posição: x {posicao.xPercent.toFixed(1)}% · y {posicao.yPercent.toFixed(1)}% · largura{" "}
+              {posicao.larguraPercent.toFixed(1)}% · altura {posicao.alturaPercent.toFixed(1)}%
+            </p>
+          )}
 
           <div className="flex items-center gap-2">
             <Checkbox
@@ -682,19 +640,248 @@ function AreaFormDialog({
   );
 }
 
-// Fora do corpo de EstudioTemplates: só leitura (preview + lista), mas
-// mantido como componente próprio para separar a seção 3 do restante.
+// Tamanho da área de toque de cada alça de canto — maior que o quadrado
+// visual (12px) para não ficar impossível de pegar no celular (CLAUDE.md,
+// acessibilidade nível A). backgroundClip:content-box mantém o visual
+// pequeno enquanto o padding aumenta só a área clicável/tocável.
+const ALCA_VISUAL_PX = 12;
+const ALCA_TOQUE_PX = 28;
+const ALCA_PADDING_PX = (ALCA_TOQUE_PX - ALCA_VISUAL_PX) / 2;
+
+type TipoArrasto = "mover" | "nw" | "ne" | "sw" | "se";
+
+// Passo de teclado (WCAG 2.1.1 — mover/redimensionar sem pointer): seta move
+// 1 ponto percentual, Shift+seta move 5.
+const PASSO_TECLADO_PERCENT = 1;
+const PASSO_TECLADO_SHIFT_PERCENT = 5;
+
+const NOME_CANTO: Record<Exclude<TipoArrasto, "mover">, string> = {
+  nw: "superior esquerdo",
+  ne: "superior direito",
+  sw: "inferior esquerdo",
+  se: "inferior direito",
+};
+
+// Pura, reaproveitada por pointer (moverArrasto) e teclado — "esquerda desloca
+// x, direita só cresce largura" mora só aqui.
+function calcularNovoRetangulo(
+  tipo: TipoArrasto,
+  base: RetanguloPercentual,
+  deltaXPercent: number,
+  deltaYPercent: number,
+): RetanguloPercentual {
+  if (tipo === "mover") {
+    return { ...base, xPercent: base.xPercent + deltaXPercent, yPercent: base.yPercent + deltaYPercent };
+  }
+  const ehEsquerda = tipo === "nw" || tipo === "sw";
+  const ehTopo = tipo === "nw" || tipo === "ne";
+  return {
+    xPercent: ehEsquerda ? base.xPercent + deltaXPercent : base.xPercent,
+    yPercent: ehTopo ? base.yPercent + deltaYPercent : base.yPercent,
+    larguraPercent: ehEsquerda ? base.larguraPercent - deltaXPercent : base.larguraPercent + deltaXPercent,
+    alturaPercent: ehTopo ? base.alturaPercent - deltaYPercent : base.alturaPercent + deltaYPercent,
+  };
+}
+
+// Seta → delta percentual (Shift = passo maior); null se a tecla não for seta.
+function deltaDeTecla(event: React.KeyboardEvent): { deltaXPercent: number; deltaYPercent: number } | null {
+  const passo = event.shiftKey ? PASSO_TECLADO_SHIFT_PERCENT : PASSO_TECLADO_PERCENT;
+  switch (event.key) {
+    case "ArrowUp":
+      return { deltaXPercent: 0, deltaYPercent: -passo };
+    case "ArrowDown":
+      return { deltaXPercent: 0, deltaYPercent: passo };
+    case "ArrowLeft":
+      return { deltaXPercent: -passo, deltaYPercent: 0 };
+    case "ArrowRight":
+      return { deltaXPercent: passo, deltaYPercent: 0 };
+    default:
+      return null;
+  }
+}
+
+// Fora do corpo do pai: cada área tem seu próprio estado de arrasto e sua
+// própria mutation — evita re-render de todas as áreas a cada pixel movido
+// em uma delas.
+function AreaOverlayEditable({
+  area,
+  containerRef,
+  desabilitado,
+}: {
+  area: EstudioTemplateArea;
+  containerRef: React.RefObject<HTMLDivElement>;
+  desabilitado: boolean;
+}) {
+  const updateArea = useUpdateEstudioTemplateArea();
+  const [retangulo, setRetangulo] = useState<RetanguloPercentual>({
+    xPercent: area.x_percent,
+    yPercent: area.y_percent,
+    larguraPercent: area.largura_percent,
+    alturaPercent: area.altura_percent,
+  });
+  const [arrastando, setArrastando] = useState<TipoArrasto | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const inicioRef = useRef<{ clientX: number; clientY: number; retangulo: RetanguloPercentual } | null>(null);
+
+  // Reflete atualização vinda do servidor (outra aba, outro admin) só quando
+  // esta área não está sendo arrastada agora — evita "puxar" o retângulo pra
+  // trás no meio de um arrasto por causa de um refetch em paralelo.
+  useEffect(() => {
+    if (!arrastando) {
+      setRetangulo({
+        xPercent: area.x_percent,
+        yPercent: area.y_percent,
+        larguraPercent: area.largura_percent,
+        alturaPercent: area.altura_percent,
+      });
+    }
+  }, [area, arrastando]);
+
+  function iniciarArrasto(tipo: TipoArrasto, event: React.PointerEvent<HTMLDivElement>) {
+    if (desabilitado) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setArrastando(tipo);
+    setErro(null);
+    inicioRef.current = { clientX: event.clientX, clientY: event.clientY, retangulo };
+  }
+
+  function moverArrasto(event: React.PointerEvent<HTMLDivElement>) {
+    if (!arrastando || !inicioRef.current || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const deltaXPercent = ((event.clientX - inicioRef.current.clientX) / containerRect.width) * 100;
+    const deltaYPercent = ((event.clientY - inicioRef.current.clientY) / containerRect.height) * 100;
+    const novo = calcularNovoRetangulo(arrastando, inicioRef.current.retangulo, deltaXPercent, deltaYPercent);
+    setRetangulo(clampRetangulo(novo));
+  }
+
+  // Persiste um retângulo já calculado, com snap-back e mensagem de erro em
+  // caso de falha — reaproveitada pelo fim do arrasto (pointer) e por cada
+  // passo de teclado.
+  async function persistirRetangulo(novo: RetanguloPercentual) {
+    try {
+      await updateArea.mutateAsync({
+        id: area.id,
+        template_id: area.template_id,
+        x_percent: novo.xPercent,
+        y_percent: novo.yPercent,
+        largura_percent: novo.larguraPercent,
+        altura_percent: novo.alturaPercent,
+      });
+    } catch (err) {
+      setRetangulo({
+        xPercent: area.x_percent,
+        yPercent: area.y_percent,
+        larguraPercent: area.largura_percent,
+        alturaPercent: area.altura_percent,
+      });
+      setErro(err instanceof Error ? err.message : "Não foi possível salvar a posição.");
+    }
+  }
+
+  async function finalizarArrasto() {
+    if (!arrastando) return;
+    setArrastando(null);
+    await persistirRetangulo(retangulo);
+  }
+
+  // Move a área pelo teclado (corpo focado) — WCAG 2.1.1: a tela precisa
+  // continuar 100% operável sem pointer depois que os inputs de X/Y saíram.
+  function moverPorTeclado(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (desabilitado) return;
+    const delta = deltaDeTecla(event);
+    if (!delta) return;
+    event.preventDefault();
+    const novo = clampRetangulo(calcularNovoRetangulo("mover", retangulo, delta.deltaXPercent, delta.deltaYPercent));
+    setRetangulo(novo);
+    void persistirRetangulo(novo);
+  }
+
+  // Redimensiona pela alça de canto focada — mesma matemática de
+  // calcularNovoRetangulo que o pointer já usa, só com delta fixo por tecla.
+  function redimensionarPorTeclado(canto: TipoArrasto, event: React.KeyboardEvent<HTMLDivElement>) {
+    if (desabilitado) return;
+    const delta = deltaDeTecla(event);
+    if (!delta) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const novo = clampRetangulo(calcularNovoRetangulo(canto, retangulo, delta.deltaXPercent, delta.deltaYPercent));
+    setRetangulo(novo);
+    void persistirRetangulo(novo);
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={desabilitado ? -1 : 0}
+      aria-label={`Área ${area.nome} — arraste para mover, use as alças dos cantos para redimensionar`}
+      onPointerDown={(event) => iniciarArrasto("mover", event)}
+      onPointerMove={moverArrasto}
+      onPointerUp={finalizarArrasto}
+      onKeyDown={moverPorTeclado}
+      className={`absolute flex items-start overflow-hidden border-2 border-dashed p-1 text-[10px] font-medium leading-tight ${
+        area.obrigatorio ? "border-destructive bg-destructive/10 text-destructive" : "border-primary bg-primary/10 text-primary"
+      }`}
+      style={{
+        left: `${retangulo.xPercent}%`,
+        top: `${retangulo.yPercent}%`,
+        width: `${retangulo.larguraPercent}%`,
+        height: `${retangulo.alturaPercent}%`,
+        touchAction: "none",
+        pointerEvents: desabilitado ? "none" : "auto",
+        cursor: arrastando === "mover" ? "grabbing" : "grab",
+      }}
+    >
+      {area.nome}
+      {(["nw", "ne", "sw", "se"] as const).map((canto) => (
+        <div
+          key={canto}
+          role="button"
+          tabIndex={desabilitado ? -1 : 0}
+          aria-label={`Redimensionar pelo canto ${NOME_CANTO[canto]} da área ${area.nome}`}
+          onPointerDown={(event) => iniciarArrasto(canto, event)}
+          onPointerMove={moverArrasto}
+          onPointerUp={finalizarArrasto}
+          onKeyDown={(event) => redimensionarPorTeclado(canto, event)}
+          className="absolute rounded-full border-2 border-background bg-primary"
+          style={{
+            width: ALCA_VISUAL_PX,
+            height: ALCA_VISUAL_PX,
+            padding: ALCA_PADDING_PX,
+            backgroundClip: "content-box",
+            touchAction: "none",
+            cursor: `${canto}-resize`,
+            top: canto === "nw" || canto === "ne" ? -ALCA_PADDING_PX - ALCA_VISUAL_PX / 2 : undefined,
+            bottom: canto === "sw" || canto === "se" ? -ALCA_PADDING_PX - ALCA_VISUAL_PX / 2 : undefined,
+            left: canto === "nw" || canto === "sw" ? -ALCA_PADDING_PX - ALCA_VISUAL_PX / 2 : undefined,
+            right: canto === "ne" || canto === "se" ? -ALCA_PADDING_PX - ALCA_VISUAL_PX / 2 : undefined,
+          }}
+        />
+      ))}
+      {erro && (
+        <p role="alert" className="absolute -bottom-5 left-0 z-10 whitespace-nowrap text-[10px] text-destructive">
+          {erro}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TemplateAreasSection({
   template,
   onFechar,
-  onNovaArea,
+  desenhando,
+  onAlternarDesenho,
+  onFinalizarDesenho,
   onEditarArea,
   onExcluirArea,
   excluindo,
 }: {
   template: EstudioTemplateComCategoria;
   onFechar: () => void;
-  onNovaArea: () => void;
+  desenhando: boolean;
+  onAlternarDesenho: () => void;
+  onFinalizarDesenho: (retangulo: RetanguloPercentual | null) => void;
   onEditarArea: (area: EstudioTemplateArea) => void;
   onExcluirArea: (area: EstudioTemplateArea) => void;
   excluindo: boolean;
@@ -702,6 +889,39 @@ function TemplateAreasSection({
   const { data: areas, isLoading } = useEstudioTemplateAreas(template.id);
   const { data: imagemUrl } = useFotoSignedUrl("estudio-templates", template.imagem_base_url);
   const hasAreas = (areas?.length ?? 0) > 0;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [rascunho, setRascunho] = useState<RetanguloPercentual | null>(null);
+  const pontoInicialRef = useRef<{ xPercent: number; yPercent: number } | null>(null);
+
+  function iniciarDesenho(event: React.PointerEvent<HTMLDivElement>) {
+    if (!desenhando || !containerRef.current) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const ponto = pontoParaPercentual(event.clientX, event.clientY, containerRef.current.getBoundingClientRect());
+    pontoInicialRef.current = ponto;
+    setRascunho({ xPercent: ponto.xPercent, yPercent: ponto.yPercent, larguraPercent: 0, alturaPercent: 0 });
+  }
+
+  function atualizarDesenho(event: React.PointerEvent<HTMLDivElement>) {
+    if (!desenhando || !pontoInicialRef.current || !containerRef.current) return;
+    const atual = pontoParaPercentual(event.clientX, event.clientY, containerRef.current.getBoundingClientRect());
+    const inicio = pontoInicialRef.current;
+    setRascunho({
+      xPercent: Math.min(inicio.xPercent, atual.xPercent),
+      yPercent: Math.min(inicio.yPercent, atual.yPercent),
+      larguraPercent: Math.abs(atual.xPercent - inicio.xPercent),
+      alturaPercent: Math.abs(atual.yPercent - inicio.yPercent),
+    });
+  }
+
+  function finalizarDesenho() {
+    if (!desenhando || !rascunho) return;
+    pontoInicialRef.current = null;
+    const valido = rascunho.larguraPercent >= TAMANHO_MINIMO_PERCENT && rascunho.alturaPercent >= TAMANHO_MINIMO_PERCENT;
+    const resultado = valido ? clampRetangulo(rascunho) : null;
+    setRascunho(null);
+    onFinalizarDesenho(resultado);
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -713,8 +933,8 @@ function TemplateAreasSection({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onNovaArea} className="sm:w-auto">
-            Nova área
+          <Button onClick={onAlternarDesenho} variant={desenhando ? "secondary" : "default"} className="sm:w-auto">
+            {desenhando ? "Desenhando… clique e arraste na imagem" : "Nova área"}
           </Button>
           <Button variant="outline" onClick={onFechar} className="sm:w-auto">
             Voltar
@@ -723,8 +943,16 @@ function TemplateAreasSection({
       </div>
 
       <div
+        ref={containerRef}
         className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
-        style={{ aspectRatio: `${template.largura_px} / ${template.altura_px}` }}
+        style={{
+          aspectRatio: `${template.largura_px} / ${template.altura_px}`,
+          touchAction: desenhando ? "none" : undefined,
+          cursor: desenhando ? "crosshair" : undefined,
+        }}
+        onPointerDown={iniciarDesenho}
+        onPointerMove={atualizarDesenho}
+        onPointerUp={finalizarDesenho}
       >
         {imagemUrl ? (
           <img src={imagemUrl} alt={`Imagem base do template ${template.nome}`} className="h-full w-full object-cover" />
@@ -734,21 +962,19 @@ function TemplateAreasSection({
           </div>
         )}
         {(areas ?? []).map((area) => (
-          <div
-            key={area.id}
-            className={`absolute flex items-start overflow-hidden border-2 border-dashed p-1 text-[10px] font-medium leading-tight ${
-              area.obrigatorio ? "border-destructive bg-destructive/10 text-destructive" : "border-primary bg-primary/10 text-primary"
-            }`}
-            style={{
-              left: `${area.x_percent}%`,
-              top: `${area.y_percent}%`,
-              width: `${area.largura_percent}%`,
-              height: `${area.altura_percent}%`,
-            }}
-          >
-            {area.nome}
-          </div>
+          <AreaOverlayEditable key={area.id} area={area} containerRef={containerRef} desabilitado={desenhando} />
         ))}
+        {rascunho && (
+          <div
+            className="absolute border-2 border-dashed border-primary bg-primary/20"
+            style={{
+              left: `${rascunho.xPercent}%`,
+              top: `${rascunho.yPercent}%`,
+              width: `${rascunho.larguraPercent}%`,
+              height: `${rascunho.alturaPercent}%`,
+            }}
+          />
+        )}
       </div>
 
       {isLoading ? (
@@ -759,7 +985,7 @@ function TemplateAreasSection({
       ) : !hasAreas ? (
         <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border py-12 text-center">
           <p className="text-muted-foreground">Nenhuma área cadastrada para este template ainda.</p>
-          <Button onClick={onNovaArea}>Criar área</Button>
+          <Button onClick={onAlternarDesenho}>{desenhando ? "Cancelar desenho" : "Criar área"}</Button>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
@@ -862,6 +1088,8 @@ export default function EstudioTemplates() {
   const [areaFormError, setAreaFormError] = useState<string | null>(null);
   const [confirmandoArea, setConfirmandoArea] = useState<EstudioTemplateArea | null>(null);
   const [confirmAreaError, setConfirmAreaError] = useState<string | null>(null);
+  const [modoDesenho, setModoDesenho] = useState(false);
+  const [retanguloDesenhado, setRetanguloDesenhado] = useState<RetanguloPercentual | null>(null);
 
   function openCreateCategoriaDialog() {
     setEditingCategoria(null);
@@ -1028,7 +1256,14 @@ export default function EstudioTemplates() {
     }
   }
 
-  function openCreateAreaDialog() {
+  function alternarModoDesenho() {
+    setModoDesenho((atual) => !atual);
+  }
+
+  function handleFinalizarDesenho(retangulo: RetanguloPercentual | null) {
+    setModoDesenho(false);
+    if (!retangulo) return; // arrasto pequeno demais — descarta sem abrir dialog
+    setRetanguloDesenhado(retangulo);
     setEditingArea(null);
     setAreaFormError(null);
     setAreaDialogOpen(true);
@@ -1036,6 +1271,7 @@ export default function EstudioTemplates() {
 
   function openEditAreaDialog(area: EstudioTemplateArea) {
     setEditingArea(area);
+    setRetanguloDesenhado(null);
     setAreaFormError(null);
     setAreaDialogOpen(true);
   }
@@ -1044,24 +1280,28 @@ export default function EstudioTemplates() {
     if (!templateSelecionado) return;
     setAreaFormError(null);
     try {
-      const payload = {
+      const metadados = {
         nome: values.nome,
         tipo_elemento_permitido: values.tipo,
-        x_percent: values.xPercent,
-        y_percent: values.yPercent,
-        largura_percent: values.larguraPercent,
-        altura_percent: values.alturaPercent,
         obrigatorio: values.obrigatorio,
         max_elementos: values.maxElementos,
         z_index: values.zIndex,
         notas: values.notas || undefined,
       };
       if (editingArea) {
-        await updateArea.mutateAsync({ id: editingArea.id, template_id: templateSelecionado.id, ...payload });
-      } else {
-        await createArea.mutateAsync({ template_id: templateSelecionado.id, ...payload });
+        await updateArea.mutateAsync({ id: editingArea.id, template_id: templateSelecionado.id, ...metadados });
+      } else if (retanguloDesenhado) {
+        await createArea.mutateAsync({
+          template_id: templateSelecionado.id,
+          ...metadados,
+          x_percent: retanguloDesenhado.xPercent,
+          y_percent: retanguloDesenhado.yPercent,
+          largura_percent: retanguloDesenhado.larguraPercent,
+          altura_percent: retanguloDesenhado.alturaPercent,
+        });
       }
       setAreaDialogOpen(false);
+      setRetanguloDesenhado(null);
     } catch (err) {
       setAreaFormError(err instanceof Error ? err.message : "Não foi possível salvar a área.");
     }
@@ -1237,7 +1477,9 @@ export default function EstudioTemplates() {
         <TemplateAreasSection
           template={templateSelecionado}
           onFechar={() => setTemplateSelecionado(null)}
-          onNovaArea={openCreateAreaDialog}
+          desenhando={modoDesenho}
+          onAlternarDesenho={alternarModoDesenho}
+          onFinalizarDesenho={handleFinalizarDesenho}
           onEditarArea={openEditAreaDialog}
           onExcluirArea={handleExcluirArea}
           excluindo={excluirArea.isPending}
@@ -1267,6 +1509,7 @@ export default function EstudioTemplates() {
         open={areaDialogOpen}
         onOpenChange={setAreaDialogOpen}
         area={editingArea}
+        retanguloNovo={retanguloDesenhado}
         onSubmit={handleAreaSubmit}
         submitting={isAreaSubmitting}
         error={areaFormError}
