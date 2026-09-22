@@ -91,6 +91,15 @@ function isTipoTexto(tipo: EstudioTipoElemento): boolean {
   return tipo.startsWith("texto_");
 }
 
+// Ajuste de posição/escala em área "posicao_livre" — mesma unidade
+// (pixel do template final) que desenharImagemNaArea() já usa no export.
+const FATOR_ESCALA_MINIMO = 0.2;
+const LIMIAR_ARRASTO_PX = 4; // abaixo disso, pointerup vira "clique" (troca elemento), não arrasto
+const PASSO_TECLADO_DESLOCAMENTO_PX = 5;
+const PASSO_TECLADO_DESLOCAMENTO_SHIFT_PX = 20;
+const PASSO_TECLADO_ESCALA = 0.05;
+const PASSO_TECLADO_ESCALA_SHIFT = 0.2;
+
 function composicaoElementoPreenchido(elemento: EstudioComposicaoElemento | undefined): boolean {
   if (!elemento) return false;
   return !!elemento.elemento_id || !!elemento.valor_texto?.trim();
@@ -354,12 +363,18 @@ function AreaZona({
   composicaoId,
   destacada,
   onClicarImagem,
+  containerRef,
+  templateLarguraPx,
+  templateAlturaPx,
 }: {
   area: EstudioTemplateArea;
   composicaoElemento: EstudioComposicaoElemento | undefined;
   composicaoId: string;
   destacada: boolean;
   onClicarImagem: () => void;
+  containerRef: React.RefObject<HTMLDivElement>;
+  templateLarguraPx: number;
+  templateAlturaPx: number;
 }) {
   const isTexto = isTipoTexto(area.tipo_elemento_permitido);
   const elementoId = !isTexto ? composicaoElemento?.elemento_id ?? null : null;
@@ -372,6 +387,153 @@ function AreaZona({
   const [erroTexto, setErroTexto] = useState<string | null>(null);
   const salvarTextoMutation = useSalvarComposicaoElemento();
   const cancelandoRef = useRef(false);
+
+  const podeAjustarPosicao = !isTexto && area.posicao_livre;
+  const [deslocamentoXPx, setDeslocamentoXPx] = useState(composicaoElemento?.deslocamento_x_px ?? 0);
+  const [deslocamentoYPx, setDeslocamentoYPx] = useState(composicaoElemento?.deslocamento_y_px ?? 0);
+  const [fatorEscala, setFatorEscala] = useState(composicaoElemento?.fator_escala ?? 1);
+  const [ajustando, setAjustando] = useState<"mover" | "escala" | null>(null);
+  const [erroAjuste, setErroAjuste] = useState<string | null>(null);
+  const ajusteInicioRef = useRef<{
+    clientX: number;
+    clientY: number;
+    deslocamentoXPx: number;
+    deslocamentoYPx: number;
+    fatorEscala: number;
+    moveu: boolean;
+  } | null>(null);
+  const salvarAjusteMutation = useSalvarComposicaoElemento();
+
+  useEffect(() => {
+    if (!ajustando) {
+      setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
+      setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
+      setFatorEscala(composicaoElemento?.fator_escala ?? 1);
+    }
+  }, [composicaoElemento, ajustando]);
+
+  function iniciarAjuste(tipo: "mover" | "escala", event: React.PointerEvent) {
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setAjustando(tipo);
+    setErroAjuste(null);
+    ajusteInicioRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      deslocamentoXPx,
+      deslocamentoYPx,
+      fatorEscala,
+      moveu: false,
+    };
+  }
+
+  function moverAjuste(event: React.PointerEvent) {
+    const inicio = ajusteInicioRef.current;
+    if (!ajustando || !inicio || !containerRef.current) return;
+    const deltaClientX = event.clientX - inicio.clientX;
+    const deltaClientY = event.clientY - inicio.clientY;
+    if (Math.abs(deltaClientX) > LIMIAR_ARRASTO_PX || Math.abs(deltaClientY) > LIMIAR_ARRASTO_PX) {
+      inicio.moveu = true;
+    }
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const templatePxPorTelaPxX = templateLarguraPx / containerRect.width;
+    const templatePxPorTelaPxY = templateAlturaPx / containerRect.height;
+
+    if (ajustando === "mover") {
+      setDeslocamentoXPx(inicio.deslocamentoXPx + deltaClientX * templatePxPorTelaPxX);
+      setDeslocamentoYPx(inicio.deslocamentoYPx + deltaClientY * templatePxPorTelaPxY);
+    } else {
+      const areaLarguraTemplatePx = (area.largura_percent / 100) * templateLarguraPx;
+      const novaEscala = Math.max(
+        FATOR_ESCALA_MINIMO,
+        inicio.fatorEscala + (deltaClientX * templatePxPorTelaPxX) / areaLarguraTemplatePx,
+      );
+      setFatorEscala(novaEscala);
+    }
+  }
+
+  async function persistirAjuste() {
+    setErroAjuste(null);
+    try {
+      await salvarAjusteMutation.mutateAsync({
+        composicao_id: composicaoId,
+        area_id: area.id,
+        deslocamento_x_px: deslocamentoXPx,
+        deslocamento_y_px: deslocamentoYPx,
+        fator_escala: fatorEscala,
+      });
+    } catch (err) {
+      setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
+      setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
+      setFatorEscala(composicaoElemento?.fator_escala ?? 1);
+      setErroAjuste(err instanceof Error ? err.message : "Não foi possível salvar o ajuste.");
+    }
+  }
+
+  async function finalizarAjuste() {
+    const inicio = ajusteInicioRef.current;
+    const tipo = ajustando;
+    if (!tipo || !inicio) return;
+    setAjustando(null);
+    ajusteInicioRef.current = null;
+
+    if (tipo === "mover" && !inicio.moveu) {
+      // pointerdown+up sem arrasto de verdade — trata como clique (trocar elemento)
+      onClicarImagem();
+      return;
+    }
+    await persistirAjuste();
+  }
+
+  function moverPorTeclado(event: React.KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClicarImagem();
+      return;
+    }
+    const passo = event.shiftKey ? PASSO_TECLADO_DESLOCAMENTO_SHIFT_PX : PASSO_TECLADO_DESLOCAMENTO_PX;
+    let deltaX = 0;
+    let deltaY = 0;
+    if (event.key === "ArrowUp") deltaY = -passo;
+    else if (event.key === "ArrowDown") deltaY = passo;
+    else if (event.key === "ArrowLeft") deltaX = -passo;
+    else if (event.key === "ArrowRight") deltaX = passo;
+    else return;
+    event.preventDefault();
+    setDeslocamentoXPx((atual) => atual + deltaX);
+    setDeslocamentoYPx((atual) => atual + deltaY);
+    void persistirAjusteComValores(deslocamentoXPx + deltaX, deslocamentoYPx + deltaY, fatorEscala);
+  }
+
+  function redimensionarPorTeclado(event: React.KeyboardEvent) {
+    const passo = event.shiftKey ? PASSO_TECLADO_ESCALA_SHIFT : PASSO_TECLADO_ESCALA;
+    let deltaEscala = 0;
+    if (event.key === "ArrowUp" || event.key === "ArrowRight") deltaEscala = passo;
+    else if (event.key === "ArrowDown" || event.key === "ArrowLeft") deltaEscala = -passo;
+    else return;
+    event.preventDefault();
+    const novaEscala = Math.max(FATOR_ESCALA_MINIMO, fatorEscala + deltaEscala);
+    setFatorEscala(novaEscala);
+    void persistirAjusteComValores(deslocamentoXPx, deslocamentoYPx, novaEscala);
+  }
+
+  async function persistirAjusteComValores(x: number, y: number, escala: number) {
+    setErroAjuste(null);
+    try {
+      await salvarAjusteMutation.mutateAsync({
+        composicao_id: composicaoId,
+        area_id: area.id,
+        deslocamento_x_px: x,
+        deslocamento_y_px: y,
+        fator_escala: escala,
+      });
+    } catch (err) {
+      setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
+      setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
+      setFatorEscala(composicaoElemento?.fator_escala ?? 1);
+      setErroAjuste(err instanceof Error ? err.message : "Não foi possível salvar o ajuste.");
+    }
+  }
 
   useEffect(() => {
     if (!editandoTexto) setValorTexto(composicaoElemento?.valor_texto ?? "");
@@ -452,6 +614,56 @@ function AreaZona({
         {erroTexto && (
           <p role="alert" className="absolute left-0 top-full z-10 whitespace-nowrap text-[10px] text-destructive">
             {erroTexto}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (podeAjustarPosicao && preenchida) {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const translateXPx = containerRect ? deslocamentoXPx * (containerRect.width / templateLarguraPx) : 0;
+    const translateYPx = containerRect ? deslocamentoYPx * (containerRect.height / templateAlturaPx) : 0;
+
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onPointerDown={(event) => iniciarAjuste("mover", event)}
+        onPointerMove={moverAjuste}
+        onPointerUp={finalizarAjuste}
+        onKeyDown={moverPorTeclado}
+        aria-label={`Ajustar posição do elemento em ${area.nome} — arraste ou use as setas para mover, Enter para trocar o elemento`}
+        className="absolute overflow-visible"
+        style={{ ...estiloPosicao, touchAction: "none", cursor: ajustando === "mover" ? "grabbing" : "grab" }}
+      >
+        {imagemUrl ? (
+          <img
+            src={imagemUrl}
+            alt={elemento?.nome ?? area.nome}
+            className="h-full w-full object-contain"
+            style={{ transform: `translate(${translateXPx}px, ${translateYPx}px) scale(${fatorEscala})` }}
+            draggable={false}
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center bg-background/80 text-muted-foreground">
+            Carregando…
+          </span>
+        )}
+        <div
+          role="button"
+          tabIndex={0}
+          onPointerDown={(event) => iniciarAjuste("escala", event)}
+          onPointerMove={moverAjuste}
+          onPointerUp={finalizarAjuste}
+          onKeyDown={redimensionarPorTeclado}
+          aria-label={`Redimensionar o elemento em ${area.nome} — arraste ou use as setas para escalar`}
+          className="absolute h-4 w-4 -bottom-1 -right-1 cursor-nwse-resize rounded-full border-2 border-background bg-primary"
+          style={{ touchAction: "none" }}
+        />
+        {erroAjuste && (
+          <p role="alert" className="absolute -bottom-5 left-0 z-10 whitespace-nowrap text-[10px] text-destructive">
+            {erroAjuste}
           </p>
         )}
       </div>
@@ -668,6 +880,7 @@ function ComposicaoEditor({
   const exportarComposicao = useUpdateEstudioComposicao();
   const { data: exportadaUrl } = useFotoSignedUrl("estudio-composicoes", composicao?.export_file_url);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const [nome, setNome] = useState("");
   const [nomeCarregado, setNomeCarregado] = useState(false);
   const [areaSelecionada, setAreaSelecionada] = useState<EstudioTemplateArea | null>(null);
@@ -824,6 +1037,7 @@ function ComposicaoEditor({
         <Skeleton className="aspect-video w-full max-w-xl" />
       ) : (
         <div
+          ref={containerRef}
           className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
           style={{ aspectRatio: `${template.largura_px} / ${template.altura_px}` }}
         >
@@ -846,6 +1060,9 @@ function ComposicaoEditor({
               composicaoId={composicaoId}
               destacada={false}
               onClicarImagem={() => setAreaSelecionada(area)}
+              containerRef={containerRef}
+              templateLarguraPx={template.largura_px}
+              templateAlturaPx={template.altura_px}
             />
           ))}
         </div>
