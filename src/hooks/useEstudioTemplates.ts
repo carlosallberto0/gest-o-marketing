@@ -60,6 +60,7 @@ export interface EstudioTemplateArea {
   y_percent: number;
   largura_percent: number;
   altura_percent: number;
+  posicao_livre: boolean;
   obrigatorio: boolean;
   max_elementos: number;
   z_index: number;
@@ -363,6 +364,7 @@ export function useCreateEstudioTemplateArea() {
       y_percent: number;
       largura_percent: number;
       altura_percent: number;
+      posicao_livre?: boolean;
       obrigatorio?: boolean;
       max_elementos?: number;
       z_index?: number;
@@ -398,6 +400,7 @@ export function useUpdateEstudioTemplateArea() {
       y_percent?: number;
       largura_percent?: number;
       altura_percent?: number;
+      posicao_livre?: boolean;
       obrigatorio?: boolean;
       max_elementos?: number;
       z_index?: number;
