@@ -194,8 +194,8 @@ function desenharTextoNaArea(ctx: CanvasRenderingContext2D, texto: string, rect:
 
 // object-contain dentro da área, com deslocamento/escala já existentes no
 // schema (estudio_composicao_elementos.deslocamento_x_px/y_px/fator_escala) —
-// hoje sempre 0/0/1 porque a UI ainda não tem controle de arrastar/redimensionar,
-// mas o export já honra os campos para quando esse controle existir.
+// deslocamento/escala agora configuráveis pelo colaborador em áreas com
+// `posicao_livre = true`, ver AreaZona.
 function desenharImagemNaArea(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -402,15 +402,16 @@ function AreaZona({
     fatorEscala: number;
     moveu: boolean;
   } | null>(null);
+  const debounceTecladoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const salvarAjusteMutation = useSalvarComposicaoElemento();
 
   useEffect(() => {
-    if (!ajustando) {
+    if (!ajustando && !salvarAjusteMutation.isPending) {
       setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
       setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
       setFatorEscala(composicaoElemento?.fator_escala ?? 1);
     }
-  }, [composicaoElemento, ajustando]);
+  }, [composicaoElemento, ajustando, salvarAjusteMutation.isPending]);
 
   function iniciarAjuste(tipo: "mover" | "escala", event: React.PointerEvent) {
     event.stopPropagation();
@@ -453,21 +454,7 @@ function AreaZona({
   }
 
   async function persistirAjuste() {
-    setErroAjuste(null);
-    try {
-      await salvarAjusteMutation.mutateAsync({
-        composicao_id: composicaoId,
-        area_id: area.id,
-        deslocamento_x_px: deslocamentoXPx,
-        deslocamento_y_px: deslocamentoYPx,
-        fator_escala: fatorEscala,
-      });
-    } catch (err) {
-      setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
-      setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
-      setFatorEscala(composicaoElemento?.fator_escala ?? 1);
-      setErroAjuste(err instanceof Error ? err.message : "Não foi possível salvar o ajuste.");
-    }
+    await persistirAjusteComValores(deslocamentoXPx, deslocamentoYPx, fatorEscala);
   }
 
   async function finalizarAjuste() {
@@ -485,6 +472,14 @@ function AreaZona({
     await persistirAjuste();
   }
 
+  function agendarPersistenciaPorTeclado(x: number, y: number, escala: number) {
+    if (debounceTecladoRef.current) clearTimeout(debounceTecladoRef.current);
+    debounceTecladoRef.current = setTimeout(() => {
+      debounceTecladoRef.current = null;
+      void persistirAjusteComValores(x, y, escala);
+    }, 300);
+  }
+
   function moverPorTeclado(event: React.KeyboardEvent) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -500,12 +495,15 @@ function AreaZona({
     else if (event.key === "ArrowRight") deltaX = passo;
     else return;
     event.preventDefault();
-    setDeslocamentoXPx((atual) => atual + deltaX);
-    setDeslocamentoYPx((atual) => atual + deltaY);
-    void persistirAjusteComValores(deslocamentoXPx + deltaX, deslocamentoYPx + deltaY, fatorEscala);
+    const novoX = deslocamentoXPx + deltaX;
+    const novoY = deslocamentoYPx + deltaY;
+    setDeslocamentoXPx(novoX);
+    setDeslocamentoYPx(novoY);
+    agendarPersistenciaPorTeclado(novoX, novoY, fatorEscala);
   }
 
   function redimensionarPorTeclado(event: React.KeyboardEvent) {
+    event.stopPropagation();
     const passo = event.shiftKey ? PASSO_TECLADO_ESCALA_SHIFT : PASSO_TECLADO_ESCALA;
     let deltaEscala = 0;
     if (event.key === "ArrowUp" || event.key === "ArrowRight") deltaEscala = passo;
@@ -514,7 +512,7 @@ function AreaZona({
     event.preventDefault();
     const novaEscala = Math.max(FATOR_ESCALA_MINIMO, fatorEscala + deltaEscala);
     setFatorEscala(novaEscala);
-    void persistirAjusteComValores(deslocamentoXPx, deslocamentoYPx, novaEscala);
+    agendarPersistenciaPorTeclado(deslocamentoXPx, deslocamentoYPx, novaEscala);
   }
 
   async function persistirAjusteComValores(x: number, y: number, escala: number) {
@@ -632,6 +630,7 @@ function AreaZona({
         onPointerDown={(event) => iniciarAjuste("mover", event)}
         onPointerMove={moverAjuste}
         onPointerUp={finalizarAjuste}
+        onPointerCancel={finalizarAjuste}
         onKeyDown={moverPorTeclado}
         aria-label={`Ajustar posição do elemento em ${area.nome} — arraste ou use as setas para mover, Enter para trocar o elemento`}
         className="absolute overflow-visible"
@@ -656,6 +655,7 @@ function AreaZona({
           onPointerDown={(event) => iniciarAjuste("escala", event)}
           onPointerMove={moverAjuste}
           onPointerUp={finalizarAjuste}
+          onPointerCancel={finalizarAjuste}
           onKeyDown={redimensionarPorTeclado}
           aria-label={`Redimensionar o elemento em ${area.nome} — arraste ou use as setas para escalar`}
           className="absolute h-4 w-4 -bottom-1 -right-1 cursor-nwse-resize rounded-full border-2 border-background bg-primary"
