@@ -80,6 +80,10 @@ const TIPO_ELEMENTO_LABEL: Record<EstudioTipoElemento, string> = {
 };
 const TIPO_ELEMENTO_OPTIONS = Object.keys(TIPO_ELEMENTO_LABEL) as EstudioTipoElemento[];
 
+function isTipoTexto(tipo: EstudioTipoElemento): boolean {
+  return tipo.startsWith("texto_");
+}
+
 const FILTRO_TODAS = "todas";
 
 interface CategoriaFormValues {
@@ -484,6 +488,7 @@ function TemplateFormDialog({
 interface AreaFormValues {
   nome: string;
   tipo: EstudioTipoElemento;
+  posicaoLivre: boolean;
   obrigatorio: boolean;
   maxElementos: number;
   zIndex: number;
@@ -510,6 +515,7 @@ function AreaFormDialog({
 }) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<EstudioTipoElemento>("imagem_produto");
+  const [posicaoLivre, setPosicaoLivre] = useState(false);
   const [obrigatorio, setObrigatorio] = useState(true);
   const [maxElementos, setMaxElementos] = useState(1);
   const [zIndex, setZIndex] = useState(0);
@@ -519,6 +525,7 @@ function AreaFormDialog({
     if (open) {
       setNome(area?.nome ?? "");
       setTipo(area?.tipo_elemento_permitido ?? "imagem_produto");
+      setPosicaoLivre(area?.posicao_livre ?? false);
       setObrigatorio(area?.obrigatorio ?? true);
       setMaxElementos(area?.max_elementos ?? 1);
       setZIndex(area?.z_index ?? 0);
@@ -529,7 +536,7 @@ function AreaFormDialog({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    onSubmit({ nome, tipo, obrigatorio, maxElementos, zIndex, notas });
+    onSubmit({ nome, tipo, posicaoLivre, obrigatorio, maxElementos, zIndex, notas });
   }
 
   // Área existente: mostra a posição atual (read-only, ajustada só pelo
@@ -562,7 +569,14 @@ function AreaFormDialog({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="area-tipo">Tipo de elemento permitido</Label>
-            <Select value={tipo} onValueChange={(value) => setTipo(value as EstudioTipoElemento)}>
+            <Select
+              value={tipo}
+              onValueChange={(value) => {
+                const novoTipo = value as EstudioTipoElemento;
+                setTipo(novoTipo);
+                if (isTipoTexto(novoTipo)) setPosicaoLivre(false);
+              }}
+            >
               <SelectTrigger id="area-tipo">
                 <SelectValue />
               </SelectTrigger>
@@ -593,6 +607,19 @@ function AreaFormDialog({
               Área obrigatória
             </Label>
           </div>
+
+          {!isTipoTexto(tipo) && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="area-posicao-livre"
+                checked={posicaoLivre}
+                onCheckedChange={(checked) => setPosicaoLivre(checked === true)}
+              />
+              <Label htmlFor="area-posicao-livre" className="font-normal">
+                Permitir ajuste de posição/tamanho pelo colaborador
+              </Label>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex flex-1 flex-col gap-2">
@@ -1283,6 +1310,7 @@ export default function EstudioTemplates() {
       const metadados = {
         nome: values.nome,
         tipo_elemento_permitido: values.tipo,
+        posicao_livre: values.posicaoLivre,
         obrigatorio: values.obrigatorio,
         max_elementos: values.maxElementos,
         z_index: values.zIndex,
