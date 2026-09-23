@@ -91,6 +91,28 @@ function isTipoTexto(tipo: EstudioTipoElemento): boolean {
   return tipo.startsWith("texto_");
 }
 
+// Mesma lista de EstudioTemplates.tsx (Task 3) — duplicação deliberada, mesmo
+// padrão de TIPO_ELEMENTO_LABEL acima entre os dois arquivos.
+const FONTES_ESTUDIO = ["Montserrat", "Baloo 2", "Jost"] as const;
+
+// CSS font-family a partir do nome salvo na área — "Baloo 2" precisa de
+// aspas por causa do espaço, senão o navegador interpreta como 2 fontes.
+function fonteCssDeNome(fonte: string | null): string {
+  if (fonte === "Baloo 2") return '"Baloo 2", sans-serif';
+  if (fonte) return `${fonte}, sans-serif`;
+  return "sans-serif";
+}
+
+// Estilo inline pra prévia (span de exibição e campo de edição) — aproximado,
+// o encolhimento automático de verdade só roda no canvas da exportação.
+function estiloFonteTexto(area: EstudioTemplateArea): React.CSSProperties {
+  if (!area.fonte && !area.tamanho_fonte_px) return {};
+  return {
+    fontFamily: area.fonte ? fonteCssDeNome(area.fonte) : undefined,
+    fontSize: area.tamanho_fonte_px ? `${area.tamanho_fonte_px}px` : undefined,
+  };
+}
+
 // Ajuste de posição/escala em área "posicao_livre" — mesma unidade
 // (pixel do template final) que desenharImagemNaArea() já usa no export.
 const FATOR_ESCALA_MINIMO = 0.2;
@@ -167,21 +189,27 @@ function quebrarLinhas(ctx: CanvasRenderingContext2D, texto: string, larguraMaxi
 // otimizar a quebra de linha em si) — teto: texto muito longo corta no
 // tamanho mínimo (8px) em vez de estourar a área. Upgrade: expor fonte/cor
 // por área se isso virar problema real com templates de verdade.
-function desenharTextoNaArea(ctx: CanvasRenderingContext2D, texto: string, rect: RectPx): void {
+function desenharTextoNaArea(
+  ctx: CanvasRenderingContext2D,
+  texto: string,
+  rect: RectPx,
+  fonteCss: string,
+  tamanhoMaximoPx: number,
+): void {
   const padding = Math.max(4, rect.h * 0.08);
   const larguraMaxima = Math.max(1, rect.w - padding * 2);
   const alturaMaxima = Math.max(1, rect.h - padding * 2);
 
-  let fontSize = Math.floor(rect.h * 0.6);
+  let fontSize = tamanhoMaximoPx;
   let linhas: string[] = [texto];
   while (fontSize > 8) {
-    ctx.font = `600 ${fontSize}px sans-serif`;
+    ctx.font = `600 ${fontSize}px ${fonteCss}`;
     linhas = quebrarLinhas(ctx, texto, larguraMaxima);
     if (linhas.length * fontSize * 1.2 <= alturaMaxima) break;
     fontSize -= 2;
   }
 
-  ctx.font = `600 ${fontSize}px sans-serif`;
+  ctx.font = `600 ${fontSize}px ${fonteCss}`;
   ctx.fillStyle = "#111827";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -256,13 +284,23 @@ async function gerarImagemComposicao(
 
   ctx.drawImage(imagemBase, 0, 0, canvas.width, canvas.height);
 
+  await Promise.all(FONTES_ESTUDIO.map((fonte) => document.fonts.load(`600 40px "${fonte}"`)));
+
   const areasOrdenadas = [...areas].sort((a, b) => a.z_index - b.z_index);
   for (const area of areasOrdenadas) {
     const composicaoElemento = elementoPorAreaId.get(area.id);
     const rect = areaRectPx(area, canvas.width, canvas.height);
     if (isTipoTexto(area.tipo_elemento_permitido)) {
       const texto = composicaoElemento?.valor_texto?.trim();
-      if (texto) desenharTextoNaArea(ctx, texto, rect);
+      if (texto) {
+        desenharTextoNaArea(
+          ctx,
+          texto,
+          rect,
+          fonteCssDeNome(area.fonte),
+          area.tamanho_fonte_px ?? Math.floor(rect.h * 0.6),
+        );
+      }
     } else {
       const img = composicaoElemento?.elemento_id ? imagemPorElementoId.get(composicaoElemento.elemento_id) : undefined;
       if (img) {
@@ -587,6 +625,7 @@ function AreaZona({
             }}
             disabled={salvarTextoMutation.isPending}
             className="h-full w-full resize-none bg-background/90 text-xs"
+            style={estiloFonteTexto(area)}
           />
         ) : (
           <Input
@@ -607,6 +646,7 @@ function AreaZona({
             }}
             disabled={salvarTextoMutation.isPending}
             className="h-full w-full bg-background/90 text-xs"
+            style={estiloFonteTexto(area)}
           />
         )}
         {erroTexto && (
@@ -688,7 +728,10 @@ function AreaZona({
     >
       {preenchida ? (
         isTexto ? (
-          <span className="flex h-full w-full items-center justify-center overflow-hidden bg-background/80 p-1 text-foreground">
+          <span
+            className="flex h-full w-full items-center justify-center overflow-hidden bg-background/80 p-1 text-foreground"
+            style={estiloFonteTexto(area)}
+          >
             {composicaoElemento?.valor_texto}
           </span>
         ) : imagemUrl ? (
