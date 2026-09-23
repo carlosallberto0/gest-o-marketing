@@ -95,21 +95,22 @@ function isTipoTexto(tipo: EstudioTipoElemento): boolean {
 // padrão de TIPO_ELEMENTO_LABEL acima entre os dois arquivos.
 const FONTES_ESTUDIO = ["Montserrat", "Baloo 2", "Jost"] as const;
 
-// CSS font-family a partir do nome salvo na área — "Baloo 2" precisa de
-// aspas por causa do espaço, senão o navegador interpreta como 2 fontes.
+// CSS font-family a partir do nome salvo na área — sempre citado entre aspas
+// (válido em CSS pra qualquer nome de família, com ou sem espaço).
 function fonteCssDeNome(fonte: string | null): string {
-  if (fonte === "Baloo 2") return '"Baloo 2", sans-serif';
-  if (fonte) return `${fonte}, sans-serif`;
-  return "sans-serif";
+  return fonte ? `"${fonte}", sans-serif` : "sans-serif";
 }
 
 // Estilo inline pra prévia (span de exibição e campo de edição) — aproximado,
 // o encolhimento automático de verdade só roda no canvas da exportação.
-function estiloFonteTexto(area: EstudioTemplateArea): React.CSSProperties {
+// `tamanho_fonte_px` é pixel do template final; `escalaTelaPorTemplate`
+// converte pra pixel de tela do container da prévia.
+function estiloFonteTexto(area: EstudioTemplateArea, escalaTelaPorTemplate: number): React.CSSProperties {
   if (!area.fonte && !area.tamanho_fonte_px) return {};
   return {
     fontFamily: area.fonte ? fonteCssDeNome(area.fonte) : undefined,
-    fontSize: area.tamanho_fonte_px ? `${area.tamanho_fonte_px}px` : undefined,
+    fontSize: area.tamanho_fonte_px ? `${area.tamanho_fonte_px * escalaTelaPorTemplate}px` : undefined,
+    fontWeight: 600,
   };
 }
 
@@ -284,7 +285,7 @@ async function gerarImagemComposicao(
 
   ctx.drawImage(imagemBase, 0, 0, canvas.width, canvas.height);
 
-  await Promise.all(FONTES_ESTUDIO.map((fonte) => document.fonts.load(`600 40px "${fonte}"`)));
+  await Promise.all(FONTES_ESTUDIO.map((fonte) => document.fonts.load(`600 40px "${fonte}"`).catch(() => {})));
 
   const areasOrdenadas = [...areas].sort((a, b) => a.z_index - b.z_index);
   for (const area of areasOrdenadas) {
@@ -607,6 +608,9 @@ function AreaZona({
     zIndex: area.z_index,
   };
 
+  const containerRectAtual = containerRef.current?.getBoundingClientRect();
+  const escalaTelaPorTemplate = containerRectAtual ? containerRectAtual.width / templateLarguraPx : 1;
+
   if (isTexto && editandoTexto) {
     return (
       <div className="absolute" style={estiloPosicao}>
@@ -625,7 +629,7 @@ function AreaZona({
             }}
             disabled={salvarTextoMutation.isPending}
             className="h-full w-full resize-none bg-background/90 text-xs"
-            style={estiloFonteTexto(area)}
+            style={estiloFonteTexto(area, escalaTelaPorTemplate)}
           />
         ) : (
           <Input
@@ -646,7 +650,7 @@ function AreaZona({
             }}
             disabled={salvarTextoMutation.isPending}
             className="h-full w-full bg-background/90 text-xs"
-            style={estiloFonteTexto(area)}
+            style={estiloFonteTexto(area, escalaTelaPorTemplate)}
           />
         )}
         {erroTexto && (
@@ -730,7 +734,7 @@ function AreaZona({
         isTexto ? (
           <span
             className="flex h-full w-full items-center justify-center overflow-hidden bg-background/80 p-1 text-foreground"
-            style={estiloFonteTexto(area)}
+            style={estiloFonteTexto(area, escalaTelaPorTemplate)}
           >
             {composicaoElemento?.valor_texto}
           </span>
