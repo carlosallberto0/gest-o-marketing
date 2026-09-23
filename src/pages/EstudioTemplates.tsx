@@ -80,6 +80,8 @@ const TIPO_ELEMENTO_LABEL: Record<EstudioTipoElemento, string> = {
 };
 const TIPO_ELEMENTO_OPTIONS = Object.keys(TIPO_ELEMENTO_LABEL) as EstudioTipoElemento[];
 
+const FONTE_OPTIONS = ["Montserrat", "Baloo 2", "Jost"] as const;
+
 function isTipoTexto(tipo: EstudioTipoElemento): boolean {
   return tipo.startsWith("texto_");
 }
@@ -489,6 +491,8 @@ interface AreaFormValues {
   nome: string;
   tipo: EstudioTipoElemento;
   posicaoLivre: boolean;
+  fonte: string | null;
+  tamanhoFontePx: number | null;
   obrigatorio: boolean;
   maxElementos: number;
   zIndex: number;
@@ -516,6 +520,8 @@ function AreaFormDialog({
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<EstudioTipoElemento>("imagem_produto");
   const [posicaoLivre, setPosicaoLivre] = useState(false);
+  const [fonte, setFonte] = useState<string | null>(null);
+  const [tamanhoFontePx, setTamanhoFontePx] = useState<number | null>(null);
   const [obrigatorio, setObrigatorio] = useState(true);
   const [maxElementos, setMaxElementos] = useState(1);
   const [zIndex, setZIndex] = useState(0);
@@ -526,6 +532,8 @@ function AreaFormDialog({
       setNome(area?.nome ?? "");
       setTipo(area?.tipo_elemento_permitido ?? "imagem_produto");
       setPosicaoLivre(area?.posicao_livre ?? false);
+      setFonte(area?.fonte ?? null);
+      setTamanhoFontePx(area?.tamanho_fonte_px ?? null);
       setObrigatorio(area?.obrigatorio ?? true);
       setMaxElementos(area?.max_elementos ?? 1);
       setZIndex(area?.z_index ?? 0);
@@ -536,7 +544,7 @@ function AreaFormDialog({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    onSubmit({ nome, tipo, posicaoLivre, obrigatorio, maxElementos, zIndex, notas });
+    onSubmit({ nome, tipo, posicaoLivre, fonte, tamanhoFontePx, obrigatorio, maxElementos, zIndex, notas });
   }
 
   // Área existente: mostra a posição atual (read-only, ajustada só pelo
@@ -618,6 +626,39 @@ function AreaFormDialog({
               <Label htmlFor="area-posicao-livre" className="font-normal">
                 Permitir ajuste de posição/tamanho pelo colaborador
               </Label>
+            </div>
+          )}
+
+          {isTipoTexto(tipo) && (
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="area-fonte">Fonte</Label>
+                <Select value={fonte ?? "padrao"} onValueChange={(value) => setFonte(value === "padrao" ? null : value)}>
+                  <SelectTrigger id="area-fonte">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="padrao">Padrão do sistema</SelectItem>
+                    {FONTE_OPTIONS.map((valor) => (
+                      <SelectItem key={valor} value={valor}>
+                        {valor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="area-tamanho-fonte">Tamanho máximo (px)</Label>
+                <Input
+                  id="area-tamanho-fonte"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Automático"
+                  value={tamanhoFontePx ?? ""}
+                  onChange={(event) => setTamanhoFontePx(event.target.value ? Number(event.target.value) : null)}
+                />
+              </div>
             </div>
           )}
 
@@ -1311,6 +1352,8 @@ export default function EstudioTemplates() {
         nome: values.nome,
         tipo_elemento_permitido: values.tipo,
         posicao_livre: values.posicaoLivre,
+        fonte: values.fonte,
+        tamanho_fonte_px: values.tamanhoFontePx,
         obrigatorio: values.obrigatorio,
         max_elementos: values.maxElementos,
         z_index: values.zIndex,
