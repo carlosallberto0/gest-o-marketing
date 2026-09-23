@@ -61,6 +61,8 @@ export interface EstudioTemplateArea {
   largura_percent: number;
   altura_percent: number;
   posicao_livre: boolean;
+  fonte: string | null;
+  tamanho_fonte_px: number | null;
   obrigatorio: boolean;
   max_elementos: number;
   z_index: number;
@@ -365,6 +367,8 @@ export function useCreateEstudioTemplateArea() {
       largura_percent: number;
       altura_percent: number;
       posicao_livre?: boolean;
+      fonte?: string | null;
+      tamanho_fonte_px?: number | null;
       obrigatorio?: boolean;
       max_elementos?: number;
       z_index?: number;
@@ -401,6 +405,8 @@ export function useUpdateEstudioTemplateArea() {
       largura_percent?: number;
       altura_percent?: number;
       posicao_livre?: boolean;
+      fonte?: string | null;
+      tamanho_fonte_px?: number | null;
       obrigatorio?: boolean;
       max_elementos?: number;
       z_index?: number;
