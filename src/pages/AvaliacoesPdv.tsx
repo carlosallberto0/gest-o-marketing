@@ -17,6 +17,7 @@ import { usePdvs } from "@/hooks/usePdvs";
 import { useMateriais, type Material } from "@/hooks/useMateriais";
 import { useFotoSignedUrl, useUploadFoto } from "@/hooks/useFoto";
 import { useCreatePlanoAcao } from "@/hooks/usePlanosAcao";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -573,10 +574,11 @@ export default function AvaliacoesPdv() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Avaliação de PDV</h1>
-        <p className="text-muted-foreground">Preencha o checklist de qualidade de um ponto de venda.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Merchandising" }, { label: "Avaliação de PDV" }]}
+        title="Avaliação de PDV"
+        description="Preencha o checklist de qualidade de um ponto de venda."
+      />
 
       <div className="flex flex-col gap-2 sm:w-80">
         <Label htmlFor="avaliacao-pdv-select">PDV</Label>

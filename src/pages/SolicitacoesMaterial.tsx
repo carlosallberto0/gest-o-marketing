@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useSolicitacoesMaterial";
 import { useMateriais, type Material } from "@/hooks/useMateriais";
 import { usePdvs, type Pdv } from "@/hooks/usePdvs";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -316,11 +317,12 @@ export default function SolicitacoesMaterial() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Solicitações de Material</h1>
-          <p className="text-muted-foreground">Solicitações de material de trade para PDVs de conveniência.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Merchandising" }, { label: "Solicitações de Material" }]}
+          title="Solicitações de Material"
+          description="Solicitações de material de trade para PDVs de conveniência."
+        />
         <Button onClick={() => setCriarDialogOpen(true)} className="w-full sm:w-auto">
           Nova solicitação
         </Button>

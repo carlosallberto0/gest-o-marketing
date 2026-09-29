@@ -9,6 +9,7 @@ import { useDemandasCriativas } from "@/hooks/useDemandasCriativas";
 import { useManutencoes } from "@/hooks/useManutencoes";
 import { useAtividadesRecentes } from "@/hooks/useAtividadesRecentes";
 import { useMinhasPermissoes } from "@/hooks/useMinhasPermissoes";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,10 +89,11 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Olá, {user?.email ?? "usuário"}!</h1>
-        <p className="text-muted-foreground">Veja o que precisa da sua atenção hoje.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Visão Geral" }, { label: "Dashboard" }]}
+        title={`Olá, ${user?.email ?? "usuário"}!`}
+        description="Veja o que precisa da sua atenção hoje."
+      />
 
       {algumErro && (
         <p role="alert" className="text-sm text-destructive">

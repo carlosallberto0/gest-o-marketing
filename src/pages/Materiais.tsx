@@ -8,6 +8,7 @@ import {
   useUpdateMaterial,
 } from "@/hooks/useMateriais";
 import { useFotoSignedUrl, useUploadFoto } from "@/hooks/useFoto";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -326,8 +327,8 @@ export default function Materiais() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">Materiais</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader breadcrumbs={[{ label: "Merchandising" }, { label: "Materiais" }]} title="Materiais" description="" />
         <Button onClick={openCreateDialog} className="sm:w-auto">
           Novo material
         </Button>

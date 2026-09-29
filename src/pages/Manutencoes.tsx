@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useManutencoes";
 import { useOutdoors, type Outdoor } from "@/hooks/useOutdoors";
 import { useFornecedores, type Fornecedor } from "@/hooks/useFornecedores";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -368,11 +369,12 @@ export default function Manutencoes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Manutenções</h1>
-          <p className="text-muted-foreground">Solicitações de manutenção de outdoors.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Mídia Externa" }, { label: "Manutenções" }]}
+          title="Manutenções"
+          description="Solicitações de manutenção de outdoors."
+        />
         <Button onClick={() => setCriarDialogOpen(true)} className="w-full sm:w-auto">
           Nova solicitação
         </Button>

@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useBrandLibrary";
 import { useUploadFoto, useFotoSignedUrl } from "@/hooks/useFoto";
 import { useCampanhas } from "@/hooks/useCampanhas";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -436,11 +437,12 @@ export default function BibliotecaMarca() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Biblioteca de Marca</h1>
-          <p className="text-muted-foreground">Fontes, guias, artes e materiais institucionais da marca.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Marca" }, { label: "Biblioteca de Marca" }]}
+          title="Biblioteca de Marca"
+          description="Fontes, guias, artes e materiais institucionais da marca."
+        />
         <Button onClick={openCreateDialog} className="sm:w-auto">
           Novo item
         </Button>

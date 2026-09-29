@@ -8,6 +8,7 @@ import {
 import { usePdvs, type Pdv } from "@/hooks/usePdvs";
 import { useFornecedores, type Fornecedor } from "@/hooks/useFornecedores";
 import { useUploadFoto, useFotoSignedUrl } from "@/hooks/useFoto";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { AvaliacoesOutdoorDialog } from "@/components/outdoors/AvaliacoesOutdoorDialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -330,11 +331,12 @@ export default function Outdoors() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Outdoors</h1>
-          <p className="text-muted-foreground">Painéis de mídia externa cadastrados.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Mídia Externa" }, { label: "Outdoors" }]}
+          title="Outdoors"
+          description="Painéis de mídia externa cadastrados."
+        />
         <Button onClick={openCreate} className="w-full sm:w-auto">
           Novo Outdoor
         </Button>

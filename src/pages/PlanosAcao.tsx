@@ -6,6 +6,7 @@ import {
   type PlanoAcao,
   type PlanoAcaoStatus,
 } from "@/hooks/usePlanosAcao";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -243,10 +244,11 @@ export default function PlanosAcao() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Planos de Ação</h1>
-        <p className="text-muted-foreground">Planos de ação criados a partir de avaliações de PDV.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Merchandising" }, { label: "Planos de Ação" }]}
+        title="Planos de Ação"
+        description="Planos de ação criados a partir de avaliações de PDV."
+      />
 
       <div className="flex flex-col gap-2 sm:w-64">
         <Label htmlFor="planos-acao-filtro-status">Filtrar por status</Label>

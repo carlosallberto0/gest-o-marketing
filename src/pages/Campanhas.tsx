@@ -8,6 +8,7 @@ import {
   type CampanhaStatus,
 } from "@/hooks/useCampanhas";
 import { usePdvs } from "@/hooks/usePdvs";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -343,11 +344,12 @@ export default function Campanhas() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Campanhas</h1>
-          <p className="text-muted-foreground">Campanhas promocionais e seu ciclo de vida.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Marketing" }, { label: "Campanhas" }]}
+          title="Campanhas"
+          description="Campanhas promocionais e seu ciclo de vida."
+        />
         <Button onClick={openCreateDialog} className="w-full sm:w-auto">
           Nova campanha
         </Button>

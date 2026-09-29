@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useAprovacoes";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useUploadFoto, useFotoSignedUrl } from "@/hooks/useFoto";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -527,11 +528,12 @@ export default function Aprovacoes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Centro de Aprovações</h1>
-          <p className="text-muted-foreground">Submissões de material para aprovação e acompanhamento de revisão.</p>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          breadcrumbs={[{ label: "Marketing" }, { label: "Aprovações" }]}
+          title="Centro de Aprovações"
+          description="Submissões de material para aprovação e acompanhamento de revisão."
+        />
         <Button onClick={() => setNovaSubmissaoOpen(true)} className="w-full sm:w-auto">
           Nova submissão
         </Button>
