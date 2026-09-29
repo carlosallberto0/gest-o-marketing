@@ -321,35 +321,6 @@ async function gerarImagemComposicao(
   return canvasParaPngBlob(canvas);
 }
 
-// Fora do corpo do componente pai: cada card de canal é só leitura, mas
-// mantido fora por consistência com os demais subcomponentes desta tela.
-function CanalCard({
-  canal,
-  disponivel,
-  onSelecionar,
-}: {
-  canal: EstudioCanal;
-  disponivel: boolean;
-  onSelecionar: (canal: EstudioCanal) => void;
-}) {
-  const Icone = CANAL_ICON[canal];
-  return (
-    <button
-      type="button"
-      disabled={!disponivel}
-      onClick={() => onSelecionar(canal)}
-      className={cn(
-        "flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-md border border-border bg-card p-4 text-center shadow-subtle transition-colors",
-        disponivel ? "hover:bg-accent hover:text-accent-foreground" : "opacity-50",
-      )}
-    >
-      <Icone className="h-8 w-8 text-primary" aria-hidden="true" />
-      <span className="text-sm font-medium text-foreground">{CANAL_LABEL[canal]}</span>
-      {!disponivel && <Badge variant="outline">Em breve</Badge>}
-    </button>
-  );
-}
-
 // Fora do corpo do pai: assina a própria signed URL, mesmo padrão de
 // TemplateCard em EstudioTemplates.tsx.
 function TemplateEscolhaCard({
