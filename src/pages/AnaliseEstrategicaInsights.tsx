@@ -16,6 +16,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TIPO_LABEL: Record<AnaliseInsightTipo, string> = {
   alerta: "Alerta",
@@ -84,17 +85,11 @@ export default function AnaliseEstrategicaInsights() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Insights</h1>
-        <p className="text-muted-foreground">
-          Alertas, oportunidades e tendências do último recálculo. Para atualizar os dados, use "Recalcular agora"
-          no{" "}
-          <Link to="/analise-estrategica/dashboard" className="underline underline-offset-2">
-            painel
-          </Link>
-          .
-        </p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Inteligência" }, { label: "Insights" }]}
+        title="Insights"
+        description="Alertas, oportunidades e tendências do último recálculo. Para atualizar os dados, use 'Recalcular agora' no painel."
+      />
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-col gap-2 sm:w-52">

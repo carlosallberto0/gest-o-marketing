@@ -6,6 +6,7 @@ export default function AnaliseEstrategicaClustersOutdoors() {
       tipoPdv="POS"
       titulo="Clusters — Outdoor"
       descricao="Distribuição e pontuação dos PDVs de mídia externa por cluster."
+      breadcrumbs={[{ label: "Inteligência" }, { label: "Clusters — Outdoor" }]}
     />
   );
 }

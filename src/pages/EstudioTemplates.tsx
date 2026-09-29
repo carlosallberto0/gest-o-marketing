@@ -52,6 +52,7 @@ import {
   TAMANHO_MINIMO_PERCENT,
   type RetanguloPercentual,
 } from "@/lib/estudioAreaGeometria";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const CANAL_LABEL: Record<EstudioCanal, string> = {
   whatsapp: "WhatsApp",
@@ -1401,7 +1402,10 @@ export default function EstudioTemplates() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold text-foreground">Templates do Estúdio</h1>
+      <PageHeader
+        breadcrumbs={[{ label: "Criação" }, { label: "Estúdio", to: "/estudio" }, { label: "Templates" }]}
+        title="Templates do Estúdio"
+      />
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

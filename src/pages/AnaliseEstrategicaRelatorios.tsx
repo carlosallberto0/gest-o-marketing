@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TIPO_PDV_LABEL: Record<string, string> = {
   POS: "Outdoor",
@@ -78,10 +79,11 @@ export default function AnaliseEstrategicaRelatorios() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Relatórios da Análise</h1>
-        <p className="text-muted-foreground">Exportação em CSV dos dados do último recálculo.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Inteligência" }, { label: "Relatórios" }]}
+        title="Relatórios da Análise"
+        description="Exportação em CSV dos dados do último recálculo."
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>

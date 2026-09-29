@@ -16,6 +16,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const STATUS_LABEL: Record<EstudioComposicao["status"], string> = {
   draft: "Rascunho",
@@ -113,10 +114,11 @@ export default function EstudioHistorico() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Histórico de Peças</h1>
-        <p className="text-muted-foreground">Peças já montadas no Estúdio de Comunicação para este posto.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Criação" }, { label: "Estúdio", to: "/estudio" }, { label: "Histórico de Peças" }]}
+        title="Histórico de Peças"
+        description="Peças já montadas no Estúdio de Comunicação para este posto."
+      />
 
       {meuPdvIdQuery.isLoading ? (
         <Skeleton className="h-20 w-full max-w-md" />

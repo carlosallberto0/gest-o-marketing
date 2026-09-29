@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ClusterBadge } from "@/components/analise-estrategica/ClusterVisual";
 import { agruparPorCluster } from "@/lib/analise-estrategica";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TIPOS: { tipoPdv: "CONV" | "POS"; titulo: string }[] = [
   { tipoPdv: "CONV", titulo: "Conveniência" },
@@ -77,10 +78,11 @@ export default function AnaliseEstrategicaClustersComparativo() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Clusters — Comparativo</h1>
-          <p className="text-muted-foreground">Visão lado a lado entre Conveniência e Outdoor.</p>
-        </div>
+        <PageHeader
+          breadcrumbs={[{ label: "Inteligência" }, { label: "Clusters — Comparativo" }]}
+          title="Clusters — Comparativo"
+          description="Visão lado a lado entre Conveniência e Outdoor."
+        />
         <Button asChild variant="outline" size="sm" className="sm:w-auto">
           <Link to="/analise-estrategica/dashboard">Ver painel completo</Link>
         </Button>

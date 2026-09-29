@@ -13,15 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ClusterBadge, ClusterDistribuicaoChart } from "@/components/analise-estrategica/ClusterVisual";
 import { agruparPorCluster } from "@/lib/analise-estrategica";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export function ClustersPorTipo({
   tipoPdv,
   titulo,
   descricao,
+  breadcrumbs,
 }: {
   tipoPdv: "POS" | "CONV";
   titulo: string;
   descricao: string;
+  breadcrumbs: Array<{ label: string; to?: string }>;
 }) {
   const [clusterFiltroId, setClusterFiltroId] = useState("todos");
   const query = useAnaliseClustersCalculo({ tipoPdv });
@@ -39,10 +42,7 @@ export function ClustersPorTipo({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{titulo}</h1>
-        <p className="text-muted-foreground">{descricao}</p>
-      </div>
+      <PageHeader breadcrumbs={breadcrumbs} title={titulo} description={descricao} />
 
       {query.isLoading ? (
         <div className="flex flex-col gap-4">

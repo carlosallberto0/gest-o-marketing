@@ -6,6 +6,7 @@ export default function AnaliseEstrategicaClustersConveniencia() {
       tipoPdv="CONV"
       titulo="Clusters — Conveniência"
       descricao="Distribuição e pontuação dos PDVs de conveniência por cluster."
+      breadcrumbs={[{ label: "Inteligência" }, { label: "Clusters — Conveniência" }]}
     />
   );
 }

@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const FILTRO_TODAS = "todas";
 
@@ -476,7 +477,10 @@ export default function ChecklistConfig() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold text-foreground">Configuração de checklist</h1>
+      <PageHeader
+        breadcrumbs={[{ label: "Administração" }, { label: "Config. Checklist" }]}
+        title="Configuração de checklist"
+      />
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

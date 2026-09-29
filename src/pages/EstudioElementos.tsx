@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TIPO_LABEL: Record<EstudioTipoElemento, string> = {
   imagem_produto: "Imagem de produto",
@@ -418,10 +419,11 @@ export default function EstudioElementos() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Elementos do Estúdio</h1>
-          <p className="text-muted-foreground">Imagens, logos, selos, ícones, gráficos e textos para os templates.</p>
-        </div>
+        <PageHeader
+          breadcrumbs={[{ label: "Criação" }, { label: "Estúdio", to: "/estudio" }, { label: "Elementos" }]}
+          title="Elementos do Estúdio"
+          description="Imagens, logos, selos, ícones, gráficos e textos para os templates."
+        />
         <Button onClick={openCreateDialog} className="sm:w-auto">
           Novo elemento
         </Button>

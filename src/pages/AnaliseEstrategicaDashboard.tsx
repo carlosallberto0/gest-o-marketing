@@ -22,6 +22,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ClusterDistribuicaoChart } from "@/components/analise-estrategica/ClusterVisual";
 import { agruparPorCluster } from "@/lib/analise-estrategica";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const INSIGHT_TIPO_LABEL: Record<AnaliseInsightTipo, string> = {
   alerta: "Alerta",
@@ -62,10 +63,11 @@ export default function AnaliseEstrategicaDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Análise Estratégica</h1>
-          <p className="text-muted-foreground">Clusterização de PDVs combinando score de mídia e merchandising.</p>
-        </div>
+        <PageHeader
+          breadcrumbs={[{ label: "Inteligência" }, { label: "Dashboard" }]}
+          title="Análise Estratégica"
+          description="Clusterização de PDVs combinando score de mídia e merchandising."
+        />
         {podeRecalcular.data && dados.length > 0 && (
           <div className="flex flex-col items-start gap-2 sm:items-end">
             <Button type="button" disabled={recalcular.isPending} onClick={handleRecalcular} className="sm:w-auto">

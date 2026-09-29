@@ -33,6 +33,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClusterBadge } from "@/components/analise-estrategica/ClusterVisual";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type TipoPdv = "POS" | "CONV";
 
@@ -584,10 +585,11 @@ export default function AnaliseEstrategicaConfig() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Configuração da Análise</h1>
-        <p className="text-muted-foreground">Peso por tipo de PDV e faixas de cluster usadas no recálculo.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Administração" }, { label: "Configuração da Análise" }]}
+        title="Configuração da Análise"
+        description="Peso por tipo de PDV e faixas de cluster usadas no recálculo."
+      />
 
       {podeConfig.isLoading ? (
         <div className="flex flex-col gap-4">
