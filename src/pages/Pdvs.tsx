@@ -212,7 +212,7 @@ export default function Pdvs() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader breadcrumbs={[{ label: "Operação" }, { label: "PDVs" }]} title="PDVs" description="" />
-        <Button onClick={openCreateDialog} className="sm:w-auto sm:mt-8">
+        <Button onClick={openCreateDialog} className="sm:w-auto">
           Novo PDV
         </Button>
       </div>
