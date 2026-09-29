@@ -46,8 +46,13 @@ export function AppHeader() {
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [termo, setTermo] = useState("");
   const navigate = useNavigate();
-  const { data: perfil } = useMeuPerfil();
-  const { data: notificacoes } = useMinhasNotificacoes();
+  const { data: perfil, isError: perfilComErro } = useMeuPerfil();
+  const {
+    data: notificacoes,
+    isError: notificacoesComErro,
+    error: notificacoesErro,
+    refetch: refetchNotificacoes,
+  } = useMinhasNotificacoes();
   const marcarLida = useMarcarNotificacaoLida();
   const grupos = useBuscaGlobal(termo);
   const naoLidas = (notificacoes ?? []).filter((n) => !n.lida).length;
@@ -81,7 +86,18 @@ export function AppHeader() {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80">
             <p className="mb-2 text-sm font-semibold text-foreground">Notificações</p>
-            {(notificacoes ?? []).length === 0 ? (
+            {notificacoesComErro ? (
+              <div className="flex flex-col items-start gap-2">
+                <p role="alert" className="text-sm text-destructive">
+                  {notificacoesErro instanceof Error
+                    ? notificacoesErro.message
+                    : "Não foi possível carregar as notificações."}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetchNotificacoes()}>
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : (notificacoes ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma notificação.</p>
             ) : (
               <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
@@ -89,8 +105,9 @@ export function AppHeader() {
                   <li key={n.id}>
                     <button
                       type="button"
-                      onClick={() => !n.lida && marcarLida.mutate(n.id)}
-                      className={`w-full rounded-md p-2 text-left text-sm ${n.lida ? "text-muted-foreground" : "bg-accent font-medium text-accent-foreground"}`}
+                      disabled={marcarLida.isPending}
+                      onClick={() => !n.lida && !marcarLida.isPending && marcarLida.mutate(n.id)}
+                      className={`w-full rounded-md p-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50 ${n.lida ? "text-muted-foreground" : "bg-accent font-medium text-accent-foreground"}`}
                     >
                       <p>{n.titulo}</p>
                       <p className="text-xs">{n.mensagem}</p>
@@ -104,12 +121,14 @@ export function AppHeader() {
 
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
-            <AvatarFallback>{iniciais(perfil?.nome)}</AvatarFallback>
+            <AvatarFallback>{perfilComErro ? "?" : iniciais(perfil?.nome)}</AvatarFallback>
           </Avatar>
           <div className="hidden text-left text-sm leading-tight sm:block">
-            <p className="font-medium text-foreground">{perfil?.nome ?? "…"}</p>
+            <p className={`font-medium ${perfilComErro ? "text-destructive" : "text-foreground"}`}>
+              {perfilComErro ? "Erro ao carregar perfil" : (perfil?.nome ?? "…")}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : ""}
+              {!perfilComErro && perfil?.papel ? (PAPEL_LABEL[perfil.papel] ?? perfil.papel) : ""}
             </p>
           </div>
         </div>
