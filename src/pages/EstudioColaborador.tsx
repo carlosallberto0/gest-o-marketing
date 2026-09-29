@@ -31,6 +31,7 @@ import {
 } from "@/hooks/useEstudioComposicoes";
 import { usePdvs } from "@/hooks/usePdvs";
 import { useFotoSignedUrl } from "@/hooks/useFoto";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1169,10 +1170,126 @@ function ComposicaoEditor({
   );
 }
 
-type WizardStep = "canal" | "template" | "peca";
+// Fora do corpo do pai: coluna 1 do Estúdio (canal + busca + categorias +
+// grade de templates) — sempre visível, substitui os antigos passos 1+2 do
+// wizard sequencial. Busca de template é filtro client-side puro (a lista já
+// vem inteira da query), por isso o estado dela vive só aqui.
+function TemplatesColuna({
+  canalEscolhido,
+  onSelecionarCanal,
+  canaisComTemplate,
+  categoriasDoCanal,
+  categoriaSelecionadaId,
+  onSelecionarCategoria,
+  templatesAtivos,
+  templatesLoading,
+  templateEscolhidoId,
+  disabled,
+  onUsarTemplate,
+}: {
+  canalEscolhido: EstudioCanal | null;
+  onSelecionarCanal: (canal: EstudioCanal) => void;
+  canaisComTemplate: Set<EstudioCanal>;
+  categoriasDoCanal: { id: string; nome: string }[];
+  categoriaSelecionadaId: string;
+  onSelecionarCategoria: (categoriaId: string) => void;
+  templatesAtivos: EstudioTemplateComCategoria[];
+  templatesLoading: boolean;
+  templateEscolhidoId: string | null;
+  disabled: boolean;
+  onUsarTemplate: (template: EstudioTemplateComCategoria) => void;
+}) {
+  const [buscaTemplate, setBuscaTemplate] = useState("");
+  const termoBusca = buscaTemplate.trim().toLowerCase();
+  const templatesFiltrados = termoBusca
+    ? templatesAtivos.filter((template) => template.nome.toLowerCase().includes(termoBusca))
+    : templatesAtivos;
+
+  return (
+    <section className="flex w-full flex-col gap-4 lg:w-80 lg:shrink-0">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="estudio-canal-select">Canal</Label>
+        <Select value={canalEscolhido ?? ""} onValueChange={(value) => onSelecionarCanal(value as EstudioCanal)}>
+          <SelectTrigger id="estudio-canal-select">
+            <SelectValue placeholder="Selecione o canal" />
+          </SelectTrigger>
+          <SelectContent>
+            {CANAL_OPTIONS.map((canal) => (
+              <SelectItem key={canal} value={canal} disabled={!canaisComTemplate.has(canal)}>
+                {CANAL_LABEL[canal]}
+                {!canaisComTemplate.has(canal) ? " (em breve)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {canalEscolhido && (
+        <>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="estudio-busca-template">Buscar templates</Label>
+            <Input
+              id="estudio-busca-template"
+              value={buscaTemplate}
+              onChange={(event) => setBuscaTemplate(event.target.value)}
+              placeholder="Buscar templates..."
+            />
+          </div>
+
+          {categoriasDoCanal.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Nenhuma categoria ativa para este canal ainda. Escolha outro canal acima.
+              </p>
+            </div>
+          ) : (
+            <Tabs value={categoriaSelecionadaId} onValueChange={onSelecionarCategoria}>
+              <TabsList className="flex h-auto flex-wrap justify-start gap-1">
+                <TabsTrigger value="">Todos</TabsTrigger>
+                {categoriasDoCanal.map((categoria) => (
+                  <TabsTrigger key={categoria.id} value={categoria.id}>
+                    {categoria.nome}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value={categoriaSelecionadaId} className="mt-4">
+                {templatesLoading ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                ) : templatesFiltrados.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border py-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {termoBusca
+                        ? "Nenhum template encontrado para esta busca."
+                        : "Nenhum template disponível nesta categoria ainda."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {templatesFiltrados.map((template) => (
+                      <div
+                        key={template.id}
+                        className={cn(
+                          template.id === templateEscolhidoId && "rounded-md ring-2 ring-primary ring-offset-2",
+                        )}
+                      >
+                        <TemplateEscolhaCard template={template} disabled={disabled} onUsar={onUsarTemplate} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 export default function EstudioColaborador() {
-  const [step, setStep] = useState<WizardStep>("canal");
   const [canalEscolhido, setCanalEscolhido] = useState<EstudioCanal | null>(null);
   const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState("");
   const [templateEscolhido, setTemplateEscolhido] = useState<EstudioTemplateComCategoria | null>(null);
@@ -1200,7 +1317,6 @@ export default function EstudioColaborador() {
     if (composicaoResumoQuery.data && templateResumoQuery.data) {
       setTemplateEscolhido(templateResumoQuery.data);
       setComposicaoId(composicaoResumoQuery.data.id);
-      setStep("peca");
     }
   }, [composicaoIdParam, composicaoId, composicaoResumoQuery.data, templateResumoQuery.data]);
 
@@ -1252,17 +1368,9 @@ export default function EstudioColaborador() {
     if (!canaisComTemplate.has(canal)) return;
     setCanalEscolhido(canal);
     setCategoriaSelecionadaId("");
-    setStep("template");
-  }
-
-  function handleVoltarParaCanal() {
-    setStep("canal");
-    setCanalEscolhido(null);
-    setCategoriaSelecionadaId("");
   }
 
   function handleVoltarInicio() {
-    setStep("canal");
     setCanalEscolhido(null);
     setCategoriaSelecionadaId("");
     setTemplateEscolhido(null);
@@ -1295,7 +1403,6 @@ export default function EstudioColaborador() {
     setComposicaoId(null);
     setPdvSelecionadoId("");
     setCriarComposicaoError(null);
-    setStep("peca");
     if (meuPdvIdQuery.data) {
       await criarComposicao(meuPdvIdQuery.data);
     }
@@ -1309,10 +1416,12 @@ export default function EstudioColaborador() {
   if (resumindoPeca) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Estúdio de Comunicação</h1>
-          <p className="text-muted-foreground">Monte peças de comunicação a partir de templates pré-aprovados.</p>
-        </div>
+        <PageHeader
+          breadcrumbs={[{ label: "Criação" }, { label: "Estúdio" }]}
+          title="Estúdio de Comunicação"
+          description="Crie peças de comunicação a partir de templates pré-aprovados."
+          action={<Button onClick={handleVoltarInicio}>Nova Composição</Button>}
+        />
         {resumoComErro ? (
           <div className="flex flex-col items-start gap-2">
             <p role="alert" className="text-sm text-destructive">
@@ -1331,174 +1440,33 @@ export default function EstudioColaborador() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Estúdio de Comunicação</h1>
-        <p className="text-muted-foreground">Monte peças de comunicação a partir de templates pré-aprovados.</p>
+      <PageHeader
+        breadcrumbs={[{ label: "Criação" }, { label: "Estúdio" }]}
+        title="Estúdio de Comunicação"
+        description="Crie peças de comunicação a partir de templates pré-aprovados."
+        action={<Button onClick={handleVoltarInicio}>Nova Composição</Button>}
+      />
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <TemplatesColuna
+          canalEscolhido={canalEscolhido}
+          onSelecionarCanal={handleSelecionarCanal}
+          canaisComTemplate={canaisComTemplate}
+          categoriasDoCanal={categoriasDoCanal}
+          categoriaSelecionadaId={categoriaSelecionadaId}
+          onSelecionarCategoria={setCategoriaSelecionadaId}
+          templatesAtivos={templatesAtivos}
+          templatesLoading={templatesLoading}
+          templateEscolhidoId={templateEscolhido?.id ?? null}
+          disabled={meuPdvIdQuery.isLoading || createComposicao.isPending}
+          onUsarTemplate={handleUsarTemplate}
+        />
+        {/* colunas 2 e 3 — Task B2/B3 preenchem o conteúdo real; nesta task, um
+            placeholder simples já com a casca flex correta */}
+        <div className="flex-1 rounded-md border border-dashed border-border p-8 text-center text-muted-foreground">
+          {templateEscolhido ? "Carregando composição…" : "Selecione um template à esquerda para começar."}
+        </div>
       </div>
-
-      {step === "canal" && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-foreground">1. Escolha o canal</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {CANAL_OPTIONS.map((canal) => (
-              <CanalCard
-                key={canal}
-                canal={canal}
-                disponivel={canaisComTemplate.has(canal)}
-                onSelecionar={handleSelecionarCanal}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {step === "template" && canalEscolhido && (
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold text-foreground">2. Escolha o template — {CANAL_LABEL[canalEscolhido]}</h2>
-            <Button variant="outline" size="sm" onClick={handleVoltarParaCanal} className="sm:w-auto">
-              Voltar
-            </Button>
-          </div>
-
-          {categoriasDoCanal.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border py-12 text-center">
-              <p className="text-muted-foreground">Nenhuma categoria ativa para este canal ainda.</p>
-              <Button variant="outline" onClick={handleVoltarParaCanal}>
-                Escolher outro canal
-              </Button>
-            </div>
-          ) : (
-            <Tabs value={categoriaSelecionadaId} onValueChange={setCategoriaSelecionadaId}>
-              <TabsList className="flex h-auto flex-wrap justify-start gap-1">
-                {categoriasDoCanal.map((categoria) => (
-                  <TabsTrigger key={categoria.id} value={categoria.id}>
-                    {categoria.nome}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {categoriasDoCanal.map((categoria) => (
-                <TabsContent key={categoria.id} value={categoria.id}>
-                  {categoria.id !== categoriaSelecionadaId ? null : templatesLoading ? (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      <Skeleton className="h-64 w-full" />
-                      <Skeleton className="h-64 w-full" />
-                      <Skeleton className="h-64 w-full" />
-                    </div>
-                  ) : templatesAtivos.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border py-12 text-center">
-                      <p className="text-muted-foreground">Nenhum template disponível nesta categoria ainda.</p>
-                      <Button variant="outline" onClick={handleVoltarParaCanal}>
-                        Escolher outro canal
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {templatesAtivos.map((template) => (
-                        <TemplateEscolhaCard
-                          key={template.id}
-                          template={template}
-                          disabled={meuPdvIdQuery.isLoading || createComposicao.isPending}
-                          onUsar={handleUsarTemplate}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
-          )}
-        </section>
-      )}
-
-      {step === "peca" && templateEscolhido && (
-        <>
-          {composicaoId ? (
-            <ComposicaoEditor
-              key={composicaoId}
-              composicaoId={composicaoId}
-              template={templateEscolhido}
-              onVoltarInicio={handleVoltarInicio}
-            />
-          ) : (
-            <section className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-semibold text-foreground">3. Criando a composição</h2>
-                <Button variant="outline" size="sm" onClick={() => setStep("template")} className="sm:w-auto">
-                  Voltar
-                </Button>
-              </div>
-
-              {meuPdvIdQuery.isLoading ? (
-                <Skeleton className="h-20 w-full max-w-md" />
-              ) : meuPdvIdQuery.isError ? (
-                <div className="flex flex-col items-start gap-2">
-                  <p role="alert" className="text-sm text-destructive">
-                    {meuPdvIdQuery.error instanceof Error
-                      ? meuPdvIdQuery.error.message
-                      : "Não foi possível identificar o posto do usuário."}
-                  </p>
-                  <Button variant="outline" size="sm" onClick={() => meuPdvIdQuery.refetch()}>
-                    Tentar novamente
-                  </Button>
-                </div>
-              ) : meuPdvIdQuery.data ? (
-                <div className="flex flex-col items-start gap-2">
-                  {createComposicao.isPending && <p className="text-sm text-muted-foreground">Criando composição…</p>}
-                  {criarComposicaoError && (
-                    <>
-                      <p role="alert" className="text-sm text-destructive">
-                        {criarComposicaoError}
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={createComposicao.isPending}
-                        onClick={() => criarComposicao(meuPdvIdQuery.data as string)}
-                      >
-                        Tentar novamente
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 sm:w-80">
-                  <p className="text-sm text-muted-foreground">
-                    Seu usuário não tem um posto fixo — escolha em qual PDV esta peça está sendo criada.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="composicao-pdv-select">PDV</Label>
-                    <Select value={pdvSelecionadoId} onValueChange={setPdvSelecionadoId}>
-                      <SelectTrigger id="composicao-pdv-select">
-                        <SelectValue placeholder={pdvsLoading ? "Carregando…" : "Selecione o PDV"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pdvsAtivos.map((pdv) => (
-                          <SelectItem key={pdv.id} value={pdv.id}>
-                            {pdv.codigo} — {pdv.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {criarComposicaoError && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {criarComposicaoError}
-                    </p>
-                  )}
-                  <Button
-                    disabled={!pdvSelecionadoId || createComposicao.isPending}
-                    onClick={() => criarComposicao(pdvSelecionadoId)}
-                    className="w-full sm:w-auto"
-                  >
-                    {createComposicao.isPending ? "Criando…" : "Criar composição"}
-                  </Button>
-                </div>
-              )}
-            </section>
-          )}
-        </>
-      )}
     </div>
   );
 }
