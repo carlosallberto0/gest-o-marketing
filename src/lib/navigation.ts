@@ -8,6 +8,7 @@ export interface NavItem {
     acao: string;
     escopo: string;
   };
+  children?: NavItem[];
 }
 
 export interface NavGroup {
@@ -54,12 +55,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Estúdio",
+    label: "Criação",
     items: [
-      { to: "/estudio", label: "Estúdio" },
-      { to: "/estudio/templates", label: "Templates" },
-      { to: "/estudio/elementos", label: "Elementos" },
-      { to: "/estudio/historico", label: "Histórico de Peças" },
+      {
+        to: "/estudio",
+        label: "Estúdio",
+        children: [
+          { to: "/estudio/templates", label: "Templates" },
+          { to: "/estudio/elementos", label: "Elementos" },
+          { to: "/estudio/historico", label: "Histórico de Peças" },
+        ],
+      },
     ],
   },
   {
