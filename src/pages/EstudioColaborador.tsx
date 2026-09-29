@@ -878,9 +878,11 @@ function AreaFillDialog({
   );
 }
 
-// Fora do corpo do pai: é o passo 3 inteiro, com seu próprio estado de nome e
-// mutations — perderia estado de input a cada render do wizard.
-function ComposicaoEditor({
+// Fora do corpo do pai: é a coluna 2 (+ casca da coluna 3) do Estúdio, com seu
+// próprio estado de nome e mutations — perderia estado de input a cada render
+// da página. Retorna um fragment de 2 colunas: canvas e (por enquanto)
+// placeholder da coluna de elementos, que a Task B3 preenche.
+function ComposicaoWorkspace({
   composicaoId,
   template,
   onVoltarInicio,
@@ -900,6 +902,7 @@ function ComposicaoEditor({
   const { data: exportadaUrl } = useFotoSignedUrl("estudio-composicoes", composicao?.export_file_url);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const [zoomPercent, setZoomPercent] = useState(100);
   const [nome, setNome] = useState("");
   const [nomeCarregado, setNomeCarregado] = useState(false);
   const [areaSelecionada, setAreaSelecionada] = useState<EstudioTemplateArea | null>(null);
@@ -1010,134 +1013,164 @@ function ComposicaoEditor({
     composicao?.status === "saved" ? "Finalizada" : composicao?.status === "exported" ? "Exportada" : "Rascunho";
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Montando: {template.nome}</h2>
-          <p className="text-sm text-muted-foreground">
-            {template.largura_px}×{template.altura_px}px — {statusLabel}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={onVoltarInicio} className="sm:w-auto">
-          Voltar ao início
-        </Button>
-      </div>
+    <>
+      <div className="flex-1 rounded-md border border-border bg-card p-4">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Montando: {template.nome}</h2>
+              <p className="text-sm text-muted-foreground">
+                {template.largura_px}×{template.altura_px}px — {statusLabel}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={onVoltarInicio} className="sm:w-auto">
+              Voltar ao início
+            </Button>
+          </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="composicao-nome">Nome da peça</Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            id="composicao-nome"
-            value={nome}
-            onChange={(event) => setNome(event.target.value)}
-            onBlur={handleSalvarNome}
-            placeholder="Ex.: Promoção de verão — loja 12"
-            className="sm:max-w-md"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={salvarComposicao.isPending}
-            onClick={handleSalvarNome}
-            className="sm:w-auto"
-          >
-            {salvarComposicao.isPending ? "Salvando…" : "Salvar nome"}
-          </Button>
-        </div>
-        {nomeError && (
-          <p role="alert" className="text-sm text-destructive">
-            {nomeError}
-          </p>
-        )}
-      </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="composicao-nome">Nome da peça</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id="composicao-nome"
+                value={nome}
+                onChange={(event) => setNome(event.target.value)}
+                onBlur={handleSalvarNome}
+                placeholder="Ex.: Promoção de verão — loja 12"
+                className="sm:max-w-md"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={salvarComposicao.isPending}
+                onClick={handleSalvarNome}
+                className="sm:w-auto"
+              >
+                {salvarComposicao.isPending ? "Salvando…" : "Salvar nome"}
+              </Button>
+            </div>
+            {nomeError && (
+              <p role="alert" className="text-sm text-destructive">
+                {nomeError}
+              </p>
+            )}
+          </div>
 
-      {areasLoading || composicaoLoading ? (
-        <Skeleton className="aspect-video w-full max-w-xl" />
-      ) : (
-        <div
-          ref={containerRef}
-          className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
-          style={{ aspectRatio: `${template.largura_px} / ${template.altura_px}` }}
-        >
-          {imagemBaseUrl ? (
-            <img
-              src={imagemBaseUrl}
-              alt={`Layout do template ${template.nome}`}
-              className="h-full w-full object-cover"
-            />
+          {areasLoading || composicaoLoading ? (
+            <Skeleton className="aspect-video w-full max-w-xl" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-              Carregando imagem base…
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="composicao-zoom" className="shrink-0">
+                  Zoom
+                </Label>
+                <Select value={String(zoomPercent)} onValueChange={(v) => setZoomPercent(Number(v))}>
+                  <SelectTrigger id="composicao-zoom" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[50, 75, 100, 125, 150, 200].map((valor) => (
+                      <SelectItem key={valor} value={String(valor)}>
+                        {valor}%
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div
+                ref={containerRef}
+                className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
+                style={{
+                  aspectRatio: `${template.largura_px} / ${template.altura_px}`,
+                  transform: `scale(${zoomPercent / 100})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                {imagemBaseUrl ? (
+                  <img
+                    src={imagemBaseUrl}
+                    alt={`Layout do template ${template.nome}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    Carregando imagem base…
+                  </div>
+                )}
+                {(areas ?? []).map((area) => (
+                  <AreaZona
+                    key={area.id}
+                    area={area}
+                    composicaoElemento={elementoPorAreaId.get(area.id)}
+                    composicaoId={composicaoId}
+                    destacada={false}
+                    onClicarImagem={() => setAreaSelecionada(area)}
+                    containerRef={containerRef}
+                    templateLarguraPx={template.largura_px}
+                    templateAlturaPx={template.altura_px}
+                  />
+                ))}
+              </div>
             </div>
           )}
-          {(areas ?? []).map((area) => (
-            <AreaZona
-              key={area.id}
-              area={area}
-              composicaoElemento={elementoPorAreaId.get(area.id)}
-              composicaoId={composicaoId}
-              destacada={false}
-              onClicarImagem={() => setAreaSelecionada(area)}
-              containerRef={containerRef}
-              templateLarguraPx={template.largura_px}
-              templateAlturaPx={template.altura_px}
-            />
-          ))}
-        </div>
-      )}
 
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={salvarComposicao.isPending} onClick={handleSalvarRascunho}>
-            {salvarComposicao.isPending ? "Salvando…" : "Salvar rascunho"}
-          </Button>
-          <Button type="button" disabled={finalizarComposicao.isPending} onClick={handleFinalizar}>
-            {finalizarComposicao.isPending ? "Finalizando…" : "Finalizar peça"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={exportando || exportarComposicao.isPending || !imagemBaseUrl || areasLoading}
-            onClick={handleExportar}
-          >
-            {exportando || exportarComposicao.isPending ? "Exportando…" : "Exportar peça"}
-          </Button>
-          {composicao?.export_file_url && exportadaUrl && (
-            <Button asChild variant="outline">
-              <a href={exportadaUrl} target="_blank" rel="noreferrer">
-                Baixar peça exportada
-              </a>
-            </Button>
-          )}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" disabled={salvarComposicao.isPending} onClick={handleSalvarRascunho}>
+                {salvarComposicao.isPending ? "Salvando…" : "Salvar rascunho"}
+              </Button>
+              <Button type="button" disabled={finalizarComposicao.isPending} onClick={handleFinalizar}>
+                {finalizarComposicao.isPending ? "Finalizando…" : "Finalizar peça"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={exportando || exportarComposicao.isPending || !imagemBaseUrl || areasLoading}
+                onClick={handleExportar}
+              >
+                {exportando || exportarComposicao.isPending ? "Exportando…" : "Exportar peça"}
+              </Button>
+              {composicao?.export_file_url && exportadaUrl && (
+                <Button asChild variant="outline">
+                  <a href={exportadaUrl} target="_blank" rel="noreferrer">
+                    Baixar peça exportada
+                  </a>
+                </Button>
+              )}
+            </div>
+            {rascunhoError && (
+              <p role="alert" className="text-sm text-destructive">
+                {rascunhoError}
+              </p>
+            )}
+            {finalizarError && (
+              <p role="alert" className="text-sm text-destructive">
+                {finalizarError}
+              </p>
+            )}
+            {exportarError && (
+              <p role="alert" className="text-sm text-destructive">
+                {exportarError}
+              </p>
+            )}
+          </div>
+
+          <AreaFillDialog
+            open={!!areaSelecionada}
+            onOpenChange={(open) => {
+              if (!open) setAreaSelecionada(null);
+            }}
+            area={areaSelecionada}
+            composicaoId={composicaoId}
+            composicaoElemento={areaSelecionada ? elementoPorAreaId.get(areaSelecionada.id) : undefined}
+          />
         </div>
-        {rascunhoError && (
-          <p role="alert" className="text-sm text-destructive">
-            {rascunhoError}
-          </p>
-        )}
-        {finalizarError && (
-          <p role="alert" className="text-sm text-destructive">
-            {finalizarError}
-          </p>
-        )}
-        {exportarError && (
-          <p role="alert" className="text-sm text-destructive">
-            {exportarError}
-          </p>
-        )}
       </div>
-
-      <AreaFillDialog
-        open={!!areaSelecionada}
-        onOpenChange={(open) => {
-          if (!open) setAreaSelecionada(null);
-        }}
-        area={areaSelecionada}
-        composicaoId={composicaoId}
-        composicaoElemento={areaSelecionada ? elementoPorAreaId.get(areaSelecionada.id) : undefined}
-      />
-    </section>
+      <div className="lg:w-72 shrink-0 rounded-md border border-border bg-card p-4">
+        <p className="text-sm text-muted-foreground">Selecione uma área no template para adicionar um elemento.</p>
+      </div>
+    </>
   );
 }
 
@@ -1275,7 +1308,7 @@ export default function EstudioColaborador() {
 
   // Retomada a partir do histórico de peças (EstudioHistorico.tsx): /estudio?composicao=<id>
   // pula direto pro passo 3, sem passar por canal/template. Mesma composicao_id
-  // detail-key do ComposicaoEditor abaixo — cache compartilhado, sem fetch duplicado.
+  // detail-key do ComposicaoWorkspace abaixo — cache compartilhado, sem fetch duplicado.
   const [searchParams, setSearchParams] = useSearchParams();
   const composicaoIdParam = searchParams.get("composicao");
   const composicaoResumoQuery = useEstudioComposicao(composicaoIdParam ?? "");
@@ -1432,11 +1465,97 @@ export default function EstudioColaborador() {
           disabled={meuPdvIdQuery.isLoading || createComposicao.isPending}
           onUsarTemplate={handleUsarTemplate}
         />
-        {/* colunas 2 e 3 — Task B2/B3 preenchem o conteúdo real; nesta task, um
-            placeholder simples já com a casca flex correta */}
-        <div className="flex-1 rounded-md border border-dashed border-border p-8 text-center text-muted-foreground">
-          {templateEscolhido ? "Carregando composição…" : "Selecione um template à esquerda para começar."}
-        </div>
+        {templateEscolhido && composicaoId ? (
+          <ComposicaoWorkspace
+            composicaoId={composicaoId}
+            template={templateEscolhido}
+            onVoltarInicio={handleVoltarInicio}
+          />
+        ) : templateEscolhido ? (
+          // Composição ainda não existe: cria automaticamente pro colaborador com
+          // posto fixo (handleUsarTemplate já disparou), ou pede o PDV pra quem não
+          // tem (papel de gestão) — mesma lógica de antes da Task B1, só a casca
+          // muda (aqui dentro da coluna central, sem "step" de wizard pra voltar).
+          <div className="flex-1 rounded-md border border-border bg-card p-4">
+            <div className="flex flex-col gap-4">
+              <h2 className="text-lg font-semibold text-foreground">Criando a composição</h2>
+              {meuPdvIdQuery.isLoading ? (
+                <Skeleton className="h-20 w-full max-w-md" />
+              ) : meuPdvIdQuery.isError ? (
+                <div className="flex flex-col items-start gap-2">
+                  <p role="alert" className="text-sm text-destructive">
+                    {meuPdvIdQuery.error instanceof Error
+                      ? meuPdvIdQuery.error.message
+                      : "Não foi possível identificar o posto do usuário."}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => meuPdvIdQuery.refetch()}>
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : meuPdvIdQuery.data ? (
+                <div className="flex flex-col items-start gap-2">
+                  {createComposicao.isPending && (
+                    <p className="text-sm text-muted-foreground">Criando composição…</p>
+                  )}
+                  {criarComposicaoError && (
+                    <>
+                      <p role="alert" className="text-sm text-destructive">
+                        {criarComposicaoError}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={createComposicao.isPending}
+                        onClick={() => criarComposicao(meuPdvIdQuery.data as string)}
+                      >
+                        Tentar novamente
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 sm:w-80">
+                  <p className="text-sm text-muted-foreground">
+                    Seu usuário não tem um posto fixo — escolha em qual PDV esta peça está sendo criada.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="composicao-pdv-select">PDV</Label>
+                    <Select value={pdvSelecionadoId} onValueChange={setPdvSelecionadoId}>
+                      <SelectTrigger id="composicao-pdv-select">
+                        <SelectValue placeholder={pdvsLoading ? "Carregando…" : "Selecione o PDV"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pdvsAtivos.map((pdv) => (
+                          <SelectItem key={pdv.id} value={pdv.id}>
+                            {pdv.codigo} — {pdv.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {criarComposicaoError && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {criarComposicaoError}
+                    </p>
+                  )}
+                  <Button
+                    disabled={!pdvSelecionadoId || createComposicao.isPending}
+                    onClick={() => criarComposicao(pdvSelecionadoId)}
+                    className="w-full sm:w-auto"
+                  >
+                    {createComposicao.isPending ? "Criando…" : "Criar composição"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // coluna 3 real fica pra Task B3; aqui ainda não há template
+          // suficiente pra montar o workspace de 2 colunas.
+          <div className="flex-1 rounded-md border border-dashed border-border p-8 text-center text-muted-foreground">
+            Selecione um template à esquerda para começar.
+          </div>
+        )}
       </div>
     </div>
   );
