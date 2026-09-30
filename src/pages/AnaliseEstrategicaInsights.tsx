@@ -88,7 +88,7 @@ export default function AnaliseEstrategicaInsights() {
       <PageHeader
         breadcrumbs={[{ label: "Inteligência" }, { label: "Insights" }]}
         title="Insights"
-        description="Alertas, oportunidades e tendências do último recálculo."
+        description="Alertas, oportunidades e tendências do último recálculo. Use 'Recalcular agora' no painel para atualizar."
       />
 
       <Button asChild variant="link" className="w-fit">

@@ -6,7 +6,7 @@
 // EstudioTemplates.tsx — a mesma técnica de posicionamento absoluto por
 // percentual é reaproveitada aqui, agora para preenchimento em vez de
 // configuração.
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,18 +36,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  MessageCircle,
-  Instagram,
-  Printer,
-  Mail,
-  Zap,
   Image as ImageIcon,
   AlertTriangle,
   ChevronDown,
@@ -67,16 +61,6 @@ const CANAL_LABEL: Record<EstudioCanal, string> = {
   lona: "Faixa de Lona",
 };
 const CANAL_OPTIONS = Object.keys(CANAL_LABEL) as EstudioCanal[];
-
-const CANAL_ICON: Record<EstudioCanal, ComponentType<{ className?: string }>> = {
-  whatsapp: MessageCircle,
-  instagram_feed: Instagram,
-  instagram_story: Instagram,
-  pdv_impresso: Printer,
-  email: Mail,
-  led: Zap,
-  lona: ImageIcon,
-};
 
 // Mesma lista de EstudioTemplates.tsx/EstudioElementos.tsx — não exportada de
 // lá, duplicada aqui (é o mesmo CHECK de tipo de elemento em cada tela).
@@ -134,6 +118,14 @@ function estiloFonteTexto(area: EstudioTemplateArea, escalaTelaPorTemplate: numb
 
 // Ajuste de posição/escala em área "posicao_livre" — mesma unidade
 // (pixel do template final) que desenharImagemNaArea() já usa no export.
+// Zoom da prévia (Task B2): largura de referência em zoom 100% — mesmo valor
+// que a classe Tailwind `max-w-xl` (36rem) representava antes do controle de
+// zoom existir. Vira base de `width` em vez de `transform: scale()`: escala
+// via `transform` não ocupa espaço de layout (o canvas pintava por cima da
+// barra de ações em zoom >100%) e duplicava a escala já aplicada por
+// `escalaTelaPorTemplate`/`translateXPx`/`translateYPx`, que leem
+// `getBoundingClientRect()` — já em pixel de tela PÓS-transform.
+const CANVAS_LARGURA_BASE_PX = 576;
 const FATOR_ESCALA_MINIMO = 0.2;
 const LIMIAR_ARRASTO_PX = 4; // abaixo disso, pointerup vira "clique" (troca elemento), não arrasto
 const PASSO_TECLADO_DESLOCAMENTO_PX = 5;
@@ -1348,11 +1340,11 @@ function ComposicaoWorkspace({
               )}
               <div
                 ref={containerRef}
-                className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
+                className="relative overflow-hidden rounded-md border border-border bg-muted"
                 style={{
                   aspectRatio: `${template.largura_px} / ${template.altura_px}`,
-                  transform: `scale(${zoomPercent / 100})`,
-                  transformOrigin: "top center",
+                  width: `${(CANVAS_LARGURA_BASE_PX * zoomPercent) / 100}px`,
+                  maxWidth: "100%",
                 }}
               >
                 {imagemBaseUrl ? (
@@ -1372,7 +1364,7 @@ function ComposicaoWorkspace({
                     area={area}
                     composicaoElemento={elementoPorAreaId.get(area.id)}
                     composicaoId={composicaoId}
-                    destacada={false}
+                    destacada={areaSelecionada?.id === area.id}
                     onClicarImagem={() => setAreaSelecionada(area)}
                     containerRef={containerRef}
                     templateLarguraPx={template.largura_px}

@@ -418,7 +418,7 @@ export default function EstudioElementos() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           breadcrumbs={[{ label: "Criação" }, { label: "Estúdio", to: "/estudio" }, { label: "Elementos" }]}
           title="Elementos do Estúdio"

@@ -20,7 +20,11 @@ const pdvsKeys = {
 };
 
 // RLS decide o que volta (rede_toda vs. próprio pdv) — sem filtro extra aqui.
-export function usePdvs() {
+// `options.enabled` (default true se omitido) repassa pro `useQuery` interno —
+// existe pra chamador que só precisa disparar a query condicionalmente (ex.:
+// useBuscaGlobal, que só busca PDVs com o CommandDialog aberto). Parâmetro
+// opcional: chamadas existentes sem argumento continuam idênticas.
+export function usePdvs(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: pdvsKeys.all,
     queryFn: async () => {
@@ -28,6 +32,7 @@ export function usePdvs() {
       if (error) throw error;
       return data as Pdv[];
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

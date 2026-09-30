@@ -60,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: "/estudio",
         label: "Estúdio",
+        end: true,
         children: [
           { to: "/estudio/templates", label: "Templates" },
           { to: "/estudio/elementos", label: "Elementos" },

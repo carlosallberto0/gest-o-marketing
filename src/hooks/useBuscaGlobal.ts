@@ -19,9 +19,16 @@ export interface BuscaGlobalGrupo {
 // "Decisões em aberto — 2"). Resultado de PDV/Campanha leva à LISTA
 // correspondente, não abre direto o registro (sem mecanismo de deep-link
 // hoje nessas páginas).
-export function useBuscaGlobal(termo: string): BuscaGlobalGrupo[] {
-  const { data: pdvs } = usePdvs();
-  const { data: campanhas } = useCampanhas();
+//
+// `ativo`: repassado pelo chamador (ex.: `buscaAberta` do CommandDialog em
+// AppHeader) para evitar buscar com o diálogo fechado — vira `enabled` nas
+// duas queries internas (usePdvs/useCampanhas passaram a aceitar
+// `options?.enabled`), então elas nem disparam contra o banco enquanto o
+// diálogo está fechado.
+export function useBuscaGlobal(termo: string, ativo: boolean): BuscaGlobalGrupo[] {
+  const { data: pdvs } = usePdvs({ enabled: ativo });
+  const { data: campanhas } = useCampanhas(undefined, { enabled: ativo });
+  if (!ativo) return [];
   const termoLower = termo.trim().toLowerCase();
   if (!termoLower) return [];
 

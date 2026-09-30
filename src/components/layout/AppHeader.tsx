@@ -54,7 +54,7 @@ export function AppHeader() {
     refetch: refetchNotificacoes,
   } = useMinhasNotificacoes();
   const marcarLida = useMarcarNotificacaoLida();
-  const grupos = useBuscaGlobal(termo);
+  const grupos = useBuscaGlobal(termo, buscaAberta);
   const naoLidas = (notificacoes ?? []).filter((n) => !n.lida).length;
 
   function irPara(to: string) {
@@ -64,7 +64,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 md:px-8">
+    <header className="hidden h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 md:flex md:px-8">
       <Button
         variant="outline"
         className="w-full max-w-sm justify-start gap-2 text-muted-foreground sm:w-64"

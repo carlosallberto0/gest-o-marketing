@@ -77,7 +77,7 @@ function ResumoTipo({ tipoPdv, titulo }: { tipoPdv: "CONV" | "POS"; titulo: stri
 export default function AnaliseEstrategicaClustersComparativo() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           breadcrumbs={[{ label: "Inteligência" }, { label: "Clusters — Comparativo" }]}
           title="Clusters — Comparativo"

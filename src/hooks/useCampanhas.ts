@@ -27,7 +27,12 @@ const campanhasKeys = {
 };
 
 // RLS de campanhas é rede_toda (sem proprio_pdv) — sem filtro de pdv aqui.
-export function useCampanhas(status?: string) {
+// `options.enabled` (default true se omitido) repassa pro `useQuery` interno —
+// mesmo motivo de usePdvs: chamador que só precisa disparar a query
+// condicionalmente (ex.: useBuscaGlobal). Parâmetro opcional adicional:
+// chamadas existentes com só `status` (ou sem nenhum argumento) continuam
+// idênticas.
+export function useCampanhas(status?: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: campanhasKeys.list(status),
     queryFn: async () => {
@@ -38,6 +43,7 @@ export function useCampanhas(status?: string) {
       if (error) throw error;
       return data as Campanha[];
     },
+    enabled: options?.enabled ?? true,
   });
 }
 
