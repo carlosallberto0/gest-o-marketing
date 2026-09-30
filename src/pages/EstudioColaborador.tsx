@@ -32,6 +32,7 @@ import {
 import { usePdvs } from "@/hooks/usePdvs";
 import { useFotoSignedUrl } from "@/hooks/useFoto";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1241,7 +1242,7 @@ function ComposicaoWorkspace({
 
   return (
     <>
-      <div className="flex-1 rounded-md border border-border bg-card p-4">
+      <div className="min-w-0 flex-1 rounded-md border border-border bg-card p-4">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1338,40 +1339,41 @@ function ComposicaoWorkspace({
                   {historicoError}
                 </p>
               )}
-              <div
-                ref={containerRef}
-                className="relative overflow-hidden rounded-md border border-border bg-muted"
-                style={{
-                  aspectRatio: `${template.largura_px} / ${template.altura_px}`,
-                  width: `${(CANVAS_LARGURA_BASE_PX * zoomPercent) / 100}px`,
-                  maxWidth: "100%",
-                }}
-              >
-                {imagemBaseUrl ? (
-                  <img
-                    src={imagemBaseUrl}
-                    alt={`Layout do template ${template.nome}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                    Carregando imagem base…
-                  </div>
-                )}
-                {(areas ?? []).map((area) => (
-                  <AreaZona
-                    key={area.id}
-                    area={area}
-                    composicaoElemento={elementoPorAreaId.get(area.id)}
-                    composicaoId={composicaoId}
-                    destacada={areaSelecionada?.id === area.id}
-                    onClicarImagem={() => setAreaSelecionada(area)}
-                    containerRef={containerRef}
-                    templateLarguraPx={template.largura_px}
-                    templateAlturaPx={template.altura_px}
-                    onAcaoAplicada={registrarHistorico}
-                  />
-                ))}
+              <div className="overflow-x-auto">
+                <div
+                  ref={containerRef}
+                  className="relative overflow-hidden rounded-md border border-border bg-muted"
+                  style={{
+                    aspectRatio: `${template.largura_px} / ${template.altura_px}`,
+                    width: `${(CANVAS_LARGURA_BASE_PX * zoomPercent) / 100}px`,
+                  }}
+                >
+                  {imagemBaseUrl ? (
+                    <img
+                      src={imagemBaseUrl}
+                      alt={`Layout do template ${template.nome}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                      Carregando imagem base…
+                    </div>
+                  )}
+                  {(areas ?? []).map((area) => (
+                    <AreaZona
+                      key={area.id}
+                      area={area}
+                      composicaoElemento={elementoPorAreaId.get(area.id)}
+                      composicaoId={composicaoId}
+                      destacada={areaSelecionada?.id === area.id}
+                      onClicarImagem={() => setAreaSelecionada(area)}
+                      containerRef={containerRef}
+                      templateLarguraPx={template.largura_px}
+                      templateAlturaPx={template.altura_px}
+                      onAcaoAplicada={registrarHistorico}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1563,6 +1565,10 @@ export default function EstudioColaborador() {
   const [composicaoId, setComposicaoId] = useState<string | null>(null);
   const [pdvSelecionadoId, setPdvSelecionadoId] = useState("");
   const [criarComposicaoError, setCriarComposicaoError] = useState<string | null>(null);
+  // Confirmação antes de trocar de template com composição em andamento —
+  // guarda o template clicado até o usuário confirmar (ou fechar o dialog,
+  // que cancela a troca sem mexer na composição atual).
+  const [templatePendente, setTemplatePendente] = useState<EstudioTemplateComCategoria | null>(null);
 
   const { data: categorias } = useEstudioCategorias();
   const { data: templatesTodos } = useEstudioTemplates();
@@ -1664,7 +1670,7 @@ export default function EstudioColaborador() {
     }
   }
 
-  async function handleUsarTemplate(template: EstudioTemplateComCategoria) {
+  async function executarTrocaTemplate(template: EstudioTemplateComCategoria) {
     if (meuPdvIdQuery.isLoading || createComposicao.isPending) return;
     setTemplateEscolhido(template);
     setComposicaoId(null);
@@ -1675,6 +1681,23 @@ export default function EstudioColaborador() {
     }
     // se meuPdvIdQuery.data for null (usuário de gestão sem posto fixo), a
     // composição só é criada depois que ele escolher um PDV no passo 3.
+  }
+
+  // Com composição em andamento, clicar noutro template descartaria o
+  // progresso sem aviso (o rascunho fica salvo no histórico, mas o clique
+  // pode ter sido sem querer) — confirma antes; sem composição aberta,
+  // troca direto (comportamento de sempre).
+  function handleUsarTemplate(template: EstudioTemplateComCategoria) {
+    if (composicaoId) {
+      setTemplatePendente(template);
+      return;
+    }
+    void executarTrocaTemplate(template);
+  }
+
+  function handleConfirmarTrocaTemplate() {
+    if (templatePendente) void executarTrocaTemplate(templatePendente);
+    setTemplatePendente(null);
   }
 
   // Retomando uma peça do histórico (?composicao=<id>): mostra skeleton
@@ -1820,6 +1843,19 @@ export default function EstudioColaborador() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={templatePendente !== null}
+        onOpenChange={(open) => {
+          if (!open) setTemplatePendente(null);
+        }}
+        titulo="Trocar de template?"
+        descricao="Você tem uma composição em andamento. Trocar de template agora inicia uma nova composição — a atual fica salva como rascunho no histórico de peças."
+        rotuloAcao="Trocar mesmo assim"
+        pendente={false}
+        erro={null}
+        onConfirm={handleConfirmarTrocaTemplate}
+      />
     </div>
   );
 }
