@@ -41,15 +41,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { MessageCircle, Instagram, Printer, Mail, Zap, Image as ImageIcon, AlertTriangle } from "lucide-react";
+  MessageCircle,
+  Instagram,
+  Printer,
+  Mail,
+  Zap,
+  Image as ImageIcon,
+  AlertTriangle,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CANAL_LABEL: Record<EstudioCanal, string> = {
@@ -91,6 +93,18 @@ const TIPO_ELEMENTO_LABEL: Record<EstudioTipoElemento, string> = {
 function isTipoTexto(tipo: EstudioTipoElemento): boolean {
   return tipo.startsWith("texto_");
 }
+
+// Só as categorias com tipo real no schema hoje — "Forma"/"Botão"/"QR Code"/
+// "Vídeo" da referência visual NÃO têm EstudioTipoElemento correspondente
+// (ver spec, achado adicional 1); não fabricar categoria falsa aqui.
+const CATEGORIAS_ELEMENTO: { label: string; tipos: EstudioTipoElemento[] }[] = [
+  { label: "Texto", tipos: ["texto_titulo", "texto_preco", "texto_descricao", "texto_cta", "texto_info"] },
+  { label: "Imagem de produto", tipos: ["imagem_produto"] },
+  { label: "Logo", tipos: ["logo"] },
+  { label: "Selo", tipos: ["selo"] },
+  { label: "Ícone", tipos: ["icone"] },
+  { label: "Gráfico", tipos: ["grafico"] },
+];
 
 // Mesma lista de EstudioTemplates.tsx (Task 3) — duplicação deliberada, mesmo
 // padrão de TIPO_ELEMENTO_LABEL acima entre os dois arquivos.
@@ -762,43 +776,38 @@ function ElementoOptionButton({
   );
 }
 
-// Fora do corpo do pai: dialog próprio com estado de formulário — dentro,
+// Fora do corpo do pai: painel próprio com estado de formulário — dentro,
 // perderia estado a cada render do editor (ex.: refetch de composição).
-function AreaFillDialog({
-  open,
-  onOpenChange,
+// Antes era o conteúdo de um <Dialog> (modal); agora é a coluna 3 inline —
+// monta/desmonta com `areaSelecionada` no pai, então troca de área já reseta
+// o estado local sozinha, sem precisar de um `useEffect` de reset.
+function AreaElementoPainel({
   area,
   composicaoId,
   composicaoElemento,
+  onFechar,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  area: EstudioTemplateArea | null;
+  area: EstudioTemplateArea;
   composicaoId: string;
   composicaoElemento: EstudioComposicaoElemento | undefined;
+  onFechar: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const salvar = useSalvarComposicaoElemento();
   const remover = useRemoverComposicaoElemento();
 
-  const { data: elementosDisponiveis, isLoading: elementosLoading } = useEstudioElementos(
-    area ? { tipo: area.tipo_elemento_permitido } : undefined,
-  );
-
-  useEffect(() => {
-    if (open) setError(null);
-  }, [open]);
-
-  if (!area) return null;
+  const { data: elementosDisponiveis, isLoading: elementosLoading } = useEstudioElementos({
+    tipo: area.tipo_elemento_permitido,
+  });
 
   const elementosAtivos = (elementosDisponiveis ?? []).filter((elemento) => elemento.is_active);
 
   async function handleSelecionarElemento(elementoId: string) {
-    if (salvar.isPending || !area) return;
+    if (salvar.isPending) return;
     setError(null);
     try {
       await salvar.mutateAsync({ composicao_id: composicaoId, area_id: area.id, elemento_id: elementoId });
-      onOpenChange(false);
+      onFechar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível salvar o elemento.");
     }
@@ -809,72 +818,175 @@ function AreaFillDialog({
     setError(null);
     try {
       await remover.mutateAsync({ id: composicaoElemento.id, composicao_id: composicaoId });
-      onOpenChange(false);
+      onFechar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível remover.");
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{area.nome}</DialogTitle>
-          <DialogDescription>
-            {area.obrigatorio ? "Área obrigatória — " : ""}
-            {TIPO_ELEMENTO_LABEL[area.tipo_elemento_permitido]}
-            {area.notas ? ` — ${area.notas}` : ""}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{area.nome}</h3>
+        <p className="text-xs text-muted-foreground">
+          {area.obrigatorio ? "Área obrigatória — " : ""}
+          {TIPO_ELEMENTO_LABEL[area.tipo_elemento_permitido]}
+          {area.notas ? ` — ${area.notas}` : ""}
+        </p>
+      </div>
 
-        <div className="flex flex-col gap-4">
-          {elementosLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ) : elementosAtivos.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Nenhum elemento de "{TIPO_ELEMENTO_LABEL[area.tipo_elemento_permitido]}" disponível ainda.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Peça ao time de marketing para cadastrar um em Elementos do Estúdio.
-              </p>
-            </div>
-          ) : (
-            <div className="grid max-h-72 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
-              {elementosAtivos.map((elemento) => (
-                <ElementoOptionButton
-                  key={elemento.id}
-                  elemento={elemento}
-                  selecionado={composicaoElemento?.elemento_id === elemento.id}
-                  disabled={salvar.isPending}
-                  onSelecionar={() => handleSelecionarElemento(elemento.id)}
-                />
-              ))}
-            </div>
-          )}
-
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
+      {elementosLoading ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </div>
+      ) : elementosAtivos.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            Nenhum elemento de "{TIPO_ELEMENTO_LABEL[area.tipo_elemento_permitido]}" disponível ainda.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Peça ao time de marketing para cadastrar um em Elementos do Estúdio.
+          </p>
+        </div>
+      ) : (
+        <div className="grid max-h-72 grid-cols-2 gap-3 overflow-y-auto">
+          {elementosAtivos.map((elemento) => (
+            <ElementoOptionButton
+              key={elemento.id}
+              elemento={elemento}
+              selecionado={composicaoElemento?.elemento_id === elemento.id}
+              disabled={salvar.isPending}
+              onSelecionar={() => handleSelecionarElemento(elemento.id)}
+            />
+          ))}
+        </div>
+      )}
 
-        <DialogFooter className="sm:justify-between">
-          {composicaoElemento ? (
-            <Button type="button" variant="outline-danger" size="sm" disabled={remover.isPending} onClick={handleRemover}>
-              {remover.isPending ? "Removendo…" : "Remover"}
-            </Button>
-          ) : (
-            <span />
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2 border-t border-border/50 pt-4">
+        {composicaoElemento && (
+          <Button type="button" variant="outline-danger" size="sm" disabled={remover.isPending} onClick={handleRemover}>
+            {remover.isPending ? "Removendo…" : "Remover"}
+          </Button>
+        )}
+        <Button type="button" variant="outline" size="sm" onClick={onFechar}>
+          Fechar seleção
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Fora do corpo do pai: cada categoria expandida busca sua própria lista de
+// elementos — o Collapsible desmonta o conteúdo fechado (Radix, sem
+// forceMount), então só busca quando o colaborador abre. Só apoio visual
+// (sem área-alvo ainda), por isso os botões ficam desabilitados.
+// ponytail: categoria "Texto" tem 5 tipos — busca todos os elementos (sem
+// filtro de tipo) e filtra client-side por `tipos.includes`, em vez de 5
+// queries em paralelo; upgrade se a tabela de elementos crescer muito.
+function CategoriaElementoLista({ tipos }: { tipos: EstudioTipoElemento[] }) {
+  const filtroTipo = tipos.length === 1 ? tipos[0] : undefined;
+  const { data: elementosDoFiltro, isLoading } = useEstudioElementos(filtroTipo ? { tipo: filtroTipo } : undefined);
+  const elementosAtivos = (elementosDoFiltro ?? []).filter(
+    (elemento) => elemento.is_active && (filtroTipo ? true : tipos.includes(elemento.tipo)),
+  );
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (elementosAtivos.length === 0) {
+    return (
+      <p className="rounded-md border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+        Nenhum elemento cadastrado ainda.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-3">
+        {elementosAtivos.map((elemento) => (
+          <ElementoOptionButton
+            key={elemento.id}
+            elemento={elemento}
+            selecionado={false}
+            disabled
+            onSelecionar={() => {}}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">Selecione uma área no template para adicionar este elemento.</p>
+    </div>
+  );
+}
+
+// Fora do corpo do pai: navegação por categoria da coluna 3 quando nenhuma
+// área do canvas está selecionada — busca de categoria é filtro client-side
+// puro, mesmo padrão de `buscaTemplate` em TemplatesColuna.
+function CategoriasElementoBrowse({
+  categorias,
+}: {
+  categorias: { label: string; tipos: EstudioTipoElemento[] }[];
+}) {
+  const [busca, setBusca] = useState("");
+  const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+  const termo = busca.trim().toLowerCase();
+  const categoriasFiltradas = termo
+    ? categorias.filter((categoria) => categoria.label.toLowerCase().includes(termo))
+    : categorias;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="estudio-busca-elementos">Buscar elementos</Label>
+        <Input
+          id="estudio-busca-elementos"
+          value={busca}
+          onChange={(event) => setBusca(event.target.value)}
+          placeholder="Buscar elementos..."
+        />
+      </div>
+
+      {categoriasFiltradas.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border py-8 text-center">
+          <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada para esta busca.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {categoriasFiltradas.map((categoria) => (
+            <Collapsible
+              key={categoria.label}
+              open={abertas[categoria.label] ?? false}
+              onOpenChange={(open) => setAbertas((prev) => ({ ...prev, [categoria.label]: open }))}
+            >
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent">
+                {categoria.label}
+                <ChevronDown
+                  className={cn("h-4 w-4 shrink-0 transition-transform", abertas[categoria.label] && "rotate-180")}
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <CategoriaElementoLista tipos={categoria.tipos} />
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1156,19 +1268,20 @@ function ComposicaoWorkspace({
             )}
           </div>
 
-          <AreaFillDialog
-            open={!!areaSelecionada}
-            onOpenChange={(open) => {
-              if (!open) setAreaSelecionada(null);
-            }}
-            area={areaSelecionada}
-            composicaoId={composicaoId}
-            composicaoElemento={areaSelecionada ? elementoPorAreaId.get(areaSelecionada.id) : undefined}
-          />
         </div>
       </div>
       <div className="lg:w-72 shrink-0 rounded-md border border-border bg-card p-4">
-        <p className="text-sm text-muted-foreground">Selecione uma área no template para adicionar um elemento.</p>
+        {areaSelecionada ? (
+          <AreaElementoPainel
+            key={areaSelecionada.id}
+            area={areaSelecionada}
+            composicaoId={composicaoId}
+            composicaoElemento={elementoPorAreaId.get(areaSelecionada.id)}
+            onFechar={() => setAreaSelecionada(null)}
+          />
+        ) : (
+          <CategoriasElementoBrowse categorias={CATEGORIAS_ELEMENTO} />
+        )}
       </div>
     </>
   );
