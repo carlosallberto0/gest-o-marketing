@@ -51,6 +51,8 @@ import {
   Image as ImageIcon,
   AlertTriangle,
   ChevronDown,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -141,6 +143,18 @@ const PASSO_TECLADO_ESCALA_SHIFT = 0.2;
 function composicaoElementoPreenchido(elemento: EstudioComposicaoElemento | undefined): boolean {
   if (!elemento) return false;
   return !!elemento.elemento_id || !!elemento.valor_texto?.trim();
+}
+
+// Desfazer/Refazer (Task B4) — 1 entrada por mutação de conteúdo de área
+// (texto salvo, elemento atribuído/removido, posição/escala ajustada).
+// `antes`/`depois` são snapshots completos da linha de
+// estudio_composicao_elementos (null = área vazia antes/depois da mutação),
+// não um diff — reaplicar é sempre "reenviar a linha inteira" via
+// useSalvarComposicaoElemento ou remover via useRemoverComposicaoElemento.
+interface HistoricoEntrada {
+  areaId: string;
+  antes: EstudioComposicaoElemento | null;
+  depois: EstudioComposicaoElemento | null;
 }
 
 // --- Exportação da peça: rasterização em <canvas> nativo, sem dependência
@@ -391,6 +405,7 @@ function AreaZona({
   containerRef,
   templateLarguraPx,
   templateAlturaPx,
+  onAcaoAplicada,
 }: {
   area: EstudioTemplateArea;
   composicaoElemento: EstudioComposicaoElemento | undefined;
@@ -400,6 +415,7 @@ function AreaZona({
   containerRef: React.RefObject<HTMLDivElement>;
   templateLarguraPx: number;
   templateAlturaPx: number;
+  onAcaoAplicada: (entrada: HistoricoEntrada) => void;
 }) {
   const isTexto = isTipoTexto(area.tipo_elemento_permitido);
   const elementoId = !isTexto ? composicaoElemento?.elemento_id ?? null : null;
@@ -543,13 +559,15 @@ function AreaZona({
   async function persistirAjusteComValores(x: number, y: number, escala: number) {
     setErroAjuste(null);
     try {
-      await salvarAjusteMutation.mutateAsync({
+      const antes = composicaoElemento ?? null;
+      const depois = await salvarAjusteMutation.mutateAsync({
         composicao_id: composicaoId,
         area_id: area.id,
         deslocamento_x_px: x,
         deslocamento_y_px: y,
         fator_escala: escala,
       });
+      onAcaoAplicada({ areaId: area.id, antes, depois });
     } catch (err) {
       setDeslocamentoXPx(composicaoElemento?.deslocamento_x_px ?? 0);
       setDeslocamentoYPx(composicaoElemento?.deslocamento_y_px ?? 0);
@@ -579,7 +597,13 @@ function AreaZona({
       return;
     }
     try {
-      await salvarTextoMutation.mutateAsync({ composicao_id: composicaoId, area_id: area.id, valor_texto: texto });
+      const antes = composicaoElemento ?? null;
+      const depois = await salvarTextoMutation.mutateAsync({
+        composicao_id: composicaoId,
+        area_id: area.id,
+        valor_texto: texto,
+      });
+      onAcaoAplicada({ areaId: area.id, antes, depois });
       setEditandoTexto(false);
     } catch (err) {
       setErroTexto(err instanceof Error ? err.message : "Não foi possível salvar o texto.");
@@ -786,11 +810,13 @@ function AreaElementoPainel({
   composicaoId,
   composicaoElemento,
   onFechar,
+  onAcaoAplicada,
 }: {
   area: EstudioTemplateArea;
   composicaoId: string;
   composicaoElemento: EstudioComposicaoElemento | undefined;
   onFechar: () => void;
+  onAcaoAplicada: (entrada: HistoricoEntrada) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const salvar = useSalvarComposicaoElemento();
@@ -806,7 +832,9 @@ function AreaElementoPainel({
     if (salvar.isPending) return;
     setError(null);
     try {
-      await salvar.mutateAsync({ composicao_id: composicaoId, area_id: area.id, elemento_id: elementoId });
+      const antes = composicaoElemento ?? null;
+      const depois = await salvar.mutateAsync({ composicao_id: composicaoId, area_id: area.id, elemento_id: elementoId });
+      onAcaoAplicada({ areaId: area.id, antes, depois });
       onFechar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível salvar o elemento.");
@@ -817,7 +845,9 @@ function AreaElementoPainel({
     if (!composicaoElemento || remover.isPending) return;
     setError(null);
     try {
+      const antes = composicaoElemento;
       await remover.mutateAsync({ id: composicaoElemento.id, composicao_id: composicaoId });
+      onAcaoAplicada({ areaId: area.id, antes, depois: null });
       onFechar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível remover.");
@@ -1013,6 +1043,17 @@ function ComposicaoWorkspace({
   const exportarComposicao = useUpdateEstudioComposicao();
   const { data: exportadaUrl } = useFotoSignedUrl("estudio-composicoes", composicao?.export_file_url);
 
+  // Desfazer/Refazer (Task B4) — mutations próprias desta pilha, mesmo padrão
+  // de múltiplas instâncias de useSalvarComposicaoElemento já usado em
+  // AreaZona (salvarTextoMutation/salvarAjusteMutation): cada consumidor tem
+  // seu próprio estado de pending, o cache invalidado é o mesmo.
+  const salvarElementoMutation = useSalvarComposicaoElemento();
+  const removerElementoMutation = useRemoverComposicaoElemento();
+  const [pilhaDesfazer, setPilhaDesfazer] = useState<HistoricoEntrada[]>([]);
+  const [pilhaRefazer, setPilhaRefazer] = useState<HistoricoEntrada[]>([]);
+  const [desfazendoOuRefazendo, setDesfazendoOuRefazendo] = useState(false);
+  const [historicoError, setHistoricoError] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [nome, setNome] = useState("");
@@ -1031,7 +1072,82 @@ function ComposicaoWorkspace({
     }
   }, [composicao, nomeCarregado]);
 
+  // Fora de escopo: desfazer transição de status/troca de template — a pilha
+  // só acompanha as 3 mutações de conteúdo de área, e reseta (fica vazia)
+  // sempre que a composição muda.
+  useEffect(() => {
+    setPilhaDesfazer([]);
+    setPilhaRefazer([]);
+    setHistoricoError(null);
+  }, [composicaoId]);
+
   const elementoPorAreaId = new Map((composicaoElementos ?? []).map((item) => [item.area_id, item]));
+
+  function registrarHistorico(entrada: HistoricoEntrada) {
+    setPilhaDesfazer((prev) => [...prev, entrada].slice(-20));
+    setPilhaRefazer([]);
+  }
+
+  async function handleDesfazer() {
+    if (desfazendoOuRefazendo || pilhaDesfazer.length === 0) return;
+    const entrada = pilhaDesfazer[pilhaDesfazer.length - 1];
+    setDesfazendoOuRefazendo(true);
+    setHistoricoError(null);
+    try {
+      if (entrada.antes === null) {
+        await removerElementoMutation.mutateAsync({ id: entrada.depois!.id, composicao_id: composicaoId });
+      } else {
+        await salvarElementoMutation.mutateAsync({
+          composicao_id: composicaoId,
+          area_id: entrada.areaId,
+          elemento_id: entrada.antes.elemento_id ?? undefined,
+          valor_texto: entrada.antes.valor_texto ?? undefined,
+          deslocamento_x_px: entrada.antes.deslocamento_x_px,
+          deslocamento_y_px: entrada.antes.deslocamento_y_px,
+          fator_escala: entrada.antes.fator_escala,
+        });
+      }
+      setPilhaDesfazer((prev) => prev.slice(0, -1));
+      setPilhaRefazer((prev) => [...prev, entrada]);
+    } catch (err) {
+      setHistoricoError(err instanceof Error ? err.message : "Não foi possível desfazer.");
+    } finally {
+      setDesfazendoOuRefazendo(false);
+    }
+  }
+
+  async function handleRefazer() {
+    if (desfazendoOuRefazendo || pilhaRefazer.length === 0) return;
+    const entrada = pilhaRefazer[pilhaRefazer.length - 1];
+    setDesfazendoOuRefazendo(true);
+    setHistoricoError(null);
+    try {
+      if (entrada.depois === null) {
+        // id ATUAL da linha, não o do histórico — um desfazer intermediário
+        // pode ter recriado a linha com um id novo.
+        const idAtual = elementoPorAreaId.get(entrada.areaId)?.id;
+        if (idAtual) {
+          await removerElementoMutation.mutateAsync({ id: idAtual, composicao_id: composicaoId });
+        }
+      } else {
+        await salvarElementoMutation.mutateAsync({
+          composicao_id: composicaoId,
+          area_id: entrada.areaId,
+          elemento_id: entrada.depois.elemento_id ?? undefined,
+          valor_texto: entrada.depois.valor_texto ?? undefined,
+          deslocamento_x_px: entrada.depois.deslocamento_x_px,
+          deslocamento_y_px: entrada.depois.deslocamento_y_px,
+          fator_escala: entrada.depois.fator_escala,
+        });
+      }
+      setPilhaRefazer((prev) => prev.slice(0, -1));
+      setPilhaDesfazer((prev) => [...prev, entrada]);
+    } catch (err) {
+      setHistoricoError(err instanceof Error ? err.message : "Não foi possível refazer.");
+    } finally {
+      setDesfazendoOuRefazendo(false);
+    }
+  }
 
   function handleSalvarNome() {
     if (salvarComposicao.isPending) return;
@@ -1173,7 +1289,7 @@ function ComposicaoWorkspace({
             <Skeleton className="aspect-video w-full max-w-xl" />
           ) : (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Label htmlFor="composicao-zoom" className="shrink-0">
                   Zoom
                 </Label>
@@ -1189,7 +1305,32 @@ function ComposicaoWorkspace({
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={pilhaDesfazer.length === 0 || desfazendoOuRefazendo}
+                  onClick={handleDesfazer}
+                  aria-label="Desfazer"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={pilhaRefazer.length === 0 || desfazendoOuRefazendo}
+                  onClick={handleRefazer}
+                  aria-label="Refazer"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
               </div>
+              {historicoError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {historicoError}
+                </p>
+              )}
               <div
                 ref={containerRef}
                 className="relative w-full max-w-xl overflow-hidden rounded-md border border-border bg-muted"
@@ -1221,6 +1362,7 @@ function ComposicaoWorkspace({
                     containerRef={containerRef}
                     templateLarguraPx={template.largura_px}
                     templateAlturaPx={template.altura_px}
+                    onAcaoAplicada={registrarHistorico}
                   />
                 ))}
               </div>
@@ -1278,6 +1420,7 @@ function ComposicaoWorkspace({
             composicaoId={composicaoId}
             composicaoElemento={elementoPorAreaId.get(areaSelecionada.id)}
             onFechar={() => setAreaSelecionada(null)}
+            onAcaoAplicada={registrarHistorico}
           />
         ) : (
           <CategoriasElementoBrowse categorias={CATEGORIAS_ELEMENTO} />
