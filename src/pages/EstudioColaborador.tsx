@@ -1854,6 +1854,7 @@ export default function EstudioColaborador() {
         rotuloAcao="Trocar mesmo assim"
         pendente={false}
         erro={null}
+        variantePerigosa={false}
         onConfirm={handleConfirmarTrocaTemplate}
       />
     </div>

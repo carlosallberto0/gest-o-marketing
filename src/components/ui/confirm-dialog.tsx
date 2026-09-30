@@ -22,6 +22,10 @@ interface ConfirmDialogProps {
   pendente: boolean;
   erro: string | null;
   onConfirm: () => void;
+  // default true preserva os usos existentes (todos ações destrutivas de
+  // verdade — "Desativar"/"Excluir"); passar false pra confirmação que não
+  // descarta dado (ex.: trocar de template com composição em andamento).
+  variantePerigosa?: boolean;
 }
 
 export function ConfirmDialog({
@@ -34,6 +38,7 @@ export function ConfirmDialog({
   pendente,
   erro,
   onConfirm,
+  variantePerigosa = true,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -50,7 +55,7 @@ export function ConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            className={cn(buttonVariants({ variant: "destructive" }))}
+            className={cn(buttonVariants({ variant: variantePerigosa ? "destructive" : "default" }))}
             onClick={(event) => {
               event.preventDefault();
               onConfirm();
