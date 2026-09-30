@@ -53,6 +53,7 @@ import {
   ChevronDown,
   Undo2,
   Redo2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -1124,11 +1125,17 @@ function ComposicaoWorkspace({
     try {
       if (entrada.depois === null) {
         // id ATUAL da linha, não o do histórico — um desfazer intermediário
-        // pode ter recriado a linha com um id novo.
+        // pode ter recriado a linha com um id novo. Se o cache de
+        // composicaoElementos ainda não refletiu essa recriação (invalidação
+        // dispara refetch em background, não aguardado), idAtual vem
+        // undefined — nesse caso NÃO fingir sucesso: erro visível e a
+        // entrada continua em pilhaRefazer para o usuário tentar de novo.
         const idAtual = elementoPorAreaId.get(entrada.areaId)?.id;
-        if (idAtual) {
-          await removerElementoMutation.mutateAsync({ id: idAtual, composicao_id: composicaoId });
+        if (!idAtual) {
+          setHistoricoError("Não foi possível refazer: o elemento ainda está sendo atualizado, tente novamente em instantes.");
+          return;
         }
+        await removerElementoMutation.mutateAsync({ id: idAtual, composicao_id: composicaoId });
       } else {
         await salvarElementoMutation.mutateAsync({
           composicao_id: composicaoId,
@@ -1313,7 +1320,11 @@ function ComposicaoWorkspace({
                   onClick={handleDesfazer}
                   aria-label="Desfazer"
                 >
-                  <Undo2 className="h-4 w-4" />
+                  {desfazendoOuRefazendo ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Undo2 className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1323,7 +1334,11 @@ function ComposicaoWorkspace({
                   onClick={handleRefazer}
                   aria-label="Refazer"
                 >
-                  <Redo2 className="h-4 w-4" />
+                  {desfazendoOuRefazendo ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Redo2 className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               {historicoError && (
