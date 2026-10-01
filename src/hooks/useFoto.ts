@@ -13,13 +13,23 @@ type FotoBucket =
   | "estudio-elementos"
   | "estudio-composicoes";
 
+// Storage key do Supabase rejeita caractere fora de ASCII (ex.: "Ç", "ã") com
+// InvalidKey — nome de arquivo do usuário vem sem essa garantia, por isso
+// sempre sanitiza antes de montar o path.
+function sanitizarNomeArquivo(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9.\-_]/g, "_");
+}
+
 // Buckets privados — path é sempre "{entidade_id}/{arquivo}" (ADR-009,
 // migration 20260908160000_system_options_codigo_sequencial_fotos.sql).
 // foto_url na tabela de negócio guarda esse path, nunca uma URL pública.
 export function useUploadFoto(bucket: FotoBucket) {
   return useMutation({
     mutationFn: async ({ entidadeId, file }: { entidadeId: string; file: File }) => {
-      const path = `${entidadeId}/${Date.now()}-${file.name}`;
+      const path = `${entidadeId}/${Date.now()}-${sanitizarNomeArquivo(file.name)}`;
       const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
       if (error) throw error;
       return path;
