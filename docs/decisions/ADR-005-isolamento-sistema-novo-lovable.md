@@ -18,3 +18,5 @@ Simultaneamente, existe uma correção de segurança já pronta e revisada (T-F,
 6. O projeto Supabase do sistema novo é **`qlezexylaixllhakpezv`** (`https://qlezexylaixllhakpezv.supabase.co`), confirmado vazio pelo usuário em 2026-09-08. `.env` e `supabase/config.toml` da branch `v2/fase-0-fundacao` foram atualizados para apontar para ele, recuperando apenas essas duas partes do `git stash` — a mudança em `src/hooks/useAccessLinks.ts` (conserto específico do schema antigo) permanece só no stash, sem uso no sistema novo.
 
 **Consequência.** Aceita-se um pequeno período de manutenção adicional no sistema antigo (só a correção de segurança), para não deixar uma falha já conhecida aberta enquanto a reconstrução avança. Em troca, evita-se o risco de o sync do Lovable sobrescrever ou se confundir com o código do sistema novo, sem precisar migrar para um repositório separado.
+
+**Atualização (2026-10-01).** O usuário confirmou que o Lovable não tem nenhuma conexão com este projeto, em nenhuma instância. As restrições dos itens 2, 4 e 5, que condicionavam o envio para `main` à desconexão do Lovable, deixam de valer.
