@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
 
 const Login = lazy(() => import("@/pages/Login"));
+const RedefinirSenha = lazy(() => import("@/pages/RedefinirSenha"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Pdvs = lazy(() => import("@/pages/Pdvs"));
 const Outdoors = lazy(() => import("@/pages/Outdoors"));
@@ -116,6 +117,7 @@ export default function App() {
           >
             <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route
               path="/"
               element={
