@@ -1,3 +1,4 @@
+import { Copy } from "lucide-react";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   useAprovacaoItens,
@@ -228,6 +229,19 @@ function AprovacaoDetalhePainel({ itemId, onClose }: AprovacaoDetalhePainelProps
   const [revisoresForm, setRevisoresForm] = useState<RevisorFormRow[]>([]);
   const [envioSubmitting, setEnvioSubmitting] = useState(false);
   const [envioError, setEnvioError] = useState<string | null>(null);
+  const [linkCopiadoId, setLinkCopiadoId] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const copiarLink = async (revisorId: string, token: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/aprovacao/${token}`);
+      setLinkError(null);
+      setLinkCopiadoId(revisorId);
+    } catch {
+      setLinkCopiadoId(null);
+      setLinkError("Não foi possível copiar o link. Verifique a permissão do navegador e tente novamente.");
+    }
+  };
 
   async function handleArquivoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -366,14 +380,36 @@ function AprovacaoDetalhePainel({ itemId, onClose }: AprovacaoDetalhePainelProps
                   <span className="font-medium text-foreground">
                     {revisor.nome} <span className="font-normal text-muted-foreground">({revisor.email})</span>
                   </span>
-                  <Badge variant={REVISOR_STATUS_VARIANT[revisor.status]}>
-                    {REVISOR_STATUS_LABEL[revisor.status]}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {revisor.status === "pending" &&
+                      (new Date(revisor.token_expira_em) <= new Date() ? (
+                        <span className="text-xs text-muted-foreground">Link expirado</span>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Copiar link de aprovação de ${revisor.nome}`}
+                          onClick={() => copiarLink(revisor.id, revisor.token)}
+                        >
+                          <Copy className="mr-1 h-4 w-4" aria-hidden="true" />
+                          {linkCopiadoId === revisor.id ? "Link copiado" : "Copiar link"}
+                        </Button>
+                      ))}
+                    <Badge variant={REVISOR_STATUS_VARIANT[revisor.status]}>
+                      {REVISOR_STATUS_LABEL[revisor.status]}
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Nenhum revisor definido ainda.</p>
+          )}
+          {linkError && (
+            <p role="alert" className="text-sm text-destructive">
+              {linkError}
+            </p>
           )}
         </div>
 
