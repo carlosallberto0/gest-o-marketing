@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { Button } from "@/components/ui/button";
 
 const Login = lazy(() => import("@/pages/Login"));
@@ -84,9 +85,10 @@ function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col md:flex-row">
       <MobileNav />
       <AppSidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />
-        <main className="flex-1 p-4 md:p-8">
+        <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 md:p-6 lg:p-8">
+          <SectionTabs />
           <Suspense
             fallback={
               <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">

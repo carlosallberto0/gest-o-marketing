@@ -1,4 +1,4 @@
-import { NAV_GROUPS } from "@/lib/navigation";
+import { ALL_PAGES } from "@/lib/navigation";
 import { usePdvs } from "@/hooks/usePdvs";
 import { useCampanhas } from "@/hooks/useCampanhas";
 
@@ -32,12 +32,7 @@ export function useBuscaGlobal(termo: string, ativo: boolean): BuscaGlobalGrupo[
   const termoLower = termo.trim().toLowerCase();
   if (!termoLower) return [];
 
-  const paginas = NAV_GROUPS.flatMap((grupo) =>
-    grupo.items
-      .flatMap((item) => [item, ...(item.children ?? [])])
-      .filter((item) => item.label.toLowerCase().includes(termoLower))
-      .map((item) => ({ to: item.to, label: item.label })),
-  );
+  const paginas = ALL_PAGES.filter((item) => item.label.toLowerCase().includes(termoLower));
 
   const pdvsFiltrados = (pdvs ?? [])
     .filter((pdv) => pdv.nome.toLowerCase().includes(termoLower) || pdv.codigo.toLowerCase().includes(termoLower))

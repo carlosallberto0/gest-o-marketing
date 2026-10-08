@@ -9,7 +9,7 @@ import { useMinhasPermissoes } from "@/hooks/useMinhasPermissoes";
 export function useVisibleNavGroups(): NavGroup[] {
   const { podeAcessar } = useMinhasPermissoes();
 
-  function itemPermitido(item: NavItem): boolean {
+  function itemPermitido(item: { requiredPermission?: NavItem["requiredPermission"] }): boolean {
     return (
       !item.requiredPermission ||
       podeAcessar(
@@ -23,8 +23,6 @@ export function useVisibleNavGroups(): NavGroup[] {
 
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items
-      .filter(itemPermitido)
-      .map((item) => ({ ...item, children: item.children?.filter(itemPermitido) })),
+    items: group.items.filter(itemPermitido),
   })).filter((group) => group.items.length > 0);
 }
